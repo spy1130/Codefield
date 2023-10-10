@@ -1,0 +1,4 @@
+*** Using Compiler 'V5.06 update 7 (build 960)', folder: 'E:\Applications\Keil_5\ARM\compiler V5\Bin'
+Build target 'Target 1'
+Note: source file '.\start\startup_stm32f10x_md.s' - object file renamed from '.\Objects\startup_stm32f10x_md.o' to '.\Objects\startup_stm32f10x_md_1.o'.".\Objects\Project.axf" - 0 Error(s), 0 Warning(s).
+Build Time Elapsed:  00:00:05

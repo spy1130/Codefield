@@ -1,0 +1,43 @@
+﻿  pch.cpp
+  ClassView.cpp
+  FileView.cpp
+  MainFrm.cpp
+  MFCApplication1.cpp
+  MFCApplication1Doc.cpp
+  MFCApplication1View.cpp
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(157,48): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(300,71): error C2440: “=”: 无法从“const char [39]”转换为“LPCWSTR”
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(300,29): message : 与指向的类型无关；强制转换要求 reinterpret_cast、C 样式强制转换或函数样式强制转换
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(301,33): warning C4129: “i”: 不可识别的字符转义序列
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(301,44): error C2440: “=”: 无法从“const char [9]”转换为“LPCWSTR”
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(301,33): message : 与指向的类型无关；强制转换要求 reinterpret_cast、C 样式强制转换或函数样式强制转换
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(314,30): error C2440: “=”: 无法从“wchar_t *”转换为“char *”
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(314,27): message : 与指向的类型无关；强制转换要求 reinterpret_cast、C 样式强制转换或函数样式强制转换
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(320,22): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(330,4): error C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(333,4): error C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(338,12): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(339,4): error C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(340,4): error C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(344,5): error C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(357,4): error C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(360,4): error C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(381,54): error C2665: “AfxMessageBox”: 2 个重载中没有一个可以转换所有参数类型
+E:\Applications\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\atlmfc\include\afxwin.h(6549,12): message : 可能是“int AfxMessageBox(UINT,UINT,UINT)”
+E:\Applications\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\atlmfc\include\afxwin.h(6547,12): message : 或    “int AfxMessageBox(LPCTSTR,UINT,UINT)”
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(381,54): message : 尝试匹配参数列表“(const char [26], long, int)”时
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(375,2): error C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(378,10): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(827,47): error C2440: “=”: 无法从“const char [15]”转换为“LPCWSTR”
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(827,29): message : 与指向的类型无关；强制转换要求 reinterpret_cast、C 样式强制转换或函数样式强制转换
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(828,39): error C2440: “=”: 无法从“const char [4]”转换为“LPCWSTR”
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(828,33): message : 与指向的类型无关；强制转换要求 reinterpret_cast、C 样式强制转换或函数样式强制转换
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(839,30): error C2440: “=”: 无法从“wchar_t *”转换为“char *”
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(839,27): message : 与指向的类型无关；强制转换要求 reinterpret_cast、C 样式强制转换或函数样式强制转换
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(845,22): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(856,4): error C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Codefield\code_c++\04 北交-图像处理与机器学习\{1}--第一章绪论\{6}--课程实验平台及实验图像\test\MFCApplication1\MFCApplication1View.cpp(859,4): error C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  OutputWnd.cpp
+  PropertiesWnd.cpp
+  ViewTree.cpp
+  正在生成代码...

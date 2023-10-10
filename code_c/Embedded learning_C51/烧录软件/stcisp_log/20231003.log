@@ -1,0 +1,75 @@
+[2023-10-03 16:54:23] : Begin
+--------------------
+*MCUTYPE* : STC89C52RC/LE52RC
+*FILENAME* : C:\Users\asus\Desktop\fireout_car2_fengjie - 副本\Objects\fireout_car_2.hex
+*FILETIME* : 2023年10月03日, 16:53:59
+*FILESIZE* : 29795 (0x007463)
+*CODESIZE* : 8192 (0x002000)
+*CHECKSUM* : 0x000F75EA
+*ISPMODE* : 2
+*ISPRESULT* : -1
+--------------------
+[2023-10-03 16:54:33] : End
+--------------------------------------------------
+[2023-10-03 16:55:08] : Begin
+--------------------
+*MCUTYPE* : STC89C58RD+/LE58RD+
+*FILENAME* : C:\Users\asus\Desktop\fireout_car2_fengjie - 副本\Objects\fireout_car_2.hex
+*FILETIME* : 2023年10月03日, 16:53:59
+*FILESIZE* : 29795 (0x007463)
+*CODESIZE* : 8192 (0x002000)
+*CHECKSUM* : 0x000F75EA
+*ISPMODE* : 2
+*ISPRESULT* : 4
+--------------------
+[2023-10-03 16:55:10] : End
+--------------------------------------------------
+[2023-10-03 16:55:59] : Begin
+--------------------
+*MCUTYPE* : STC89C58RD+/LE58RD+
+*ISPMODE* : 1
+*ISPRESULT* : 5
+--------------------
+[2023-10-03 16:56:02] : End
+--------------------------------------------------
+[2023-10-03 16:56:09] : Begin
+--------------------
+*MCUTYPE* : STC89C58RD+/LE58RD+
+*MCUID* : F108C62407905F
+*FILENAME* : C:\Users\asus\Desktop\fireout_car2_fengjie - 副本\Objects\fireout_car_2.hex
+*FILETIME* : 2023年10月03日, 16:53:59
+*FILESIZE* : 29795 (0x007463)
+*CODESIZE* : 10468 (0x0028E4)
+*CHECKSUM* : 0x001364B5
+*ISPMODE* : 2
+*ISPRESULT* : 0
+--------------------
+[2023-10-03 16:56:19] : End
+--------------------------------------------------
+[2023-10-03 16:58:42] : Begin
+--------------------
+*MCUTYPE* : STC89C58RD+/LE58RD+
+*FILENAME* : C:\Users\asus\Desktop\fireout_car2_fengjie - 副本\Objects\fireout_car_2.hex
+*FILETIME* : 2023年10月03日, 16:58:41
+*FILESIZE* : 29795 (0x007463)
+*CODESIZE* : 10468 (0x0028E4)
+*CHECKSUM* : 0x001364C5
+*ISPMODE* : 2
+*ISPRESULT* : 3
+--------------------
+[2023-10-03 16:58:45] : End
+--------------------------------------------------
+[2023-10-03 16:58:49] : Begin
+--------------------
+*MCUTYPE* : STC89C58RD+/LE58RD+
+*MCUID* : F108C62407905F
+*FILENAME* : C:\Users\asus\Desktop\fireout_car2_fengjie - 副本\Objects\fireout_car_2.hex
+*FILETIME* : 2023年10月03日, 16:58:41
+*FILESIZE* : 29795 (0x007463)
+*CODESIZE* : 10468 (0x0028E4)
+*CHECKSUM* : 0x001364C5
+*ISPMODE* : 2
+*ISPRESULT* : 0
+--------------------
+[2023-10-03 16:58:59] : End
+--------------------------------------------------

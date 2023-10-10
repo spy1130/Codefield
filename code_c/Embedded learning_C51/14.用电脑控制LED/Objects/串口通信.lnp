@@ -1,0 +1,6 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\Delay.obj",
+".\Objects\UART.obj" 
+TO ".\Objects\串口通信" 
+PRINT(".\Listings\串口通信.m51") RAMSIZE(256) 

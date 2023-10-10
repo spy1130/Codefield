@@ -1,0 +1,4 @@
+--c99 --gnu -c --cpu Cortex-M3 -g -O0 --apcs=interwork --split_sections -I .\start -I .\library -I .\System -I .\Hardware -I .\User
+-IE:\Applications\Keil_5\ARM\PACK\Keil\STM32F1xx_DFP\2.4.1\Device\Include
+-D__UVISION_VERSION="538" -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER
+-o .\objects\encoder.o --omf_browse .\objects\encoder.crf --depend .\objects\encoder.d "Hardware\Encoder.c"
