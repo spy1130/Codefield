@@ -1,0 +1,24 @@
+--cpu Cortex-M3
+"gpio_exit\startup_stm32f103xb.o"
+"gpio_exit\main.o"
+"gpio_exit\gpio.o"
+"gpio_exit\stm32f1xx_it.o"
+"gpio_exit\stm32f1xx_hal_msp.o"
+"gpio_exit\stm32f1xx_hal_gpio_ex.o"
+"gpio_exit\stm32f1xx_hal_tim.o"
+"gpio_exit\stm32f1xx_hal_tim_ex.o"
+"gpio_exit\stm32f1xx_hal.o"
+"gpio_exit\stm32f1xx_hal_rcc.o"
+"gpio_exit\stm32f1xx_hal_rcc_ex.o"
+"gpio_exit\stm32f1xx_hal_gpio.o"
+"gpio_exit\stm32f1xx_hal_dma.o"
+"gpio_exit\stm32f1xx_hal_cortex.o"
+"gpio_exit\stm32f1xx_hal_pwr.o"
+"gpio_exit\stm32f1xx_hal_flash.o"
+"gpio_exit\stm32f1xx_hal_flash_ex.o"
+"gpio_exit\stm32f1xx_hal_exti.o"
+"gpio_exit\system_stm32f1xx.o"
+--strict --scatter "GPIO_EXIT\GPIO_EXIT.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list "GPIO_EXIT.map" -o GPIO_EXIT\GPIO_EXIT.axf
