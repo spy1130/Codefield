@@ -1,0 +1,562 @@
+C51 COMPILER V9.54   MAIN                                                                  12/25/2017 21:13:40 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ma
+                    -in.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.h>
+   2          #include <delay.h>
+   3          #include <iic.h>
+   4          #include <ds1302.h>
+   5          
+   6          #define TX P10
+   7          #define RX P11
+   8          #define uchar unsigned char
+   9          #define uint unsigned int
+  10          #define somenop1 {_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();}
+  11          
+  12          //超声波不宜用延时数码管显示
+  13          uint ss1,distance;
+  14          uchar yi,er,san,si,wu,liu,qi,ba;
+  15          uchar discount,open=0;
+  16          uchar code tab[13]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xbf,0xff,0x00};
+  17          uchar dsbuff[8]={11,11,11,11,11,11,11,11};
+  18          uchar s4,s5,s6,s7;
+  19          uchar shi_shan,fen_shan,miao_shan;
+  20          uchar ss2,ss3,ss4,ceju_flag,s_liang,f_liang,m_liang;
+  21          uchar dis_flag,baocun_flag,beep_distance;
+  22          uchar led_shan_flag,l_liang;
+  23          uchar flag_1=1;
+  24          
+  25          void Timer0Init(void);
+  26          void Timer1Init(void);
+  27          void display();
+  28          void keyscan();
+  29          void ledctrl(uchar lednum,uchar demand);
+  30          void fengming(uchar demand);
+  31          void shizhong_shan();
+  32          void shizhong_handle();
+  33          void distance_handle();
+  34          uint dis_get();
+  35          void sendwave();
+  36          void display1(uchar yi,uchar er);
+  37          void display2(uchar san,uchar si);
+  38          void display3(uchar wu,uchar liu);
+  39          void display4(uchar qi,uchar ba);
+  40          
+  41          void allinit()
+  42          {
+  43   1        P2=0x80;P0=0xff;
+  44   1        P2=0xa0;P0=0x00;
+  45   1        P2=0xc0;P0=0xff;
+  46   1        P2=0xe0;P0=0xff;
+  47   1      }
+  48          
+  49          void main()
+  50          {   
+  51   1        Timer0Init(); 
+  52   1        Timer1Init();
+  53   1        EA=1;
+  54   1        ET0=1;  
+C51 COMPILER V9.54   MAIN                                                                  12/25/2017 21:13:40 PAGE 2   
+
+  55   1        beep_distance=iicread(0x00);
+  56   1        dswrite(); 
+  57   1        while(1)
+  58   1        {
+  59   2          if(open==0)
+  60   2          {
+  61   3            ledctrl(1,1);
+  62   3            dsbuff[0]=12;
+  63   3            dsbuff[1]=12;
+  64   3            dsbuff[2]=12;
+  65   3            dsbuff[3]=12;
+  66   3            dsbuff[4]=12;
+  67   3            dsbuff[5]=12;
+  68   3            dsbuff[6]=12;
+  69   3            dsbuff[7]=12;
+  70   3            fengming(1);    
+  71   3          }
+  72   2          else if(open==1)
+  73   2          {
+  74   3            if(flag_1==1)
+  75   3            {
+  76   4              allinit();
+  77   4              flag_1=0;
+  78   4            } 
+  79   3            keyscan();
+  80   3            dsread();
+  81   3            if(s7==0)
+  82   3            {
+  83   4              shizhong_handle();
+  84   4            }
+  85   3            if(s7==1)
+  86   3            {
+  87   4              distance_handle();
+  88   4            }
+  89   3          }
+  90   2        }     
+  91   1      }
+  92          
+  93          void distance_handle()
+  94          {
+  95   1        switch(s6)
+  96   1        {
+  97   2          case 1:dis_flag=1;break;
+  98   2          case 2:dis_flag=0;baocun_flag=1;s6=0;break;
+  99   2        }
+ 100   1        if(ceju_flag==1)
+ 101   1        {
+ 102   2          distance=dis_get();
+ 103   2          if(distance<beep_distance)
+ 104   2          {
+ 105   3            fengming(1);
+ 106   3            led_shan_flag=0;
+ 107   3          }
+ 108   2          else if((distance<1.2*beep_distance)&&(distance>=beep_distance))
+ 109   2          {
+ 110   3            fengming(0);
+ 111   3            led_shan_flag=1;
+ 112   3          }
+ 113   2          else if(distance>=1.2*beep_distance)   //注意条件！！
+ 114   2          {
+ 115   3            fengming(0);
+ 116   3            ledctrl(1,0);
+C51 COMPILER V9.54   MAIN                                                                  12/25/2017 21:13:40 PAGE 3   
+
+ 117   3            led_shan_flag=0;
+ 118   3          }
+ 119   2          ceju_flag=0;
+ 120   2        }
+ 121   1        if(s6==0)
+ 122   1        {
+ 123   2          dsbuff[0]=11;
+ 124   2          dsbuff[1]=11;
+ 125   2          dsbuff[2]=11;
+ 126   2          dsbuff[3]=11;
+ 127   2          dsbuff[4]=11;
+ 128   2          dsbuff[5]=distance/100;
+ 129   2          dsbuff[6]=distance%100/10;
+ 130   2          dsbuff[7]=distance%10;
+ 131   2        }
+ 132   1        else 
+ 133   1        {
+ 134   2          if(dis_flag==1)
+ 135   2          {
+ 136   3            dsbuff[0]=11;
+ 137   3            dsbuff[1]=11;
+ 138   3            dsbuff[2]=11;
+ 139   3            dsbuff[3]=11;
+ 140   3            dsbuff[4]=11;
+ 141   3            dsbuff[5]=11;
+ 142   3            dsbuff[6]=beep_distance/10;
+ 143   3            dsbuff[7]=beep_distance%10;
+ 144   3            if(s5==1)
+ 145   3            {
+ 146   4              s5=0;
+ 147   4              beep_distance+=1;
+ 148   4            }
+ 149   3            else if(s4==1)
+ 150   3            {
+ 151   4              s4=0;
+ 152   4              beep_distance-=1;
+ 153   4            } 
+ 154   3          }
+ 155   2        } 
+ 156   1        if(baocun_flag==1)
+ 157   1        {
+ 158   2          baocun_flag=0;
+ 159   2          iicwrite(0x00,beep_distance);
+ 160   2        }
+ 161   1      }
+ 162          
+ 163          uint dis_get()
+ 164          {
+ 165   1        uint dis;
+ 166   1        sendwave();
+ 167   1        TR1=1;
+ 168   1        while((RX)&&(TF1==0));
+ 169   1        TR1=0;
+ 170   1        if(TF1)
+ 171   1        {
+ 172   2          TF1=0;
+ 173   2          dis=999;
+ 174   2        }
+ 175   1        else 
+ 176   1        {
+ 177   2          dis=(TH1<<8)|(TL1);
+ 178   2          dis=dis*0.017; 
+C51 COMPILER V9.54   MAIN                                                                  12/25/2017 21:13:40 PAGE 4   
+
+ 179   2        }
+ 180   1        TH1=TL1=0;
+ 181   1        return dis;
+ 182   1      }
+ 183          
+ 184          void sendwave()
+ 185          {
+ 186   1        TX=1;
+ 187   1        somenop1;somenop1;somenop1;somenop1;somenop1;
+ 188   1        somenop1;somenop1;somenop1;somenop1;somenop1;
+ 189   1        TX=0;                   
+ 190   1      }
+ 191          
+ 192          void time_0() interrupt 1
+ 193          {
+ 194   1        display();
+ 195   1        if(ss1<500)
+ 196   1        ++ss1;
+ 197   1        if(ss1==500)
+ 198   1        {
+ 199   2          open=1;
+ 200   2          ss1=501;
+ 201   2        }
+ 202   1        shizhong_shan();
+ 203   1        if(++ss3==200)
+ 204   1        { 
+ 205   2          ss3=0;
+ 206   2          ceju_flag=1;
+ 207   2        }
+ 208   1        if(led_shan_flag==1)
+ 209   1        {
+ 210   2          if(++ss4==200)
+ 211   2          {
+ 212   3            ss4=0;
+ 213   3            if(l_liang==0)
+ 214   3            {
+ 215   4              l_liang=1;
+ 216   4              ledctrl(1,1);
+ 217   4            }
+ 218   3            else 
+ 219   3            {
+ 220   4              l_liang=0;
+ 221   4              ledctrl(1,0);
+ 222   4            }
+ 223   3          }
+ 224   2        }
+ 225   1        
+ 226   1      }
+ 227          
+ 228          
+ 229          void keyscan()
+ 230          {
+ 231   1        if(P33==0)
+ 232   1        {
+ 233   2          Delay5ms();
+ 234   2          if(P33==0)
+ 235   2          {
+ 236   3            if(s6>0)
+ 237   3            s4=1;
+ 238   3          }
+ 239   2          while(!P33);
+ 240   2        }
+C51 COMPILER V9.54   MAIN                                                                  12/25/2017 21:13:40 PAGE 5   
+
+ 241   1        else if(P32==0)
+ 242   1        {
+ 243   2          Delay5ms();
+ 244   2          if(P32==0)
+ 245   2          {
+ 246   3            if(s6>0)
+ 247   3            s5=1;
+ 248   3          }
+ 249   2          while(!P32);
+ 250   2        }
+ 251   1        else if(P31==0)
+ 252   1        {
+ 253   2          Delay5ms();
+ 254   2          if(P31==0)
+ 255   2          {
+ 256   3            s6++;
+ 257   3          }
+ 258   2          while(!P31);
+ 259   2        }
+ 260   1        else if(P30==0)
+ 261   1        {
+ 262   2          Delay5ms();
+ 263   2          if(P30==0)
+ 264   2          {
+ 265   3            if(s7==0) {s7=1;s6=0;}
+ 266   3            else {s7=0;s6=0;}
+ 267   3          }
+ 268   2          while(!P30);
+ 269   2        }
+ 270   1      }
+ 271          void display()
+ 272          {
+ 273   1        P2=(P2&0x1f)|0xe0;
+ 274   1        P0=0xff;
+ 275   1        P2=P2&0x1f;
+ 276   1      
+ 277   1        P2=(P2&0x1f)|0xc0;
+ 278   1        P0=1<<discount;
+ 279   1        P2=P2&0x1f;
+ 280   1      
+ 281   1        P2=(P2&0x1f)|0xe0;
+ 282   1        P0=tab[dsbuff[discount]];
+ 283   1        P2=P2&0x1f;
+ 284   1      
+ 285   1        if(++discount==8) discount=0;
+ 286   1      }
+ 287          void Timer0Init(void)   //2毫秒@11.0592MHz
+ 288          {
+ 289   1        AUXR |= 0x80;         //定时器时钟1T模式
+ 290   1        TMOD &= 0xF0;         //设置定时器模式
+ 291   1        TL0 = 0x9A;           //设置定时初值
+ 292   1        TH0 = 0xA9;           //设置定时初值
+ 293   1        TF0 = 0;              //清除TF0标志
+ 294   1        TR0 = 1;              //定时器0开始计时
+ 295   1      }
+ 296          void ledctrl(uchar lednum,uchar demand)
+ 297          {
+ 298   1        uchar i;
+ 299   1        static uchar led_state=0;
+ 300   1        lednum--;
+ 301   1        i=led_state&(0x01<<lednum);
+ 302   1        if((i==0)&&(demand==1))
+C51 COMPILER V9.54   MAIN                                                                  12/25/2017 21:13:40 PAGE 6   
+
+ 303   1        {
+ 304   2          EA=0;
+ 305   2          led_state=0x01<<lednum;
+ 306   2          P2=(P2&0x1f)|0x80;
+ 307   2          P0=~(0x01<<lednum);
+ 308   2          P2=P2&0x1f;
+ 309   2          EA=1;
+ 310   2        }
+ 311   1        else if((i>0)&&(demand==0))
+ 312   1        {
+ 313   2          EA=0;
+ 314   2          led_state=0;
+ 315   2          P2=(P2&0x1f)|0x80;
+ 316   2          P0=0xff;
+ 317   2          P2=P2&0x1f;
+ 318   2          EA=1;
+ 319   2        } 
+ 320   1      }
+ 321          
+ 322          void fengming(uchar demand)
+ 323          {
+ 324   1        static xiang_state=0; 
+ 325   1        if((demand==1)&&(xiang_state==0))
+ 326   1        {
+ 327   2          P0=0x00;
+ 328   2          EA=0;
+ 329   2          P2=(P2&0x1f)|0xa0;
+ 330   2          P0=0x40;
+ 331   2          P2=P2&0x1f;
+ 332   2          xiang_state=1;
+ 333   2          EA=1; 
+ 334   2        }
+ 335   1        else if((demand==0)&&(xiang_state==1))
+ 336   1        {
+ 337   2          xiang_state=0;
+ 338   2          P2=(P2&0x1f)|0xa0;
+ 339   2          P0=0x00;
+ 340   2          P2=P2&0x1f;
+ 341   2        }
+ 342   1      }
+ 343          void shizhong_shan()
+ 344          {
+ 345   1        if(shi_shan==1)
+ 346   1        {
+ 347   2          if(++ss2==200)
+ 348   2          {
+ 349   3            ss2=0;
+ 350   3            if(s_liang==1)
+ 351   3            {
+ 352   4              s_liang=0;
+ 353   4              dsbuff[0]=shijian[2]/10;
+ 354   4              dsbuff[1]=shijian[2]%10;
+ 355   4              dsbuff[2]=10;
+ 356   4              dsbuff[3]=shijian[1]/10;
+ 357   4              dsbuff[4]=shijian[1]%10;
+ 358   4              dsbuff[5]=10;
+ 359   4              dsbuff[6]=shijian[0]/10;
+ 360   4              dsbuff[7]=shijian[0]%10;
+ 361   4            }
+ 362   3            else 
+ 363   3            {
+ 364   4              s_liang=1;
+C51 COMPILER V9.54   MAIN                                                                  12/25/2017 21:13:40 PAGE 7   
+
+ 365   4              dsbuff[0]=11;
+ 366   4              dsbuff[1]=11;
+ 367   4              dsbuff[2]=10;
+ 368   4              dsbuff[3]=shijian[1]/10;
+ 369   4              dsbuff[4]=shijian[1]%10;
+ 370   4              dsbuff[5]=10;
+ 371   4              dsbuff[6]=shijian[0]/10;
+ 372   4              dsbuff[7]=shijian[0]%10;
+ 373   4            }
+ 374   3          }
+ 375   2        }
+ 376   1        else if(fen_shan==1)
+ 377   1        {
+ 378   2          if(++ss2==200)
+ 379   2          {
+ 380   3            ss2=0;
+ 381   3            if(f_liang==1)
+ 382   3            {
+ 383   4              f_liang=0;
+ 384   4              dsbuff[0]=shijian[2]/10;
+ 385   4              dsbuff[1]=shijian[2]%10;
+ 386   4              dsbuff[2]=10;
+ 387   4              dsbuff[3]=shijian[1]/10;
+ 388   4              dsbuff[4]=shijian[1]%10;
+ 389   4              dsbuff[5]=10;
+ 390   4              dsbuff[6]=shijian[0]/10;
+ 391   4              dsbuff[7]=shijian[0]%10;
+ 392   4            }
+ 393   3            else 
+ 394   3            {
+ 395   4              f_liang=1;
+ 396   4              dsbuff[0]=shijian[2]/10;
+ 397   4              dsbuff[1]=shijian[2]%10;
+ 398   4              dsbuff[2]=10;
+ 399   4              dsbuff[3]=11;
+ 400   4              dsbuff[4]=11;
+ 401   4              dsbuff[5]=10;
+ 402   4              dsbuff[6]=shijian[0]/10;
+ 403   4              dsbuff[7]=shijian[0]%10;
+ 404   4            }
+ 405   3          }
+ 406   2        }
+ 407   1        else if(miao_shan==1)
+ 408   1        {
+ 409   2          if(++ss2==200)
+ 410   2          {
+ 411   3            ss2=0;
+ 412   3            if(m_liang==1)
+ 413   3            {
+ 414   4              m_liang=0;
+ 415   4              dsbuff[0]=shijian[2]/10;
+ 416   4              dsbuff[1]=shijian[2]%10;
+ 417   4              dsbuff[2]=10;
+ 418   4              dsbuff[3]=shijian[1]/10;
+ 419   4              dsbuff[4]=shijian[1]%10;
+ 420   4              dsbuff[5]=10;
+ 421   4              dsbuff[6]=shijian[0]/10;
+ 422   4              dsbuff[7]=shijian[0]%10;
+ 423   4            }
+ 424   3            else 
+ 425   3            {
+ 426   4              m_liang=1;
+C51 COMPILER V9.54   MAIN                                                                  12/25/2017 21:13:40 PAGE 8   
+
+ 427   4              dsbuff[0]=shijian[2]/10;
+ 428   4              dsbuff[1]=shijian[2]%10;
+ 429   4              dsbuff[2]=10;
+ 430   4              dsbuff[3]=shijian[1]/10;
+ 431   4              dsbuff[4]=shijian[1]%10;
+ 432   4              dsbuff[5]=10;
+ 433   4              dsbuff[6]=11;
+ 434   4              dsbuff[7]=11;
+ 435   4            }
+ 436   3          }
+ 437   2        }
+ 438   1      }
+ 439           
+ 440          void shizhong_handle()
+ 441          {
+ 442   1        switch(s6)
+ 443   1        {
+ 444   2          case 1:shi_shan=1;fen_shan=0;miao_shan=0;break;
+ 445   2          case 2:shi_shan=0;fen_shan=1;miao_shan=0;break;
+ 446   2          case 3:shi_shan=0;fen_shan=0;miao_shan=1;break;
+ 447   2          case 4:s6=0;break;
+ 448   2        }
+ 449   1        if(s6==0)
+ 450   1        {
+ 451   2          dsbuff[0]=shijian[2]/10;
+ 452   2          dsbuff[1]=shijian[2]%10;
+ 453   2          dsbuff[2]=10;
+ 454   2          dsbuff[3]=shijian[1]/10;
+ 455   2          dsbuff[4]=shijian[1]%10;
+ 456   2          dsbuff[5]=10;
+ 457   2          dsbuff[6]=shijian[0]/10;
+ 458   2          dsbuff[7]=shijian[0]%10;
+ 459   2        }
+ 460   1        if(shi_shan==1)
+ 461   1        {
+ 462   2          if(s5==1)
+ 463   2          {
+ 464   3            s5=0;
+ 465   3            if(shijian[2]<=22)
+ 466   3            shijian[2]=shijian[2]+1;
+ 467   3            dswrite();
+ 468   3          }
+ 469   2          else if(s4==1)
+ 470   2          {
+ 471   3            s4=0;
+ 472   3            if(shijian[2]>0)
+ 473   3            shijian[2]=shijian[2]-1;
+ 474   3            dswrite();
+ 475   3          } 
+ 476   2        }
+ 477   1        else if(fen_shan==1)    //考虑循环时分秒显示 边界判断
+ 478   1        {
+ 479   2          if(s5==1)
+ 480   2          {
+ 481   3            s5=0;
+ 482   3            if(shijian[1]<=58)
+ 483   3            shijian[1]=shijian[1]+1;
+ 484   3            dswrite();
+ 485   3          }
+ 486   2          else if(s4==1)
+ 487   2          {
+ 488   3            s4=0;
+C51 COMPILER V9.54   MAIN                                                                  12/25/2017 21:13:40 PAGE 9   
+
+ 489   3            if(shijian[1]>0)
+ 490   3            shijian[1]=shijian[1]-1;
+ 491   3            dswrite();
+ 492   3          } 
+ 493   2        }
+ 494   1        else if(miao_shan==1)
+ 495   1        {
+ 496   2          if(s5==1)
+ 497   2          {
+ 498   3            s5=0;
+ 499   3            if(shijian[0]<=58)
+ 500   3            shijian[0]=shijian[0]+1;
+ 501   3            dswrite();
+ 502   3          }
+ 503   2          else if(s4==1)
+ 504   2          {
+ 505   3            s4=0;
+ 506   3            if(shijian[0]>0)
+ 507   3            shijian[0]=shijian[0]-1;
+ 508   3            dswrite();
+ 509   3          } 
+ 510   2        } 
+ 511   1      }
+ 512          
+ 513          void Timer1Init(void)   //0微秒@11.0592MHz
+ 514          {
+ 515   1        AUXR &= 0xBF;         //定时器时钟12T模式
+ 516   1        TMOD &= 0x0F;         //设置定时器模式
+ 517   1        TL1 = 0x00;           //设置定时初值
+ 518   1        TH1 = 0x00;           //设置定时初值
+ 519   1        TF1 = 0;              //清除TF1标志
+ 520   1        TR1 = 0;              //定时器1开始计时
+ 521   1      }
+ 522            
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1685    ----
+   CONSTANT SIZE    =     13    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     45       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

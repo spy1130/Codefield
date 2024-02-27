@@ -1,0 +1,10 @@
+".\Objects\main.obj",
+".\Objects\timer.obj",
+".\Objects\bsp_ds1302.obj",
+".\Objects\bsp_init.obj",
+".\Objects\bsp_key.obj",
+".\Objects\bsp_led.obj",
+".\Objects\bsp_onewire.obj",
+".\Objects\bsp_seg.obj" 
+TO ".\Objects\308_DS18B20" 
+PRINT(".\Listings\308_DS18B20.m51") RAMSIZE(256) 

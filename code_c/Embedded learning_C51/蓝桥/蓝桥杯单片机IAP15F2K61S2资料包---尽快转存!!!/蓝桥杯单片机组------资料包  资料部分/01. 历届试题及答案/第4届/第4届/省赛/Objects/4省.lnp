@@ -1,0 +1,8 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\LED.obj",
+".\Objects\BUZZ.obj",
+".\Objects\IIC.obj",
+".\Objects\DS1302.obj" 
+TO ".\Objects\4ʡ" 
+PRINT(".\Listings\4ʡ.m51") RAMSIZE(256) 

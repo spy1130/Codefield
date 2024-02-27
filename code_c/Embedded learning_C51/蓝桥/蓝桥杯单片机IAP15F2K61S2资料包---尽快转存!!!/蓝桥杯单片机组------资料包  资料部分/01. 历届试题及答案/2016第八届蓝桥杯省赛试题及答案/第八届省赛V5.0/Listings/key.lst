@@ -1,0 +1,111 @@
+C51 COMPILER V9.54   KEY                                                                   12/22/2017 11:04:56 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE KEY
+OBJECT MODULE PLACED IN .\Objects\key.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE key.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\key
+                    -.lst) TABS(2) OBJECT(.\Objects\key.obj)
+
+line level    source
+
+   1          sbit key1 = P3^0;
+*** ERROR C202 IN LINE 1 OF key.c: 'P3': undefined identifier
+   2          sbit key2 = P3^1;
+*** ERROR C202 IN LINE 2 OF key.c: 'P3': undefined identifier
+   3          sbit key3 = P3^2;
+*** ERROR C202 IN LINE 3 OF key.c: 'P3': undefined identifier
+   4          sbit key4 = P3^3;
+*** ERROR C202 IN LINE 4 OF key.c: 'P3': undefined identifier
+   5          #define uchar unsigned char
+   6          #define uint unsigned int 
+   7          unsigned char mode;
+   8          unsigned char hour_n=0,min_n=0,sec_n=0;
+   9          uchar hour=23,min=59,sec=50,flash;
+  10          uchar hour_i,min_i,sec_i;
+  11          void delay(unsigned int x)
+  12          {
+  13   1        while(x--);
+  14   1      }
+  15          void key_func()
+  16          {
+  17   1        if(key1 == 0)
+*** ERROR C202 IN LINE 17 OF key.c: 'key1': undefined identifier
+  18   1        {
+  19   2          delay(400);
+  20   2          if(key1 == 0)
+*** ERROR C202 IN LINE 20 OF key.c: 'key1': undefined identifier
+  21   2          {
+  22   3            while(key1 == 0);
+*** ERROR C202 IN LINE 22 OF key.c: 'key1': undefined identifier
+  23   3            hour_i = hour;
+  24   3            min_i = min;
+  25   3            sec_i = sec;
+  26   3            mode++;
+  27   3            if(mode>=4) mode=0;
+  28   3          }
+  29   2        }
+  30   1        if(key3 == 0)
+*** ERROR C202 IN LINE 30 OF key.c: 'key3': undefined identifier
+  31   1        {
+  32   2          delay(400);
+  33   2          if(key3 == 0)
+*** ERROR C202 IN LINE 33 OF key.c: 'key3': undefined identifier
+  34   2          {
+  35   3            while(key3 == 0);
+*** ERROR C202 IN LINE 35 OF key.c: 'key3': undefined identifier
+  36   3            switch(mode)
+  37   3            {
+  38   4              case 1: hour_i++;if(hour_i>=24) hour_i=0;hour = hour_i;break;
+  39   4              case 2: min_i++;if(min_i>=60) min_i=0;min = min_i;break;
+  40   4              case 3: sec_i++;if(sec_i>=60) sec_i=0;sec = sec_i;break;
+  41   4              case 4: hour_n++;if(hour_n>=24) hour_n=0;break;
+  42   4              case 5: min_n++;if(min_n>=60) min_n=0;break;
+  43   4              case 6: sec_n++;if(sec_n>=60) sec_n=0;break;
+  44   4            }
+C51 COMPILER V9.54   KEY                                                                   12/22/2017 11:04:56 PAGE 2   
+
+  45   3          }
+  46   2        }
+  47   1        if(key4 == 0)
+*** ERROR C202 IN LINE 47 OF key.c: 'key4': undefined identifier
+  48   1        {
+  49   2          delay(400);
+  50   2          if(key4 == 0)
+*** ERROR C202 IN LINE 50 OF key.c: 'key4': undefined identifier
+  51   2          { 
+  52   3            if( mode == 0) mode = 7;
+  53   3            while(key4 == 0);
+*** ERROR C202 IN LINE 53 OF key.c: 'key4': undefined identifier
+  54   3            if(mode == 7) mode =0;
+  55   3            switch(mode)
+  56   3            {
+  57   4              case 1: hour_i--;if(hour_i<=0) hour_i=23;hour = hour_i;break;
+  58   4              case 2: min_i--;if(min_i<=0) min_i=59;min = min_i;break;
+  59   4              case 3: sec_i--;if(sec_i<=0) sec_i=59;sec = sec_i;break;
+  60   4              case 4: hour_n--;if(hour_n<=0) hour_n=23;break;
+  61   4              case 5: min_n--;if(min_n<=0) min_n=59;break;
+  62   4              case 6: sec_n--;if(sec_n<=0) sec_n=59;break;
+  63   4            }
+  64   3          }
+  65   2        }
+  66   1        if(key2 == 0)
+*** ERROR C202 IN LINE 66 OF key.c: 'key2': undefined identifier
+  67   1        {
+  68   2          delay(400);
+  69   2          if(key2 == 0)
+*** ERROR C202 IN LINE 69 OF key.c: 'key2': undefined identifier
+  70   2          {
+  71   3            while(key2 == 0);
+*** ERROR C202 IN LINE 71 OF key.c: 'key2': undefined identifier
+  72   3            if(mode>=4) mode++;
+  73   3            if(mode<4) mode = 4;
+  74   3            
+  75   3            if(mode>=7) mode=0;
+  76   3      
+  77   3          
+  78   3          }
+  79   2        }
+  80   1      
+  81   1      }
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  16 ERROR(S)

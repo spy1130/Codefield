@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"矩阵键盘的基本操作.obj" 
+TO "矩阵键盘" 
+RAMSIZE(256) 

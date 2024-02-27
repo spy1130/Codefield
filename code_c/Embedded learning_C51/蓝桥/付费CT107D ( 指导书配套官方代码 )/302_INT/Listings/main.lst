@@ -1,0 +1,76 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              02/07/2021 18:15:17 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\10.1 keil51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          // 使用程序前，将跳线J5调整为BTN模式（2、3引脚短接使第一列按键一端接地）
+   2          // 将跳线J13调整为IO模式（2、3引脚短接使U25或非门输入信号WR接地）
+   3          // 按下P32-INT0引脚对应的按键S5，L1状态翻转
+   4          // 按下P33-INT1引脚对应的按键S4，L2状态翻转
+   5          #include "reg52.h"
+   6          
+   7          unsigned char ucLed;
+   8          // 关闭外设
+   9          void Cls_Peripheral(void)
+  10          {
+  11   1        P0 = 0xFF;
+  12   1        P2 = P2 & 0x1F | 0x80;      // P27~P25清零，再定位Y4C
+  13   1        P2 &= 0x1F;           // P27~P25清零
+  14   1        P0 = 0;
+  15   1        P2 = P2 & 0x1F | 0xA0;      // P27~P25清零，再定位Y5C
+  16   1        P2 &= 0x1F;           // P27~P25清零
+  17   1      }
+  18          // 系统初始化
+  19          void Sys_Init(void)
+  20          {
+  21   1        EX0 = 1;
+  22   1        IT0 = 1;                // 边沿触发方式(下降沿)
+  23   1        EX1 = 1;
+  24   1        IT1 = 1;                // 边沿触发方式(下降沿)
+  25   1        EA = 1;               // 开启总中断
+  26   1      }
+  27          // 主函数
+  28          void main(void)
+  29          {
+  30   1        Cls_Peripheral();
+  31   1        Sys_Init();
+  32   1      
+  33   1        while(1);
+  34   1      }
+  35          //外部中断0中断服务函数
+  36          void isr_intr_0(void) interrupt 0
+  37          {
+  38   1        ucLed ^= 1;
+  39   1        P0 = ~ucLed;
+  40   1        P2 = P2 & 0x1F | 0x80;      // P27~P25清零，再定位Y4C
+  41   1        P2 &= 0x1F;             // P27~P25清零
+  42   1      }
+  43          //外部中断1中断服务函数
+  44          void isr_intr_1(void) interrupt 2
+  45          {
+  46   1        ucLed ^= 2;
+  47   1        P0 = ~ucLed;
+  48   1        P2 = P2 & 0x1F | 0x80;      // P27-P25清零，再定位Y4C
+  49   1        P2 &= 0x1F;             // P27-P25清零
+  50   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     96    ----
+C51 COMPILER V9.56.0.0   MAIN                                                              02/07/2021 18:15:17 PAGE 2   
+
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

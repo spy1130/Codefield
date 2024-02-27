@@ -1,0 +1,124 @@
+C51 COMPILER V9.52.0.0   EX9                                                               01/24/2015 22:43:43 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE EX9
+OBJECT MODULE PLACED IN ex9.OBJ
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE ex9.c BROWSE DEFINE(EEPROM_AT24C02) DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*******************************************************************************  
+   2          * 文件名称：开机次数存储实验,按下复位按键，或重新上电，数码管显示+1
+   3          * 实验目的：1.掌握I2C总线通讯基本特点和工作时序
+   4          *           2.掌握51单片机模拟I2C总线时序的程序设计方法
+   5          *           3.掌握EEPROM存储器的特性及AT24C02的读写操作方法
+   6          * 程序说明：使用程序时，需要在Preprocessor Symbols 中加入宏定义：EEPROM_AT24C02
+   7          * 硬件环境：IAP15F2K61S2@11.0592MHz
+   8          * 日期版本：2012-9-4/V1.0a 
+   9          *******************************************************************************/
+  10          
+  11          #include "reg52.h"  //定义51单片机特殊功能寄存器
+  12          #include "i2c.h"    //I2C总线驱动库 
+  13          #include "absacc.h"
+  14          
+  15          sfr AUXR = 0x8E; 
+  16          code unsigned char tab[] = { 0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,
+  17                                       0xff
+  18                                     };
+  19          unsigned char dspbuf[8] = {10,10,10,10,10,10,10,10};  //显示缓冲区
+  20          unsigned char dspcom = 0;
+  21          
+  22          void display(void);
+  23          
+  24          void cls_buzz()
+  25          {
+  26   1              XBYTE[0xA000] = 0;
+  27   1      }
+  28          void cls_led()
+  29          {
+  30   1              XBYTE[0x8000] = 0xFF;
+  31   1      }
+  32          
+  33          
+  34          void delay()            //10ms @11.0592MHz
+  35          {
+  36   1              unsigned char i, j;
+  37   1      
+  38   1              i = 108;
+  39   1              j = 145;
+  40   1              do
+  41   1              {
+  42   2                      while (--j);
+  43   2              } while (--i);
+  44   1      }
+  45          
+  46          //主函数
+  47          void main(void)
+  48          { 
+  49   1          unsigned char reset_cnt;  //开机次数存储 (最大存储值255)  
+  50   1          
+  51   1              cls_buzz();cls_led();
+  52   1              
+  53   1              AUXR |= 0x80;
+  54   1              TMOD &= 0xF0;
+  55   1              TL0 = 0xCD;     
+C51 COMPILER V9.52.0.0   EX9                                                               01/24/2015 22:43:43 PAGE 2   
+
+  56   1              TH0 = 0xD4;     
+  57   1              TF0 = 0;        
+  58   1              TR0 = 1;
+  59   1              ET0 = 1;
+  60   1      
+  61   1      //      write_eeprom(0x00,0x00);  //EEPROM中存储的数据需要进行初始化
+  62   1              
+  63   1          reset_cnt = read_eeprom(0x00);  //从AT24C02地址0x00中读取数据
+  64   1          reset_cnt++;
+  65   1              delay();        //延时10ms
+  66   1          write_eeprom(0x00,reset_cnt);  //向AT24C02地址0x00中写入数据
+  67   1              delay();
+  68   1      
+  69   1              EA = 1; //数据写入完成后，开机中断
+  70   1              
+  71   1          //更新显示数据
+  72   1          (reset_cnt >= 100)?(dspbuf[5] = reset_cnt/100):(dspbuf[5]=10);       
+  73   1          (reset_cnt >= 10)?(dspbuf[6] = reset_cnt%100/10):(dspbuf[6]=10);       
+  74   1          dspbuf[7] = reset_cnt%10;       
+  75   1          
+  76   1          while(1)
+  77   1          {
+  78   2              ;
+  79   2          }
+  80   1      }
+  81          
+  82          //定时器中断服务函数
+  83          void isr_timer_0(void)  interrupt 1  //默认中断优先级 1
+  84          {    
+  85   1          display();
+  86   1      }
+  87          
+  88          //显示函数
+  89          void display(void)
+  90          {   
+  91   1              XBYTE[0xE000] = 0xff;  //消隐
+  92   1              
+  93   1              XBYTE[0xC000] = (1<<dspcom);
+  94   1          XBYTE[0xE000] = tab[dspbuf[dspcom]]; //段码
+  95   1         
+  96   1          if(++dspcom == 8){
+  97   2              dspcom = 0;
+  98   2          }    
+  99   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    234    ----
+   CONSTANT SIZE    =     11    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      9       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

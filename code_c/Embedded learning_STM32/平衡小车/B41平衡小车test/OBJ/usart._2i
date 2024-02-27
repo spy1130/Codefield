@@ -1,0 +1,5 @@
+-c --cpu Cortex-M3 -D__MICROLIB -g -O0 --apcs=interwork -I ..\HARDWARE\OLED -I ..\STM32F10x_FWLib\inc -I ..\SYSTEM\delay -I ..\SYSTEM\sys -I ..\SYSTEM\usart -I ..\USER -I ..\HARDWARE\EXTI -I ..\HARDWARE\MPU6050 -I ..\HARDWARE\MPU6050\eMPL -I ..\HARDWARE\ENCODER -I ..\HARDWARE\control -I ..\HARDWARE\USB -I ..\HARDWARE\LED -I ..\HARDWARE\PWM -I ..\HARDWARE\MOTOR -I ..\HARDWARE\PWM -I ..\HARDWARE\ADC -I ..\HARDWARE\USART2 -I ..\HARDWARE\KEY -I ..\HARDWARE\UltrasonicWave -I ..\HARDWARE\TIMER -I C:\Keil_v5\ARM\Pack\ARM\CMSIS\4.3.0\CMSIS\Include -I ..\OBJ
+-ID:\Arm\Packs\Keil\STM32F1xx_DFP\2.4.0\Device\Include
+-IC:\Keil_v5\ARM\CMSIS\Include
+-D__UVISION_VERSION="536" -DSTM32F10X_MD -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER
+-o ..\obj\usart.o --omf_browse ..\obj\usart.crf --depend ..\obj\usart.d --feedback "..\OBJ\standard_balance.fed" "..\SYSTEM\usart\usart.c"

@@ -1,0 +1,69 @@
+C51 COMPILER V9.02   SMG                                                                   03/19/2016 10:01:02 PAGE 1   
+
+
+C51 COMPILER V9.02, COMPILATION OF MODULE SMG
+OBJECT MODULE PLACED IN smg.OBJ
+COMPILER INVOKED BY: D:\Program Files\keill\C51\BIN\C51.EXE smg.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include <stc15f2k60s2.h>
+   2          unsigned char code smgchar[12]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xbf,0xff};
+   3          unsigned char smgbuff[8]={0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
+   4          void smg_ds18b20(unsigned char temp,unsigned char THC,unsigned char TLC)
+   5          {
+   6   1              smgbuff[0]=smgchar[temp%10];
+   7   1              smgbuff[1]=smgchar[temp/10%10];
+   8   1              smgbuff[2]=smgchar[11];
+   9   1              smgbuff[3]=smgchar[11];
+  10   1              smgbuff[4]=smgchar[TLC%10];
+  11   1              smgbuff[5]=smgchar[TLC/10%10];
+  12   1              smgbuff[6]=smgchar[THC%10];
+  13   1              smgbuff[7]=smgchar[THC/10%10];
+  14   1      }
+  15          void Time_T0(unsigned char ms)
+  16          {
+  17   1              unsigned int temp;
+  18   1              TMOD&=0xf0;
+  19   1              TMOD|=0x00;
+  20   1              temp=11059200/12/1000;
+  21   1              temp=65536-temp*ms;
+  22   1              TH0=temp/256;
+  23   1              TL0=temp%256;
+  24   1              EA=1;
+  25   1              ET0=1;
+  26   1              TR0=1;
+  27   1      }
+  28          void smg_buff()
+  29          {
+  30   1              static unsigned char i,cnt=0x80;
+  31   1              P0=0x00;
+  32   1              P2&=0x1f;
+  33   1              P2|=0xc0;
+  34   1              P2&=0x1f;
+  35   1              P0=smgbuff[i];
+  36   1              P2|=0xe0;
+  37   1              P2&=0x1f;
+  38   1              P0=cnt>>i;
+  39   1              P2|=0xc0;
+  40   1              P2&=0x1f;
+  41   1              i++;
+  42   1              if(i==8)
+  43   1              i=0;    
+  44   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    177    ----
+   CONSTANT SIZE    =     12    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     10    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+C51 COMPILER V9.02   SMG                                                                   03/19/2016 10:01:02 PAGE 2   
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,6 @@
+".\Objects\main.obj",
+".\Objects\delay.obj",
+".\Objects\bsp_led.obj",
+".\Objects\bsp_init.obj" 
+TO ".\Objects\301_LED" 
+PRINT(".\Listings\301_LED.m51") RAMSIZE(256) 

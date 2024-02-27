@@ -1,0 +1,56 @@
+C51 COMPILER V9.59.0.0   BUZZ                                                              02/13/2022 10:35:30 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE BUZZ
+OBJECT MODULE PLACED IN .\Objects\BUZZ.obj
+COMPILER INVOKED BY: D:\Keil\Keil_C51\C51\BIN\C51.EXE BUZZ.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listing
+                    -s\BUZZ.lst) TABS(2) OBJECT(.\Objects\BUZZ.obj)
+
+line level    source
+
+   1          #include "BUZZ.h"
+   2          
+   3          sbit BUZZ = P0^6;
+   4          sbit REALY = P0^4;
+   5          
+   6          void Close_B()
+   7          {
+   8   1        P2 = 0xA0;
+   9   1        BUZZ = 0;
+  10   1        P2 = 0x00;
+  11   1      }
+  12          
+  13          void Oppen_B()
+  14          {
+  15   1        P2 = 0xA0;
+  16   1        BUZZ = 1;
+  17   1        P2 = 0x00;
+  18   1      }
+  19          
+  20          void Close_R()
+  21          {
+  22   1        P2 = 0xA0;
+  23   1        REALY = 0;
+  24   1        P2 = 0x00;
+  25   1      }
+  26          
+  27          void Oppen_R()
+  28          {
+  29   1        P2 = 0xA0;
+  30   1        REALY = 1;
+  31   1        P2 = 0x00;
+  32   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     36    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

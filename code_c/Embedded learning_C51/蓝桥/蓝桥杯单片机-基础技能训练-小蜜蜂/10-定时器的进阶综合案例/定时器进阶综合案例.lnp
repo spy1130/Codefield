@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"秒表.obj" 
+TO "定时器进阶综合案例" 
+RAMSIZE(256) 

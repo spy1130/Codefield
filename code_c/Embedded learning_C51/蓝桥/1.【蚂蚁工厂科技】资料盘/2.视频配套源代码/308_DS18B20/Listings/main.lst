@@ -1,0 +1,225 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              02/19/2021 09:16:30 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\10.1 keil51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver;..\Sys) DEBUG OBJEC
+                    -TEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          # include "bsp_init.h"
+   2          # include "bsp_seg.h"
+   3          # include "timer.h"
+*** WARNING C329 IN LINE 8 OF ..\Sys\timer.h: single-line comment contains line-continuation
+*** WARNING C329 IN LINE 9 OF ..\Sys\timer.h: single-line comment contains line-continuation
+*** WARNING C329 IN LINE 17 OF ..\Sys\timer.h: single-line comment contains line-continuation
+*** WARNING C329 IN LINE 18 OF ..\Sys\timer.h: single-line comment contains line-continuation
+   4          # include "bsp_key.h"
+   5          # include "stdio.h"
+   6          #include "bsp_ds1302.h"
+   7          # include "bsp_led.h"
+   8          #include "bsp_onewire.h"
+   9          
+  10          //-----------------------------------------------
+  11          /* º¯ÊýÉùÃ÷ */
+  12          //Èý¸öÖ÷ÌåÑ­»·£¬»ù±¾ÉÏÓÀÔ¶²»±ä
+  13          void Key_Proc(void);//°´¼ü´¦Àí£¬µ×²ãÊý¾Ý±ä¸ü
+  14          void Seg_Proc(void);//ÏÔÊ¾´¦Àí£¬ÏÔÊ¾ÐÅÏ¢Éú³É
+  15          void Led_Proc(void);//LED´¦Àí£¬LED×´Ì¬ÐÅÏ¢±íÊ¾
+  16          
+  17          
+  18          //-----------------------------------------------
+  19          /* È«¾Ö±äÁ¿ÉùÃ÷ */
+  20          
+  21          //ÊýÂë¹ÜÏÔÊ¾×¨ÓÃ£¬»ù±¾ÉÏÓÀÔ¶²»±ä
+  22          unsigned char seg_buf[8];//·ÅÖÃ×Ö·û´®×ª»»ºóµÄ¶ÎÂëµ½Êý×é
+  23          unsigned char seg_string[10];//·ÅÖÃ×Ö·û´®
+  24          unsigned char pos = 0;//ÖÐ¶ÏÏÔÊ¾×¨ÓÃ
+  25          
+  26          //LEDÏÔÊ¾×¨ÓÃ£¬»ù±¾ÉÏÓÀÔ¶²»±ä
+  27          unsigned char ucLed;//¼ÇÂ¼LEDµÄ×´Ì¬ÐÅÏ¢
+  28          
+  29          //°´¼ü×¨ÓÃ£¬»ù±¾ÉÏÓÀÔ¶²»±ä
+  30          unsigned char Key_Value;//¶ÁÈ¡°´¼üµÄÊýÖµ´æ´¢±äÁ¿
+  31          unsigned char Key_Down, Key_Old;//¶ÁÈ¡°´¼üµÄÊýÖµ´æ´¢±äÁ¿  
+  32          
+  33          //°´¼üºÍÏÔÊ¾º¯Êý¼õËÙ×¨ÓÃ£¬»ù±¾ÓÀÔ¶²»±ä
+  34          unsigned int Key_Slow_Down;//°´¼ü¼õËÙ
+  35          unsigned int Seg_Slow_Down;//°´¼ü¼õËÙ
+  36          
+  37          //ds1302×¨ÓÃ£¬µ±Ê¹ÓÃDS1302Ê±£¬»ù±¾ÓÀÔ¶²»±ä
+  38          unsigned char ucRtc[3] = {23,59,55};//Êý×é³õÊ¼Öµ£¬Àï±ß·ÅµÄÊÇÊ±·ÖÃëµÄÊýÖµ
+  39          
+  40          
+  41          //¸ù¾Ý´úÂëÐèÇó·¢Éú±ä»¯
+  42          unsigned int ms_count;//¼ÇÂ¼ºÁÃëÊý¾Ý
+  43          unsigned char s_count;//¼ÇÂ¼ÃëÊý¾Ý
+  44            
+  45          unsigned char Running_State;//¼ÇÂ¼ÔËÐÐ×´Ì¬
+  46          
+  47            
+  48          //-----------------------------------------------
+  49          /* main */
+  50          void main()
+C51 COMPILER V9.56.0.0   MAIN                                                              02/19/2021 09:16:30 PAGE 2   
+
+  51          {
+  52   1        //¸ù¾Ý´úÂëÐèÇó·¢Éú±ä»¯
+  53   1        Cls_Peripheral();//¹Ø±ÕÍâÉè
+  54   1        Timer1Init();//¶¨Ê±Æ÷1³õÊ¼»¯£¬²¢ÇÒÊ¹ÄÜ¶¨Ê±Æ÷1ÖÐ¶Ï£¬1ms½øÈëÒ»´Î
+  55   1        EA = 1;//´ò¿ª×ÜÖÐ¶Ï
+  56   1      
+  57   1        Set_Rtc(ucRtc);//ÉèÖÃRTCÊ±¼ä£¬23-59-55
+  58   1      
+  59   1        
+  60   1        while(1)
+  61   1        {
+  62   2          //ÓÀÔ¶²»±ä
+  63   2          Key_Proc();//°´¼ü´¦Àí£¬µ×²ãÊý¾Ý±ä¸ü
+  64   2          Seg_Proc();//ÏÔÊ¾´¦Àí£¬ÏÔÊ¾ÐÅÏ¢Éú³É
+  65   2          Led_Proc();//LED´¦Àí£¬LED×´Ì¬ÐÅÏ¢±íÊ¾   
+  66   2        }
+  67   1      
+  68   1      
+  69   1      }
+  70          
+  71          
+  72          
+  73          //-----------------------------------------------
+  74          /* Timer1_interrupt routine */
+  75          void tm1_isr() interrupt 3
+  76          { 
+  77   1        
+  78   1        //ÓÀÔ¶²»±ä
+  79   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;
+  80   1        if(++Seg_Slow_Down == 500) Seg_Slow_Down = 0;
+  81   1        
+  82   1        if(++ms_count == 1000) //¼ÇÂ¼ÔËÐÐÊ±¼ä
+  83   1        {
+  84   2          s_count++;
+  85   2          ms_count = 0;
+  86   2        }
+  87   1        
+  88   1      
+  89   1        //ÓÀÔ¶²»±ä
+  90   1        Seg_Disp(seg_buf, pos);//ÊýÂë¹ÜÏÔÊ¾Ë¢ÐÂ
+  91   1        if( ++pos == 8 )  pos = 0;
+  92   1        
+  93   1        Led_Disp(ucLed);//LEDÏÔÊ¾
+  94   1        
+  95   1        
+  96   1      }
+  97          
+  98          
+  99          
+ 100          //-----------------------------------------------
+ 101          /*key_proc */
+ 102          
+ 103          void Key_Proc(void)//°´¼ü´¦Àí£¬µ×²ãÊý¾Ý±ä¸ü
+ 104          {
+ 105   1        //ÓÀÔ¶²»±ä
+ 106   1        if(Key_Slow_Down) return;
+ 107   1        Key_Slow_Down = 1;//¼õËÙ³ÌÐò
+ 108   1        
+ 109   1        Key_Value = Key_Read();//¶ÁÈ¡°´¼ü°´ÏÂµÄ±àºÅ
+ 110   1        Key_Down = Key_Value & (Key_Old ^ Key_Value);// (0000^0101) = 0101     0101 & 0101 =0101  ,Èç¹û°´¼ü·¢ÉúÁË
+             -ÏÂ½µÑØµÄ±ä»¯£¬Êä³ö½á¹ûºÍ±¾´Î°´¼üÊýÖµÏàÍ¬
+ 111   1                                                // (0101^0101) = 0000       0101&0000 = 0000  Èç¹û°´¼üÒ»Ö±±£³ÖÍ¬ÑùµÄ×´Ì¬£¬Êä³ö½á¹ûÎª0
+C51 COMPILER V9.56.0.0   MAIN                                                              02/19/2021 09:16:30 PAGE 3   
+
+ 112   1        Key_Old = Key_Value;
+ 113   1        
+ 114   1        
+ 115   1        
+ 116   1        
+ 117   1        
+ 118   1        //¸ù¾Ý´úÂëÐèÇó·¢Éú±ä»¯
+ 119   1        if(Key_Down)//Èç¹û²¶×½µ½ÏÂ½µÑØÌø±ä
+ 120   1        {
+ 121   2            if(++Running_State == 3)  Running_State = 0;//±£Ö¤Running_StateÔÚ0-2Ö®¼ä·­¹ö
+ 122   2        }
+ 123   1        
+ 124   1      }
+ 125          
+ 126          
+ 127          
+ 128          //----------------------------------------------
+ 129          /*seg_proc */
+ 130          void Seg_Proc(void)//ÏÔÊ¾´¦Àí£¬ÏÔÊ¾ÐÅÏ¢Éú³É
+ 131          {
+ 132   1        //ÓÀÔ¶²»±ä
+ 133   1        if(Seg_Slow_Down) return;
+ 134   1        Seg_Slow_Down = 1;//¼õËÙ³ÌÐò
+ 135   1      
+ 136   1        
+ 137   1        
+ 138   1      
+ 139   1        
+ 140   1        //¸ù¾Ý´úÂëÐèÇó·¢Éú±ä»¯
+ 141   1        switch(Running_State)
+ 142   1        {
+ 143   2          case 0:
+ 144   2              sprintf(seg_string,"----%04.2f",rd_temperature()/16.0);//¶ÁÈ¡18b20µÄÎÂ¶ÈÊýÖµ,½«ÒªÏÔÊ¾µÄÊýÖµ´òÓ¡µ½×Ö·û´
+             -®µ±ÖÐ
+ 145   2              break;    
+ 146   2          
+ 147   2          case 1:
+ 148   2              Read_Rtc(ucRtc);//¶ÁÈ¡1302ÄÚ²¿Ê±·ÖÃëµÄÊý¾Ý£¬·Åµ½Ô¤¶¨ÒåµÄÊý×é¿Õ¼äÖÐ  
+ 149   2              sprintf(seg_string,"%02d-%02d-%02d",(unsigned int)ucRtc[0],(unsigned int)ucRtc[1],(unsigned int)ucRtc[
+             -2]);//½«ÒªÏÔÊ¾µÄÊýÖµ´òÓ¡µ½×Ö·û´®µ±ÖÐ
+ 150   2              break;
+ 151   2        
+ 152   2          case 2:
+ 153   2              sprintf(seg_string,"-----%03d",(unsigned int)s_count);//½«ÒªÏÔÊ¾µÄÊýÖµ´òÓ¡µ½×Ö·û´®µ±ÖÐ  
+ 154   2              break;    
+ 155   2        } 
+ 156   1        
+ 157   1      
+ 158   1        
+ 159   1        //ÓÀÔ¶²»±ä
+ 160   1        Seg_Tran(seg_string, seg_buf);
+ 161   1      }
+ 162          
+ 163          //----------------------------------------------
+ 164          /*led_proc */
+ 165          void Led_Proc(void)//ÏÔÊ¾´¦Àí£¬ÏÔÊ¾ÐÅÏ¢Éú³É
+ 166          {
+ 167   1        
+ 168   1        //¸ù¾Ý´úÂëÐèÇó·¢Éú±ä»¯
+ 169   1        switch(Running_State)
+ 170   1        {
+ 171   2          case 0:
+C51 COMPILER V9.56.0.0   MAIN                                                              02/19/2021 09:16:30 PAGE 4   
+
+ 172   2              ucLed = 0x03;//ÈÃL1 L2Á½¸öÁÁ
+ 173   2              break;
+ 174   2        
+ 175   2          case 1:
+ 176   2              ucLed = 0x0C;//ÈÃL3 L4ÁÁ
+ 177   2              break;    
+ 178   2          
+ 179   2          case 2:
+ 180   2              ucLed = 0x30;//ÈÃL5 L6ÁÁ
+ 181   2              break;        
+ 182   2          
+ 183   2        }
+ 184   1        
+ 185   1        
+ 186   1      }
+ 187          
+ 188          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    389    ----
+   CONSTANT SIZE    =     36    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     34    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  4 WARNING(S),  0 ERROR(S)

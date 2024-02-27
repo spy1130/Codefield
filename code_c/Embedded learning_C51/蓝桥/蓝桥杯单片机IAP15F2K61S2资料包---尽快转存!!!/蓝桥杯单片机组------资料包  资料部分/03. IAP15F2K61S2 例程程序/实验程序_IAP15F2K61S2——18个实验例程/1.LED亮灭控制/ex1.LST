@@ -1,0 +1,82 @@
+C51 COMPILER V9.52.0.0   EX1                                                               01/24/2015 13:50:00 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE EX1
+OBJECT MODULE PLACED IN ex1.OBJ
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE ex1.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*******************************************************************************  
+   2          * 文件名称：LED闪烁实验
+   3          * 实验目的：1.掌握单片机IO口操作的基本方法
+   4          *           2.掌握软件延时函数的设计方法
+   5          * 程序说明：LED以0.2S为间隔亮灭
+   6          * 硬件环境：IAP15F2K61S2单片机，单片机内部振荡器频率：11.0592M
+   7          * 日期版本：2012-9-3/V1.0a 
+   8          *******************************************************************************/
+   9          
+  10          #include "reg52.h"  //定义51单片机特殊功能寄存器
+  11          #include "intrins.h"
+  12          
+  13          //关闭外设
+  14          void cls_buzz(void)
+  15          {
+  16   1              P2 = (P2&0x1F|0xA0);
+  17   1              P0 = 0x00;
+  18   1              P2 &= 0x1F;
+  19   1      }
+  20          
+  21          //延时函数
+  22          void delay()            //@11.0592MHz
+  23          {
+  24   1              unsigned char i, j, k;
+  25   1      
+  26   1              _nop_();
+  27   1              _nop_();
+  28   1              i = 9;
+  29   1              j = 104;
+  30   1              k = 139;
+  31   1              do
+  32   1              {
+  33   2                      do
+  34   2                      {
+  35   3                              while (--k);
+  36   3                      } while (--j);
+  37   2              } while (--i);
+  38   1      }
+  39          
+  40          //主函数
+  41          void main(void)
+  42          {
+  43   1              cls_buzz();
+  44   1              
+  45   1          while(1)
+  46   1          {
+  47   2              P2 = ((P2&0x1f)|0x80);
+  48   2                      P0 = 0xff;  //LED熄灭
+  49   2                      P2 &= 0x1f;
+  50   2              delay();
+  51   2              
+  52   2              P2 = ((P2&0x1f)|0x80);
+  53   2                      P0 = 0x00;  //LED点亮
+  54   2                      P2 &= 0x1f;
+  55   2              delay();
+C51 COMPILER V9.52.0.0   EX1                                                               01/24/2015 13:50:00 PAGE 2   
+
+  56   2          }
+  57   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     69    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

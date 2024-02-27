@@ -1,0 +1,36 @@
+C51 COMPILER V9.54   CLOSE_RELAY_BUZZR                                                     11/22/2023 11:33:34 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE CLOSE_RELAY_BUZZR
+OBJECT MODULE PLACED IN .\Objects\close_relay_buzzr.obj
+COMPILER INVOKED BY: D:\keil c51\C51\BIN\C51.EXE close_relay_buzzr.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.
+                    -\Listings\close_relay_buzzr.lst) OBJECT(.\Objects\close_relay_buzzr.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include "decoder_138.h"
+   3          void close_init()
+   4          {
+   5   1              control_138decoder(4);
+   6   1              P0=0X00;//นุตฦ
+   7   1              control_138decoder(0);
+   8   1              control_138decoder(6);
+   9   1              P0=0X00;
+  10   1      
+  11   1      
+  12   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     21    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

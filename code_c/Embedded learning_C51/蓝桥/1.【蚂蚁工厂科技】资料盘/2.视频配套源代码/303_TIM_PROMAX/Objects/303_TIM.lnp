@@ -1,0 +1,6 @@
+".\Objects\main.obj",
+".\Objects\bsp_init.obj",
+".\Objects\bsp_led.obj",
+".\Objects\timer.obj" 
+TO ".\Objects\303_TIM" 
+PRINT(".\Listings\303_TIM.m51") RAMSIZE(256) 

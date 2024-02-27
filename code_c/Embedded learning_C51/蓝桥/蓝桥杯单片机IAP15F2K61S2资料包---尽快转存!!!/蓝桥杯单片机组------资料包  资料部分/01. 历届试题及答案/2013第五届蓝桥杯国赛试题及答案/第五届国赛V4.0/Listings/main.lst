@@ -1,0 +1,455 @@
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 21:21:20 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ma
+                    -in.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.h>
+   2          #include <delay.h>
+   3          #include <iic.h>
+   4          #include <onewire.h>
+   5          #include <ds1302.h>
+   6          #include <stdio.h>
+   7          
+   8          #define uchar unsigned char 
+   9          #define uint unsigned int
+  10          
+  11          uchar ori_time,fin_time,jc_time;
+  12          uint shi_count,fasong_count;
+  13          uchar code tab[14]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xbf,0xff,0xc6,0x89};
+  14          uchar dsbuff[8]={11,11,11,11,11,11,11,11};
+  15          uchar discount;
+  16          uchar code ledwdata[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80}; 
+  17          uchar yi,er,san,si,wu,liu,qi,ba;
+  18          uchar s4=0,s5=0,s6=0,s7=0;
+  19          uchar ad_count,ad_flag,shidu,tem,ad_count_2,ad_flag_2;
+  20          uchar light_strength,light_state;
+  21          uchar shi_xian,wen_xian,ting_xian;
+  22          uchar led_status,fasong_flag;
+  23          pdata char a[25];
+  24          char shuju[6];
+  25          uchar n,last_light;
+  26          uchar jiechu_flag,num;
+  27          uchar i=0;
+  28          uchar ADD=0x00,WADD=0x00;
+  29          uchar yanzheng=0;
+  30          
+  31          void Timer0Init(void);
+  32          void keyscan();
+  33          void display();
+  34          void wendu_xianshi();
+  35          void shizhong_xianshi();
+  36          void tingzhi_xianshi();
+  37          void led(uchar lednum,uchar demand);
+  38          void UartInit(void);
+  39          void chuangshu();
+  40          void sendstring(uchar *p);
+  41          void jilu();
+  42          void jisuan();
+  43          void L_ED(uchar liang);
+  44          
+  45          void allinit()
+  46          {
+  47   1        P2=0x80;P0=0xff;
+  48   1        P2=0xa0;P0=0x00;          
+  49   1        P2=0xc0;P0=0xff;
+  50   1        P2=0xe0;P0=0xff;
+  51   1      }
+  52          
+  53          void main()
+  54          {
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 21:21:20 PAGE 2   
+
+  55   1        allinit();
+  56   1        Timer0Init();
+  57   1        UartInit(); 
+  58   1        EA=1;
+  59   1        ET0=1;
+  60   1        ES=1;
+  61   1        dswrite();
+  62   1        while(1)
+  63   1        {
+  64   2          keyscan();
+  65   2          tem=wendu();
+  66   2          if(ad_flag==1)
+  67   2          {
+  68   3            shidu=adread(0x03);
+  69   3            ad_flag=0;
+  70   3          }
+  71   2          if(ad_flag_2==1)
+  72   2          {
+  73   3            ad_flag_2=0;
+  74   3            dsread();   //时钟显示如果会抖动 则空个100Ms或50ms去读取 则不抖
+  75   3            last_light=light_strength;
+  76   3            light_strength=adread(0x01);
+  77   3            light_strength=adread(0x01);
+  78   3            jisuan();  
+  79   3          }
+  80   2      
+  81   2          switch(s5)
+  82   2          {
+  83   3            case 0: wen_xian=1;shi_xian=0;ting_xian=0;break;
+  84   3            case 1: wen_xian=0;shi_xian=1;ting_xian=0;break;
+  85   3            case 2: wen_xian=0;shi_xian=0;ting_xian=1;break;
+  86   3            case 3: s5=0;break;
+  87   3          }
+  88   2          if((wen_xian==1)&&(shi_xian==0)&&(ting_xian==0))
+  89   2          {  
+  90   3            wendu_xianshi();
+  91   3          }
+  92   2          else if((wen_xian==0)&&(shi_xian==1)&&(ting_xian==0))
+  93   2          { 
+  94   3            shizhong_xianshi();   
+  95   3          }
+  96   2          else if((wen_xian==0)&&(shi_xian==0)&&(ting_xian==1))
+  97   2          {
+  98   3            tingzhi_xianshi();    
+  99   3          }
+ 100   2      
+ 101   2          if(s4==0)
+ 102   2          {
+ 103   3            if(jiechu_flag==1)
+ 104   3              L_ED(0xfa);
+ 105   3            else L_ED(0xfe);
+ 106   3            chuangshu();  
+ 107   3          }
+ 108   2          else 
+ 109   2          {
+ 110   3            if(jiechu_flag==1)
+ 111   3              L_ED(0xf9);
+ 112   3            else L_ED(0xfd);
+ 113   3            jilu();
+ 114   3          }
+ 115   2        }
+ 116   1      }
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 21:21:20 PAGE 3   
+
+ 117          void jilu()
+ 118          {
+ 119   1        uchar r_tem,r_shidu,r_xiaoshi,r_fenzhong,r_miaozhong,r_jctime;
+ 120   1        if((jiechu_flag==1)&&(num==0))
+ 121   1        {
+ 122   2          num=1;
+ 123   2          iicwrite(ADD,tem);Delay2ms();ADD++;
+ 124   2          iicwrite(ADD,shidu);Delay2ms();ADD++;
+ 125   2          iicwrite(ADD,shijian[2]);Delay2ms();ADD++;
+ 126   2          iicwrite(ADD,shijian[1]);Delay2ms();ADD++;
+ 127   2          iicwrite(ADD,shijian[0]);Delay2ms();ADD++;
+ 128   2        }
+ 129   1        else if((num==1)&&(jiechu_flag==0))
+ 130   1        {
+ 131   2          num=0;
+ 132   2          iicwrite(ADD,jc_time);Delay2ms();ADD++;
+ 133   2          if(ADD==0x1e) ADD=0x00; //计算得最后的存储位置为0x1d 再加1位0x1e
+ 134   2        }
+ 135   1        //if((shuju[0]=='A')&&(shuju[1]=='A')&&(shuju[2]=='A')&&(shuju[3]=='S')&&(shuju[4]=='S')&&(shuju[5]=='S')
+             -)
+ 136   1        if(yanzheng==1)  //发送一段 然后停下 再次输入再次发送
+ 137   1        {
+ 138   2          shuju[0]='0'; //将接受数组破坏使之不再满足yanzheng=1条件 直到下次发送AAASSS
+ 139   2          yanzheng=0;
+ 140   2          for(WADD=0,i=0;i<5;i++)
+ 141   2          {
+ 142   3            r_tem=iicread(WADD);Delay2ms();WADD++;
+ 143   3            r_shidu=iicread(WADD);Delay2ms();WADD++;
+ 144   3            r_xiaoshi=iicread(WADD);Delay2ms();WADD++;
+ 145   3            r_fenzhong=iicread(WADD);Delay2ms();WADD++;
+ 146   3            r_miaozhong=iicread(WADD);Delay2ms();WADD++;
+ 147   3            r_jctime=iicread(WADD);Delay2ms();WADD++;
+ 148   3            sprintf(a,"{%bd-%bd%%}{%bd-%bd-%bd}{%bd}%c",r_tem,r_shidu,r_xiaoshi,r_fenzhong,r_miaozhong,r_jctime,'\n
+             -');
+ 149   3            sendstring(a);  
+ 150   3          }
+ 151   2        }       
+ 152   1      }
+ 153          void chuangshu()
+ 154          {
+ 155   1        if((shuju[0]=='A')&&(shuju[1]=='A')&&(shuju[2]=='A')&&(shuju[3]=='S')&&(shuju[4]=='S')&&(shuju[5]=='S'))
+ 156   1        {
+ 157   2          if(fasong_flag==1)
+ 158   2          {
+ 159   3            fasong_flag=0;
+ 160   3            sprintf(a,"{%bd-%bd%%}{%bd-%bd-%bd}{%bd}%c",tem,shidu,shijian[2],shijian[1],shijian[0],jiechu_flag,'\n'
+             -);
+ 161   3            sendstring(a);
+ 162   3          
+ 163   3          }
+ 164   2        } 
+ 165   1      }
+ 166          void sendstring(uchar *p)
+ 167          {
+ 168   1        while(*p)
+ 169   1        {
+ 170   2          SBUF=*p;
+ 171   2          p++;
+ 172   2          while(!TI);
+ 173   2          TI=0;
+ 174   2        }   
+ 175   1      }
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 21:21:20 PAGE 4   
+
+ 176          
+ 177          
+ 178          void UART() interrupt 4
+ 179          {
+ 180   1        if(RI)
+ 181   1        {
+ 182   2          shuju[n]=SBUF;
+ 183   2          n++;
+ 184   2          RI=0;
+ 185   2          if(n>=6) n=0;
+ 186   2          if(s4==1)  //要使先发送一段 停下 再判断再发必须写入这里
+ 187   2          {
+ 188   3            if((shuju[0]=='A')&&(shuju[1]=='A')&&(shuju[2]=='A')&&(shuju[3]=='S')&&(shuju[4]=='S')&&(shuju[5]=='S')
+             -)
+ 189   3              yanzheng=1;
+ 190   3          } 
+ 191   2        }
+ 192   1        
+ 193   1      }
+ 194          void jisuan()
+ 195          {
+ 196   1        if((light_strength<6)&&(light_state==0)&&(last_light<6))
+ 197   1        {
+ 198   2          light_state=1;
+ 199   2          jiechu_flag=1;
+ 200   2          ori_time=shijian[0];
+ 201   2        }
+ 202   1        else if((light_strength>=6)&&(light_state==1)&&(last_light>=6))
+ 203   1        {
+ 204   2          light_state=0;
+ 205   2          jiechu_flag=0;
+ 206   2          fin_time=shijian[0];
+ 207   2          if(fin_time>=ori_time)
+ 208   2            jc_time=fin_time-ori_time;  
+ 209   2          else
+ 210   2            jc_time=60+fin_time-ori_time;
+ 211   2        }
+ 212   1      }
+ 213          void tingzhi_xianshi()
+ 214          {
+ 215   1      
+ 216   1        dsbuff[0]=11;
+ 217   1        dsbuff[1]=11;
+ 218   1        dsbuff[2]=11;
+ 219   1        dsbuff[3]=10;
+ 220   1        dsbuff[4]=jc_time/1000;
+ 221   1        dsbuff[5]=jc_time%1000/100;
+ 222   1        dsbuff[6]=jc_time%100/10;
+ 223   1        dsbuff[7]=jc_time%10; 
+ 224   1      }
+ 225          void shizhong_xianshi()
+ 226          {
+ 227   1        dsbuff[0]=shijian[2]/10;
+ 228   1        dsbuff[1]=shijian[2]%10;
+ 229   1        dsbuff[3]=shijian[1]/10;
+ 230   1        dsbuff[4]=shijian[1]%10;
+ 231   1        dsbuff[6]=shijian[0]/10;
+ 232   1        dsbuff[7]=shijian[0]%10;
+ 233   1      }
+ 234          void wendu_xianshi()
+ 235          {
+ 236   1          dsbuff[0]=tem/10;
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 21:21:20 PAGE 5   
+
+ 237   1          dsbuff[1]=tem%10;
+ 238   1          dsbuff[2]=12;
+ 239   1          dsbuff[3]=11;
+ 240   1          dsbuff[4]=11;
+ 241   1          dsbuff[5]=shidu/10;
+ 242   1          dsbuff[6]=shidu%10;
+ 243   1          dsbuff[7]=13; 
+ 244   1      }
+ 245          void time_0() interrupt 1
+ 246          {
+ 247   1        static uchar s_liang=0;
+ 248   1        display();
+ 249   1        if(++fasong_count==500)
+ 250   1        {
+ 251   2          fasong_count=0;
+ 252   2          fasong_flag=1;
+ 253   2        }
+ 254   1        if(++ad_count==200)
+ 255   1        {
+ 256   2          ad_count=0;
+ 257   2          ad_flag=1;
+ 258   2        }
+ 259   1        if(++ad_count_2==100)
+ 260   1        {
+ 261   2          ad_count_2=0;
+ 262   2          ad_flag_2=1;
+ 263   2        }
+ 264   1        if(shi_xian==1)
+ 265   1        {
+ 266   2          if(++shi_count==500)
+ 267   2          {
+ 268   3            shi_count=0;
+ 269   3            if(s_liang==0)
+ 270   3            {
+ 271   4              s_liang=1;
+ 272   4              dsbuff[2]=10;
+ 273   4              dsbuff[5]=10;
+ 274   4            }
+ 275   3            else 
+ 276   3            {
+ 277   4              s_liang=0;
+ 278   4              dsbuff[2]=11;
+ 279   4              dsbuff[5]=11;
+ 280   4            }
+ 281   3          }
+ 282   2        }
+ 283   1      }
+ 284          void display()
+ 285          {
+ 286   1        P2=(P2&0x1f)|0xe0;
+ 287   1        P0=0xff;
+ 288   1        P2=P2&0x1f;
+ 289   1      
+ 290   1        P2=(P2&0x1f)|0xc0;
+ 291   1        P0=1<<discount;
+ 292   1        P2=P2&0x1f;
+ 293   1      
+ 294   1        P2=(P2&0x1f)|0xe0;
+ 295   1        P0=tab[dsbuff[discount]];
+ 296   1        P2=P2&0x1f;
+ 297   1      
+ 298   1        if(++discount == 8)
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 21:21:20 PAGE 6   
+
+ 299   1        {
+ 300   2          discount=0;
+ 301   2        }
+ 302   1      }
+ 303          void keyscan()
+ 304          {
+ 305   1        if(P33==0)
+ 306   1        {
+ 307   2          Delay5ms();
+ 308   2          if(P33==0)
+ 309   2          {
+ 310   3            if(s4==0)
+ 311   3            {
+ 312   4              s4=1;
+ 313   4              i=0;
+ 314   4              shuju[0]='S';
+ 315   4              WADD=0x00;
+ 316   4            } //每切换一次记得把接收shuju重新赋值一下 好判断下一个AAASSS
+ 317   3            else 
+ 318   3            {
+ 319   4              s4=0;
+ 320   4              shuju[0]='S';
+ 321   4            }
+ 322   3          }
+ 323   2          while(!P33);
+ 324   2        }
+ 325   1          
+ 326   1        else if(P32==0)
+ 327   1        {
+ 328   2          Delay5ms();
+ 329   2          if(P32==0)
+ 330   2          {
+ 331   3            s5++;
+ 332   3          }
+ 333   2          while(!P32);
+ 334   2        }
+ 335   1        else if(P31==0)
+ 336   1        {
+ 337   2          Delay5ms();
+ 338   2          if(P31==0)
+ 339   2          {
+ 340   3            s6=1;
+ 341   3          }
+ 342   2          while(!P31);
+ 343   2        }
+ 344   1        else if(P30==0)
+ 345   1        {
+ 346   2          Delay5ms();
+ 347   2          if(P30==0)
+ 348   2          {
+ 349   3            s7=1;
+ 350   3          }
+ 351   2          while(!P30);
+ 352   2        }
+ 353   1      }
+ 354          
+ 355          void L_ED(uchar liang)
+ 356          {
+ 357   1        P2=P2&0x1f;
+ 358   1        P2=(P2&0x1f)|0x80;
+ 359   1        P0=liang;
+ 360   1        P2=P2&0x1f; 
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 21:21:20 PAGE 7   
+
+ 361   1      }
+ 362          
+ 363          void led(uchar lednum,uchar demand)
+ 364          {
+ 365   1        uchar i;
+ 366   1        lednum--;
+ 367   1        i=led_status&(0x01<<lednum);
+ 368   1        if((i==0)&&(demand==1))
+ 369   1        {
+ 370   2          EA=0;
+ 371   2          P2=P2&0x1f;
+ 372   2          P2=(P2&0x1f)|0x80;
+ 373   2          P0&=~(0x01<<lednum);
+ 374   2          P2=P2&0x1f;
+ 375   2          led_status=0x01<<lednum;
+ 376   2          EA=1;
+ 377   2        }
+ 378   1        else if((i>0)&&(demand==0))
+ 379   1        {
+ 380   2          EA=0;
+ 381   2          P2=P2&0x1f;
+ 382   2          P2=(P2&0x1f)|0x80;
+ 383   2          P0=0xff;
+ 384   2          P2=P2&0x1f;
+ 385   2          led_status=0;
+ 386   2          EA=1; 
+ 387   2        }
+ 388   1      }
+ 389          
+ 390          void Timer0Init(void)   //2毫秒@12.000MHz
+ 391          {
+ 392   1        AUXR |= 0x80;   //定时器时钟1T模式
+ 393   1        TMOD &= 0xF0;   //设置定时器模式
+ 394   1        TL0 = 0x40;   //设置定时初值
+ 395   1        TH0 = 0xA2;   //设置定时初值
+ 396   1        TF0 = 0;    //清除TF0标志
+ 397   1        TR0 = 1;    //定时器0开始计时
+ 398   1      }
+ 399          
+ 400          
+ 401          
+ 402           void UartInit(void)    //1200bps@12.000MHz
+ 403          {
+ 404   1        SCON = 0x50;    //8位数据,可变波特率
+ 405   1        AUXR |= 0x40;   //定时器1时钟为Fosc,即1T
+ 406   1        AUXR &= 0xFE;   //串口1选择定时器1为波特率发生器
+ 407   1        TMOD &= 0x0F;   //设定定时器1为16位自动重装方式
+ 408   1        TL1 = 0x3C;   //设定定时初值
+ 409   1        TH1 = 0xF6;   //设定定时初值
+ 410   1        ET1 = 0;    //禁止定时器1中断
+ 411   1        TR1 = 1;    //启动定时器1
+ 412   1      }
+ 413          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1392    ----
+   CONSTANT SIZE    =     54    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =     25    ----
+   DATA SIZE        =     56       6
+   IDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 21:21:20 PAGE 8   
+
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,78 @@
+C51 COMPILER V9.54   DS1302                                                                11/22/2023 23:28:47 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DS1302
+OBJECT MODULE PLACED IN .\Objects\ds1302.obj
+COMPILER INVOKED BY: D:\keil c51\C51\BIN\C51.EXE ds1302.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\d
+                    -s1302.lst) OBJECT(.\Objects\ds1302.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include "intrins.h"
+   3          sbit CE = P1^3;
+   4          sbit SCL = P1^7;
+   5          sbit SDA = P2^3;
+   6          
+   7          
+   8          //注意其中的时钟计时所用的是BCD码，注意转化方法
+   9          
+  10          //先传地址再传数据，每次只传一个位。
+  11          void write_ds1302(unsigned char temp)
+  12          {
+  13   1              unsigned char i;
+  14   1              for(i=0;i<8;i++)//八个位移位8次
+  15   1              {
+  16   2                      SCL = 0;//关闭时钟线
+  17   2                      SDA = temp&0x01;//数据传输
+  18   2                      temp>>=1;
+  19   2                      SCL=1;//开启时钟线
+  20   2              }
+  21   1      }
+  22          void write_ds1302_byte(unsigned char address,unsigned char date)
+  23          {
+  24   1              CE = 0;         _nop_();//复位使能开关
+  25   1              SCL = 0;        _nop_();//复位时钟线
+  26   1              CE = 1;         _nop_();//开启使能
+  27   1              write_ds1302(address);
+  28   1              write_ds1302(date);
+  29   1              CE = 0;
+  30   1      }
+  31          unsigned char read_ds1302_byte(unsigned char address)//读传数据上升沿。
+  32          {
+  33   1              unsigned char i,temp=0x00;
+  34   1              CE = 0;         _nop_();//复位使能开关
+  35   1              SCL = 0;        _nop_();//复位时钟线
+  36   1              CE = 1;         _nop_();//开启使能
+  37   1              write_ds1302(address);
+  38   1              for(i=0;i<8;i++)
+  39   1              {
+  40   2                      SCL = 0;
+  41   2                      temp>>=1;
+  42   2                      if(SDA)
+  43   2                      temp|=0x80;     
+  44   2                      SCL=1;
+  45   2              } 
+  46   1              CE=0;   _nop_();
+  47   1              SCL=0;  _nop_();
+  48   1              SCL=1;  _nop_();
+  49   1              SDA=0;  _nop_();
+  50   1              SDA=1;  _nop_();
+  51   1              return temp;
+  52   1      }
+
+
+C51 COMPILER V9.54   DS1302                                                                11/22/2023 23:28:47 PAGE 2   
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     91    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

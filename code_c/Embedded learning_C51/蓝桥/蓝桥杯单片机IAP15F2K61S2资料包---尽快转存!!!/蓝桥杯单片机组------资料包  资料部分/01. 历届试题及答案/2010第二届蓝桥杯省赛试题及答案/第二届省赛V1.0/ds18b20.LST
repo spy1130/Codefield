@@ -1,0 +1,105 @@
+C51 COMPILER V9.02   DS18B20                                                               03/19/2016 10:01:02 PAGE 1   
+
+
+C51 COMPILER V9.02, COMPILATION OF MODULE DS18B20
+OBJECT MODULE PLACED IN ds18b20.OBJ
+COMPILER INVOKED BY: D:\Program Files\keill\C51\BIN\C51.EXE ds18b20.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include <stc15f2k60s2.h>
+   2          #include <intrins.h>
+   3          sbit DQ=P1^4;
+   4          void Delay10us(unsigned char us)
+   5          {
+   6   1              unsigned char i;
+   7   1              while(--us)
+   8   1               {
+   9   2                      i=24;
+  10   2                      while(--i);
+  11   2                      };
+  12   1      }
+  13          bit intds18b20()
+  14          {
+  15   1              bit t;
+  16   1              EA=0;
+  17   1              DQ=1;
+  18   1              DQ=0;
+  19   1              Delay10us(50);
+  20   1              DQ=1;
+  21   1              Delay10us(12);
+  22   1              if(DQ==0)
+  23   1              t=1;
+  24   1              while(!DQ);
+  25   1              EA=1;
+  26   1              return t;                       
+  27   1      }
+  28          void DQwritebyte(unsigned char dat)
+  29          {
+  30   1              unsigned char i;
+  31   1              EA=0;
+  32   1              for(i=0;i<8;i++)
+  33   1              {
+  34   2                      DQ=0;
+  35   2                      if(dat&0x01)
+  36   2                      DQ=1;
+  37   2                      else
+  38   2                      DQ=0;
+  39   2                      Delay10us(6);
+  40   2                      DQ=1;
+  41   2                      dat>>=1;                        
+  42   2              }
+  43   1              EA=1;
+  44   1      }
+  45          unsigned char DQreadbyte()
+  46          {
+  47   1              unsigned char i,dat;
+  48   1              EA=0;
+  49   1              for(i=0;i<8;i++)
+  50   1              {
+  51   2                      DQ=0;
+  52   2                      dat>>=1;
+  53   2                      DQ=1;
+  54   2                      Delay10us(2);
+  55   2                      if(DQ)
+C51 COMPILER V9.02   DS18B20                                                               03/19/2016 10:01:02 PAGE 2   
+
+  56   2                      dat|=0x80;
+  57   2                      else
+  58   2                      dat&=0x7f;
+  59   2                      Delay10us(4);                   
+  60   2              }
+  61   1              EA=1;
+  62   1              return dat;
+  63   1      }
+  64          unsigned char read_ds18b20()
+  65          {
+  66   1              unsigned char high,low,temp;
+  67   1              intds18b20();
+  68   1              DQwritebyte(0xcc);
+  69   1              DQwritebyte(0x44);
+  70   1              Delay10us(50);
+  71   1              Delay10us(50);
+  72   1              intds18b20();
+  73   1              DQwritebyte(0xcc);
+  74   1              DQwritebyte(0xbe);
+  75   1              low=DQreadbyte();
+  76   1              high=DQreadbyte();
+  77   1              temp=((int)(high<<8)+low)*0.0625;
+  78   1              return temp;    
+  79   1      }
+  80          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    193    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

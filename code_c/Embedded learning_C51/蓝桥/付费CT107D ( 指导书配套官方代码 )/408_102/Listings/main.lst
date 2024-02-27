@@ -1,0 +1,248 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              07/04/2019 11:28:04 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_C51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEFINE(PCF8591_DAC,EE
+                    -PROM_AT24C02) DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "tim.h"
+   2          #include "seg.h"
+   3          #include "stdio.h"
+   4          #include "key.h"
+   5          #include "onewire.h"
+   6          #include "iic.h"
+   7          #include "ultrasonic.h"
+   8          #include "uart.h"
+   9          
+  10          unsigned int  uiTem_Val, uiSeg_Dly;
+  11          unsigned char ucDis_Val, ucNum;
+  12          unsigned char ucDis_Par, ucTem_Par;
+  13          unsigned char ucDis_Old, ucTem_Old;
+  14          unsigned char ucState, ucLed, ucDac=1;
+  15          unsigned char pucSeg_Buf[10], pucSeg_Code[8], ucSeg_Pos;
+  16          unsigned char ucKey_Dly, ucKey_Old, ucKey_Long;
+  17          unsigned char pucUart_Buf[12], ucUart_Num;
+  18          unsigned long ulms, ulKey_Time;
+  19          
+  20          void Key_Proc(void);
+  21          void Seg_Proc(void);
+  22          void Uart_Proc(void);
+  23          
+  24          void main(void)
+  25          {
+  26   1        Cls_Peripheral();
+  27   1        Timer1Init(); 
+  28   1        Timer0Init(); 
+  29   1        UartInit();
+  30   1      
+  31   1        EEPROM_Read(pucSeg_Buf, 0, 1);
+  32   1        ucNum = pucSeg_Buf[0];
+  33   1        ucTem_Par = 30;
+  34   1        ucDis_Par = 35;
+  35   1      
+  36   1        while(1)
+  37   1        {
+  38   2          Key_Proc();
+  39   2          Seg_Proc();
+  40   2          Uart_Proc();    // 为了便于在线调试，可以在其他功能调通后再加入UART处理
+  41   2        }
+  42   1      }
+  43          
+  44          void Time_1(void) interrupt 3
+  45          {
+  46   1        ulms++;
+  47   1        if(++ucKey_Dly == 10) ucKey_Dly = 0;
+  48   1        if(++uiSeg_Dly == 500) uiSeg_Dly = 0;
+  49   1        Led_Disp(ucLed);
+  50   1        Seg_Disp(pucSeg_Code, ucSeg_Pos);
+  51   1        if(++ucSeg_Pos == 8) ucSeg_Pos = 0;
+  52   1      }
+  53          
+  54          void Key_Proc(void)
+C51 COMPILER V9.56.0.0   MAIN                                                              07/04/2019 11:28:04 PAGE 2   
+
+  55          {
+  56   1        unsigned char ucKey_Val, ucKey_Down, ucKey_Up;
+  57   1      
+  58   1        if(ucKey_Dly) return;
+  59   1        ucKey_Dly = 1;
+  60   1        
+  61   1        ucKey_Val = Key_Read();
+  62   1        ucKey_Down = ucKey_Val & (ucKey_Old ^ ucKey_Val);
+  63   1        ucKey_Up = ~ucKey_Val & (ucKey_Old ^ ucKey_Val);
+  64   1        ucKey_Old = ucKey_Val;
+  65   1      
+  66   1        if(ucKey_Down)
+  67   1        {
+  68   2          ulKey_Time = ulms;
+  69   2          ucKey_Long = 0;
+  70   2        }
+  71   1      
+  72   1        if(ulms-ulKey_Time < 1000)
+  73   1          switch(ucKey_Up)
+  74   1          {
+  75   2            case 5:             // S5
+  76   2              if(ucState < 3)
+  77   2              {
+  78   3                ucState = 0x10;
+  79   3                ucTem_Old = ucTem_Par;
+  80   3                ucDis_Old = ucDis_Par;
+  81   3              }
+  82   2              else
+  83   2              {
+  84   3                ucState = 0;
+  85   3                if((ucTem_Old != ucTem_Par) || (ucDis_Old != ucDis_Par))
+  86   3                {
+  87   4                  pucSeg_Buf[0] = ++ucNum;
+  88   4                  EEPROM_Write(pucSeg_Buf, 0, 1);
+  89   4                }
+  90   3              }
+  91   2              break;
+  92   2            case 4:             // S4
+  93   2              if(ucState < 3)
+  94   2              {
+  95   3                if(++ucState == 3) ucState = 0;
+  96   3              }
+  97   2              else 
+  98   2                if(++ucState == 0x12) ucState = 0x10;
+  99   2              break;
+ 100   2            case 9:             // 9
+ 101   2              if(ucState == 0x10)
+ 102   2              {
+ 103   3                ucTem_Par += 2;
+ 104   3                if(ucTem_Par >= 100) ucTem_Par = 0;
+ 105   3              }
+ 106   2              if(ucState == 0x11)
+ 107   2              {
+ 108   3                ucDis_Par += 5;
+ 109   3                if(ucDis_Par >= 100) ucDis_Par = 0;
+ 110   3              }
+ 111   2              break;
+ 112   2            case 8:             // S8
+ 113   2              if(ucState == 0x10)
+ 114   2              {
+ 115   3                if(ucTem_Par < 2) ucTem_Par = 100;
+ 116   3                ucTem_Par -= 2;
+C51 COMPILER V9.56.0.0   MAIN                                                              07/04/2019 11:28:04 PAGE 3   
+
+ 117   3              }
+ 118   2              if(ucState == 0x11)
+ 119   2              {
+ 120   3                if(ucDis_Par < 5) ucDis_Par = 100;
+ 121   3                ucDis_Par -= 5;
+ 122   3              }
+ 123   2          }
+ 124   1        else
+ 125   1        {
+ 126   2          if((ucKey_Old == 9) && !ucKey_Long)
+ 127   2          {
+ 128   3            ucKey_Long = 1;
+ 129   3            ucDac ^= 1;
+ 130   3            if(ucDac) ucLed |= 4;
+ 131   3            else ucLed &= ~4;
+ 132   3          }
+ 133   2          if((ucKey_Old == 8) && ucNum)
+ 134   2          {
+ 135   3            ucNum = 0;
+ 136   3            pucSeg_Buf[0] = ucNum;
+ 137   3            EEPROM_Write(pucSeg_Buf, 0, 1);
+ 138   3          }
+ 139   2        }
+ 140   1      }
+ 141          
+ 142          void Seg_Proc(void)
+ 143          {
+ 144   1        if(uiSeg_Dly) return;
+ 145   1        uiSeg_Dly = 1;
+ 146   1      
+ 147   1        switch(ucState)
+ 148   1        {
+ 149   2          case 0:           // 温度数据
+ 150   2            uiTem_Val = rd_temperature();
+ 151   2            if(uiTem_Val > (ucTem_Par<<4)) ucLed |= 1;
+ 152   2            else ucLed &= ~1;
+ 153   2            sprintf(pucSeg_Buf, "C   %04.2f", (float)uiTem_Val/16.0);
+ 154   2            break;
+ 155   2          case 1:           // 距离数据
+ 156   2            ucDis_Val = Wave_Recv();
+ 157   2            if(ucDis_Val < ucDis_Par) ucLed |= 2;
+ 158   2            else ucLed &= ~2;
+ 159   2            if(ucDac)
+ 160   2            {
+ 161   3              if(ucDis_Val <= ucDis_Par)
+ 162   3                PCF8591_Dac(102);   // 255*2/5
+ 163   3              else
+ 164   3                PCF8591_Dac(204);   // 255*4/5
+ 165   3            }
+ 166   2            else
+ 167   2                PCF8591_Dac(20);    // 255*0.4/5
+ 168   2            sprintf(pucSeg_Buf, "L    %3u", (unsigned int)ucDis_Val);
+ 169   2            break;
+ 170   2          case 2:           // 变更次数
+ 171   2            sprintf(pucSeg_Buf, "N     %02u", (unsigned int)ucNum);
+ 172   2            break;
+ 173   2          case 0x10:          // 温度参数
+ 174   2            sprintf(pucSeg_Buf, "P  1  %02u", (unsigned int)ucTem_Par);
+ 175   2            break;
+ 176   2          case 0x11:          // 距离参数
+ 177   2            sprintf(pucSeg_Buf, "P  2  %02u", (unsigned int)ucDis_Par);
+ 178   2        }
+C51 COMPILER V9.56.0.0   MAIN                                                              07/04/2019 11:28:04 PAGE 4   
+
+ 179   1        Seg_Tran(pucSeg_Buf, pucSeg_Code);
+ 180   1      }
+ 181          
+ 182          void Uart_Proc(void)
+ 183          {
+ 184   1        if(ucUart_Num > 0)
+ 185   1        {
+ 186   2          if(pucUart_Buf[ucUart_Num-1] == 0xa)
+ 187   2          {
+ 188   3            if((pucUart_Buf[0]=='S') && (pucUart_Buf[1]=='T')\
+ 189   3              && (pucUart_Buf[2]==0xd))
+ 190   3              sprintf(pucUart_Buf, "$%02u,%04.2f\r\n",\
+ 191   3                (unsigned int)ucDis_Val, (float)uiTem_Val/16.0);
+ 192   3            else if((pucUart_Buf[0]=='P') && (pucUart_Buf[1]=='A')\
+ 193   3              && (pucUart_Buf[2]=='R') && (pucUart_Buf[3]=='A')\
+ 194   3              && (pucUart_Buf[4]==0xd))
+ 195   3            sprintf(pucUart_Buf, "#%02u,%02u\r\n",\
+ 196   3                (unsigned int)ucDis_Par, (unsigned int)ucTem_Par);
+ 197   3            else
+ 198   3              sprintf(pucUart_Buf, "ERROR\r\n");
+ 199   3            Uart_SendString(pucUart_Buf);
+ 200   3            ucUart_Num = 0;
+ 201   3          }
+ 202   2          else
+ 203   2            if(ucUart_Num == 6)
+ 204   2            {
+ 205   3              Uart_SendString("ERROR\r\n");
+ 206   3              ucUart_Num = 0;
+ 207   3            }
+ 208   2        }
+ 209   1      }
+ 210          
+ 211          void uart_0(void) interrupt 4
+ 212          {
+ 213   1        if(RI)
+ 214   1        {
+ 215   2          pucUart_Buf[ucUart_Num++] = SBUF;
+ 216   2          RI = 0;
+ 217   2        }
+ 218   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    977    ----
+   CONSTANT SIZE    =     89    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     56       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,128 @@
+C51 COMPILER V9.52.0.0   DS18B20                                                           11/16/2019 14:32:48 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE DS18B20
+OBJECT MODULE PLACED IN ds18b20.OBJ
+COMPILER INVOKED BY: C:\Keil_51\C51\BIN\C51.EXE ds18b20.c BROWSE DEFINE(STC12) DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "reg52.h"
+   2          sbit DQ = P1^4;
+   3          #define  uchar unsigned char
+   4          /*************ds18b20****************/
+   5          uchar temget();
+   6          uchar read();
+   7          void dsinit();
+   8          void write(uchar dat);
+   9          void Delay100us();
+  10          void Delay500us();
+  11          
+  12                  
+  13          uchar temget()
+  14          {
+  15   1              uchar temp;
+  16   1              uchar low,high;
+  17   1              
+  18   1              dsinit();
+  19   1              write(0xcc);
+  20   1              write(0x44);
+  21   1              Delay500us();   Delay500us();   
+  22   1      
+  23   1              dsinit();
+  24   1              write(0xcc);
+  25   1              write(0xbe);
+  26   1              
+  27   1              low=read();
+  28   1              high=read();
+  29   1              temp=high<<4;//0000 0101  =0101 0000
+  30   1              temp |= (low>>4); //  1010 0110   0000 0110 | 0101 0000=0101 0110
+  31   1              return temp;
+  32   1      }
+  33          
+  34          uchar read()
+  35          {
+  36   1              uchar i;
+  37   1              uchar dat;
+  38   1              
+  39   1              for(i=0;i<8;i++)
+  40   1              {
+  41   2                      DQ=0;
+  42   2                      ;
+  43   2                      dat>>=1;
+  44   2                      DQ=1;
+  45   2                      if(DQ==1)
+  46   2                      {
+  47   3                              dat |= 0x80;// dat=dat|0x80;   0000 0000 | 1000 0000 =1000 0000
+  48   3                      }
+  49   2                      Delay100us();
+  50   2              }
+  51   1              return dat;
+  52   1      }
+  53          
+  54          void write(uchar dat)
+  55          {
+C51 COMPILER V9.52.0.0   DS18B20                                                           11/16/2019 14:32:48 PAGE 2   
+
+  56   1              uchar i;
+  57   1              for(i=0;i<8;i++)
+  58   1              {
+  59   2                      DQ=0;
+  60   2                      DQ=dat&0x01;//0100 0100 & 0000 0001 // 0000 0001
+  61   2                      Delay100us();
+  62   2                      DQ=1;
+  63   2                      dat>>=1;//dat=dat>>1;//1001 0000//0010 0001
+  64   2              }
+  65   1      }
+  66          
+  67          void dsinit()
+  68          {
+  69   1              DQ=0;
+  70   1              Delay500us();
+  71   1              DQ=1;
+  72   1              Delay500us();
+  73   1      }
+  74          
+  75          
+  76          
+  77          void Delay100us()               //@11.0592MHz
+  78          {
+  79   1              unsigned char i, j;
+  80   1      
+  81   1              ;
+  82   1              ;
+  83   1              i = 2;
+  84   1              j = 15;
+  85   1              do
+  86   1              {
+  87   2                      while (--j);
+  88   2              } while (--i);
+  89   1      }
+  90          
+  91          void Delay500us()               //@11.0592MHz
+  92          {
+  93   1              unsigned char i, j;
+  94   1      
+  95   1              ;
+  96   1              ;
+  97   1              i = 6;
+  98   1              j = 93;
+  99   1              do
+ 100   1              {
+ 101   2                      while (--j);
+ 102   2              } while (--i);
+ 103   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    148    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       5
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,24 @@
+C51 COMPILER V9.56.0.0   304_SEG                                                           02/10/2021 09:26:26 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE 304_SEG
+OBJECT MODULE PLACED IN .\Objects\304_SEG.obj
+COMPILER INVOKED BY: D:\10.1 keil51\C51\BIN\C51.EXE 304_SEG.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver;..\304_SEG) DEBU
+                    -G OBJECTEXTEND PRINT(.\Listings\304_SEG.lst) TABS(2) OBJECT(.\Objects\304_SEG.obj)
+
+line level    source
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

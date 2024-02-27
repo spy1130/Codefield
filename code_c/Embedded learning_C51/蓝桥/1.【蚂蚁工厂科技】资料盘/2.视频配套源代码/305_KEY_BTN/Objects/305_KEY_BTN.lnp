@@ -1,0 +1,7 @@
+".\Objects\main.obj",
+".\Objects\timer.obj",
+".\Objects\bsp_key.obj",
+".\Objects\bsp_seg.obj",
+".\Objects\bsp_init.obj" 
+TO ".\Objects\305_KEY_BTN" 
+PRINT(".\Listings\305_KEY_BTN.m51") RAMSIZE(256) 

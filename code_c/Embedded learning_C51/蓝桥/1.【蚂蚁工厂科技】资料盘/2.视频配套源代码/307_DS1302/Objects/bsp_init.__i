@@ -1,0 +1,1 @@
+"..\Driver\bsp_init.c" OPTIMIZE (8,SPEED) BROWSE INCDIR(..\Driver;..\Sys) DEBUG OBJECTEXTEND PRINT(.\Listings\bsp_init.lst) OBJECT(.\Objects\bsp_init.obj)

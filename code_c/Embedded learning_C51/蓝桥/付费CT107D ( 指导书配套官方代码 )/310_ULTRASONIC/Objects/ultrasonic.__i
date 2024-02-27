@@ -1,0 +1,1 @@
+"..\Driver\ultrasonic.c" OPTIMIZE (8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRINT(.\Listings\ultrasonic.lst) TABS (2) OBJECT(.\Objects\ultrasonic.obj)

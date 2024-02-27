@@ -1,0 +1,1 @@
+"bsp_seg.c" OPTIMIZE (8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\bsp_seg.lst) OBJECT(.\Objects\bsp_seg.obj)

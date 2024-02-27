@@ -1,0 +1,7 @@
+".\Objects\main.obj",
+".\Objects\delay.obj",
+".\Objects\Int.obj",
+".\Objects\bsp_init.obj",
+".\Objects\bsp_led.obj" 
+TO ".\Objects\302_INT" 
+PRINT(".\Listings\302_INT.m51") RAMSIZE(256) 

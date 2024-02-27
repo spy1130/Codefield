@@ -1,0 +1,176 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              06/30/2019 17:36:25 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_C51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEFINE(EEPROM_AT24C02
+                    -,PCF8591_DAC) DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "tim.h"
+   2          #include "key.h"
+   3          #include "seg.h"
+   4          #include "stdio.h"
+   5          #include "iic.h"
+   6          #include "ultrasonic.h"
+   7          
+   8          unsigned int  uiDac;
+   9          unsigned char pucDist[10], ucLast, ucTotal;
+  10          unsigned char ucNum_Data, ucNum_Echo, ucBlind;
+  11          unsigned char ucState, ucLed, ucOper_Flag, ucMeas_Num;
+  12          unsigned char pucSeg_Buf[9], pucSeg_Code[8], ucSeg_Pos;
+  13          unsigned char ucKey_Dly, ucKey_Old;
+  14          unsigned long ulms;
+  15          
+  16          void Key_Proc(void);
+  17          void Seg_Proc(void);
+  18          
+  19          void main(void)
+  20          {
+  21   1        Cls_Peripheral();
+  22   1        Timer1Init();
+  23   1        Timer0Init();
+  24   1      
+  25   1        EEPROM_Read(pucSeg_Buf, 0, 1);
+  26   1        if(pucSeg_Buf[0] <= 90) ucBlind = pucSeg_Buf[0];
+  27   1        else ucBlind = 50;
+  28   1        EEPROM_Read(pucDist, 1, 10);
+  29   1      
+  30   1        while(1)
+  31   1        {
+  32   2          Key_Proc();
+  33   2          Seg_Proc();
+  34   2        }
+  35   1      }
+  36          
+  37          void Time_1(void) interrupt 3
+  38          {
+  39   1        ulms++;
+  40   1        if(++ucKey_Dly == 10)
+  41   1          ucKey_Dly = 0;
+  42   1        if(ucMeas_Num)
+  43   1        {
+  44   2          if(!(ulms % 200))
+  45   2          {
+  46   3            if(--ucMeas_Num) ucLed ^= 1;
+  47   3            else ucLed &= 0xfe;
+  48   3            Led_Disp(ucLed);
+  49   3          }
+  50   2        }
+  51   1        Seg_Disp(pucSeg_Code, ucSeg_Pos); 
+  52   1        if(++ucSeg_Pos == 8) ucSeg_Pos = 0;
+  53   1      }
+  54          
+C51 COMPILER V9.56.0.0   MAIN                                                              06/30/2019 17:36:25 PAGE 2   
+
+  55          void Key_Proc(void)
+  56          {
+  57   1        unsigned char ucKey_Val, ucKey_Down;
+  58   1      
+  59   1        if(ucKey_Dly) return;
+  60   1        ucKey_Dly = 1;
+  61   1      
+  62   1        ucKey_Val = Key_Read();
+  63   1        ucKey_Down = ucKey_Val & (ucKey_Old ^ ucKey_Val);
+  64   1        ucKey_Old = ucKey_Val;
+  65   1      
+  66   1        switch(ucKey_Down)
+  67   1        {
+  68   2          case 4:             // S4
+  69   2            if(!ucState)
+  70   2            {
+  71   3              ucLast = pucDist[ucNum_Data];
+  72   3              if(++ucNum_Data == 10) ucNum_Data = 0;
+  73   3              pucDist[ucNum_Data] = Wave_Recv();
+  74   3              ucTotal = ucLast + pucDist[ucNum_Data];
+  75   3      
+  76   3              if(pucDist[ucNum_Data] <= ucBlind)
+  77   3                PCF8591_Dac(0);
+  78   3              else
+  79   3              {
+  80   4                uiDac = (pucDist[ucNum_Data]-ucBlind)*1.02; // 0.02*255/5
+  81   4                if(uiDac > 255) uiDac = 255;
+  82   4                PCF8591_Dac(uiDac);
+  83   4              }
+  84   3      
+  85   3              pucSeg_Buf[0] = pucDist[ucNum_Data];
+  86   3              EEPROM_Write(pucSeg_Buf, ucNum_Data+1, 1);
+  87   3              ucMeas_Num = 20;
+  88   3            }break;
+  89   2          case 5:             // S5
+  90   2            if(!ucState)
+  91   2            {
+  92   3              ucState = 1;
+  93   3              ucLed |= 0x40;
+  94   3            }
+  95   2            else if(ucState == 1)
+  96   2            {
+  97   3              ucState = 0;
+  98   3              ucLed &= 0xbf;
+  99   3            }break;
+ 100   2          case 9:             // S9
+ 101   2            if(!ucState)
+ 102   2            {
+ 103   3              ucState = 2;
+ 104   3              ucLed |= 0x80;
+ 105   3            }
+ 106   2            else if(ucState == 2)
+ 107   2            {
+ 108   3              ucState = 0;
+ 109   3              ucLed &= 0x7f;
+ 110   3              pucSeg_Buf[0] = ucBlind;
+ 111   3              EEPROM_Write(pucSeg_Buf, 0, 1);
+ 112   3            }break;
+ 113   2          case 8:             // S8
+ 114   2            switch(ucState)
+ 115   2            {
+ 116   3              case 0:
+C51 COMPILER V9.56.0.0   MAIN                                                              06/30/2019 17:36:25 PAGE 3   
+
+ 117   3                ucOper_Flag ^= 1; break;
+ 118   3              case 1:
+ 119   3                if(++ucNum_Echo == 10) ucNum_Echo = 0; break;
+ 120   3              case 2:
+ 121   3                ucBlind += 10;
+ 122   3                if(ucBlind > 90) ucBlind = 0;
+ 123   3            }
+ 124   2        }
+ 125   1        Led_Disp(ucLed);
+ 126   1      }
+ 127          
+ 128          void Seg_Proc(void)
+ 129          {
+ 130   1        switch(ucState)
+ 131   1        {
+ 132   2          case 0:
+ 133   2            if(!ucOper_Flag)
+ 134   2              sprintf(pucSeg_Buf, "0 %03u%03u", (unsigned int)ucLast,\
+ 135   2                (unsigned int)pucDist[ucNum_Data]);
+ 136   2            else
+ 137   2              sprintf(pucSeg_Buf, "1 %03u%03u", (unsigned int)ucTotal,\
+ 138   2                (unsigned int)pucDist[ucNum_Data]);
+ 139   2            break;
+ 140   2          case 1:
+ 141   2            sprintf(pucSeg_Buf, "%02u   %03u", (unsigned int)ucNum_Echo,\
+ 142   2              (unsigned int)pucDist[ucNum_Echo]);
+ 143   2            break;
+ 144   2          case 2:
+ 145   2            sprintf(pucSeg_Buf, "F     %02u", (unsigned int)ucBlind);
+ 146   2        }
+ 147   1        Seg_Tran(pucSeg_Buf, pucSeg_Code);
+ 148   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    649    ----
+   CONSTANT SIZE    =     45    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     45    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,134 @@
+C51 COMPILER V9.54   DS1302                                                                12/18/2017 21:46:40 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DS1302
+OBJECT MODULE PLACED IN .\Objects\ds1302.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE ds1302.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -ds1302.lst) TABS(2) OBJECT(.\Objects\ds1302.obj)
+
+line level    source
+
+   1          /*
+   2            程序说明: DS1302驱动程序
+   3            软件环境: Keil uVision 4.10 
+   4            硬件环境: CT107单片机综合实训平台 8051，12MHz
+   5            日    期: 2011-8-9
+   6          */
+   7          
+   8          #include <STC15F2K60S2.h>
+   9          #include <intrins.h>
+  10          #include <ds1302.h>
+  11          
+  12          sbit SCK=P1^7;    
+  13          sbit SDA=P2^3;    
+  14          sbit RST=P1^3;   // DS1302复位    
+  15                              
+  16          unsigned char shijian[7];
+  17          unsigned char ds[]={55,59,23,10,10,1,16};
+  18          
+  19          void Write_Ds1302_Byte(unsigned  char temp) 
+  20          {
+  21   1        unsigned char i;
+  22   1        for (i=0;i<8;i++)       
+  23   1        { 
+  24   2          SCK=0;
+  25   2          SDA=temp&0x01;
+  26   2          temp>>=1; 
+  27   2          SCK=1;
+  28   2        }
+  29   1      }   
+  30          
+  31          void Write_Ds1302( unsigned char address,unsigned char dat )     
+  32          {
+  33   1        unsigned char num;
+  34   1        RST=0;
+  35   1        _nop_();
+  36   1        SCK=0;
+  37   1        _nop_();
+  38   1        RST=1;  
+  39   1          _nop_();  
+  40   1        Write_Ds1302_Byte(address);
+  41   1        num=(dat/10<<4)|(dat%4);
+  42   1        Write_Ds1302_Byte(num);   
+  43   1        RST=0; 
+  44   1      }
+  45          
+  46          unsigned char Read_Ds1302 ( unsigned char address )
+  47          {
+  48   1        unsigned char i,temp=0x00;
+  49   1        unsigned char dat1,dat2;
+  50   1        RST=0;
+  51   1        _nop_();
+  52   1        SCK=0;
+  53   1        _nop_();
+  54   1        RST=1;
+C51 COMPILER V9.54   DS1302                                                                12/18/2017 21:46:40 PAGE 2   
+
+  55   1        _nop_();
+  56   1        Write_Ds1302_Byte(address);
+  57   1        for (i=0;i<8;i++)   
+  58   1        {   
+  59   2          SCK=0;
+  60   2          temp>>=1; 
+  61   2          if(SDA)
+  62   2          temp|=0x80; 
+  63   2          SCK=1;
+  64   2        } 
+  65   1        RST=0;
+  66   1        _nop_();
+  67   1        RST=0;
+  68   1        SCK=0;
+  69   1        _nop_();
+  70   1        SCK=1;
+  71   1        _nop_();
+  72   1        SDA=0;
+  73   1        _nop_();
+  74   1        SDA=1;
+  75   1        _nop_();
+  76   1        dat1=temp/16;
+  77   1        dat2=temp%16;
+  78   1        temp=dat1*10+dat2;
+  79   1        return temp;      
+  80   1      }
+  81          
+  82          void read_time()
+  83          {
+  84   1          unsigned char i;
+  85   1          unsigned char add=0x81;
+  86   1          Write_Ds1302(0x8e,0x00);
+  87   1          for(i=0;i<7;i++)
+  88   1          {
+  89   2            shijian[i]=Read_Ds1302(add);
+  90   2            add=add+2;
+  91   2          }
+  92   1          Write_Ds1302(0x8e,0x80);
+  93   1      }
+  94          
+  95          void ds_init()
+  96          {
+  97   1        unsigned char i;
+  98   1        unsigned char add=0x80;
+  99   1        Write_Ds1302(0x8e,0x00);
+ 100   1        for(i=0;i<7;i++)
+ 101   1        {
+ 102   2          Write_Ds1302(add,ds[i]);
+ 103   2          add=add+2;
+ 104   2        }
+ 105   1        Write_Ds1302(0x8e,0x80);
+ 106   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    189    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     14    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+C51 COMPILER V9.54   DS1302                                                                12/18/2017 21:46:40 PAGE 3   
+
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

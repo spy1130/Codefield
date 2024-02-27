@@ -1,0 +1,158 @@
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 22:23:32 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ma
+                    -in.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include <intrins.h>
+   3          
+   4          #define uchar unsigned char 
+   5          #define uint unsigned int 
+   6          
+   7          sbit TX=P1^0;  //发射引脚
+   8          sbit RX=P1^1;  //接收引脚
+   9          
+  10          #define somenop {_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_(); _nop_();}
+  11          uchar code tab[]={0XC0,0XF9,0XA4,0XB0,0X99,0X92,0X82,0XF8,0X80,0X90,0XBF,0XFF};
+  12          uchar dsbuff[8]={11,11,11,11,11,11,11,11};
+  13          uchar discount;
+  14          uint count=0;
+  15          uchar flag;
+  16          uint t=0;
+  17          
+  18          void allinit()
+  19          {
+  20   1        P2=0XA0;
+  21   1        P0=0X00;//关闭蜂鸣器，继电器
+  22   1        
+  23   1        P2=0X80;
+  24   1        P0=0XFF;//关闭LED灯
+  25   1        
+  26   1        P2=0XC0;
+  27   1        P0=0XFF;//选择所有数码管
+  28   1        P2=0XFF;
+  29   1        P0=0XFF;//关闭所有数码管
+  30   1      }
+  31          
+  32          void display()
+  33          {
+  34   1        P2=0XEF;
+  35   1        P0=0XFF;
+  36   1        P2=0X1F;
+  37   1        
+  38   1        P2=0XCF;
+  39   1        P0=1<<discount;
+  40   1        P2=0X1F;
+  41   1        
+  42   1        P2=0XEF;
+  43   1        P0=tab[dsbuff[discount]];
+  44   1        P2=0X1F;
+  45   1        
+  46   1        if(++discount==8) discount=0;
+  47   1      }
+  48          
+  49          void Timer0Init(void)   //2毫秒@11.0592MHz
+  50          {
+  51   1        AUXR |= 0x80;         //定时器时钟1T模式
+  52   1        TMOD &= 0xF0;         //设置定时器模式
+  53   1        TL0 = 0x9A;           //设置定时初值
+  54   1        TH0 = 0xA9;           //设置定时初值
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 22:23:32 PAGE 2   
+
+  55   1        TF0 = 0;              //清除TF0标志
+  56   1        TR0 = 1;              //定时器0开始计时
+  57   1        EA = 1;               //打开总中断
+  58   1        ET0 = 1;              //打开定时器0中断
+  59   1      }
+  60          
+  61          void Timer1Init(void)   //2毫秒@11.0592MHz
+  62          {
+  63   1        AUXR |= 0x40;         //定时器时钟1T模式
+  64   1        TMOD &= 0x0F;         //设置定时器模式
+  65   1      }
+  66          
+  67          //TX引脚发送40KHz方波信号驱动超声波发送探头
+  68          //使用软件延时注意RC振荡器频率
+  69          void send_wave(void)
+  70          {
+  71   1        uchar i=8;  //发送8个脉冲
+  72   1        do
+  73   1        {
+  74   2          TX = 1;
+  75   2          somenop;somenop;somenop;somenop;somenop;somenop;somenop;somenop;somenop;somenop;    
+  76   2          TX = 0;
+  77   2          somenop;somenop;somenop;somenop;somenop;somenop;somenop;somenop;somenop;somenop;    
+  78   2        }
+  79   1        while(i--);
+  80   1      }
+  81          
+  82          void main()
+  83          {
+  84   1        uint distance;
+  85   1        Timer0Init();
+  86   1        Timer1Init();
+  87   1        allinit();
+  88   1        while(1)
+  89   1          {
+  90   2            if(flag==1) // 200毫秒更新一次数据 
+  91   2              {
+  92   3                flag=0;
+  93   3                send_wave();  //发送方波信号
+  94   3                TR1=1;  //启动计时
+  95   3                while((RX==1) && (TF1==0));  //等待收到脉冲
+  96   3                TR1=0;  //关闭计时    
+  97   3                if(TF1==1)//发生溢出
+  98   3                  {
+  99   4                    TF1=0;
+ 100   4                    distance=999;  //无返回
+ 101   4                  }
+ 102   3                else
+ 103   3                  {   
+ 104   4                    t=TH1;// 计算时间  
+ 105   4                    t<<=8;
+ 106   4                    t|=TL1;
+ 107   4                    distance=(uint)(t*0.017);  //计算距离 
+ 108   4                    distance=distance/12;
+ 109   4                    //t*340   // t/1000000*340/2*100
+ 110   4                  }
+ 111   3                TH1=0;
+ 112   3                TL1=0;
+ 113   3              }
+ 114   2              dsbuff[5]=distance/100;
+ 115   2              dsbuff[6]=distance%100/10;
+ 116   2              dsbuff[7]=distance%10; 
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 22:23:32 PAGE 3   
+
+ 117   2        }
+ 118   1      }
+ 119          
+ 120          void Timer0(void)  interrupt 1  
+ 121          {
+ 122   1        TL0=0x9A;   
+ 123   1        TH0=0xA9;   
+ 124   1        display();
+ 125   1        if(++count==100)
+ 126   1        {
+ 127   2          flag=1;
+ 128   2          count=0;
+ 129   2        }
+ 130   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    539    ----
+   CONSTANT SIZE    =     12    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     14    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

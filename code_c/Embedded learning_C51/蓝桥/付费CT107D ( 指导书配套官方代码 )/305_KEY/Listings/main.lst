@@ -1,0 +1,102 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              06/29/2019 08:10:34 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_C51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PR
+                    -INT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "tim.h"
+   2          #include "key.h"
+   3          #include "seg.h"
+   4          
+   5          unsigned char ucSec, ucLed;
+   6          unsigned char ucKey_Dly, ucKey_Old;
+   7          unsigned char pucSeg_Buf[8], pucSeg_Code[8], ucSeg_Pos;
+   8          unsigned long ulms, ulKey_Time;
+   9          
+  10          void Key_Proc(void);
+  11          void SEG_Proc(unsigned char ucSeg_Val);
+  12          
+  13          void main(void)
+  14          {
+  15   1        Cls_Peripheral();
+  16   1        Timer1Init();
+  17   1      
+  18   1        while(1)
+  19   1        {
+  20   2          Key_Proc();
+  21   2          Seg_Tran(pucSeg_Buf, pucSeg_Code);
+  22   2        }
+  23   1      }
+  24          
+  25          void Time_1(void) interrupt 3
+  26          {
+  27   1        ulms++;
+  28   1        if(++ucKey_Dly == 10)
+  29   1          ucKey_Dly = 0;
+  30   1        if(!(ulms % 1000))
+  31   1        {
+  32   2          ucSec++;
+  33   2          ucLed ^= 1;
+  34   2          Led_Disp(ucLed);
+  35   2        }
+  36   1        Seg_Disp(pucSeg_Code, ucSeg_Pos); 
+  37   1        if(++ucSeg_Pos == 8) ucSeg_Pos = 0;
+  38   1      }
+  39          
+  40          void Key_Proc(void)
+  41          {
+  42   1        unsigned char ucKey_Val, ucKey_Down, ucKey_Up;
+  43   1      
+  44   1        if(ucKey_Dly) return;
+  45   1        ucKey_Dly = 1;
+  46   1      
+  47   1        ucKey_Val = Key_Read();
+  48   1        ucKey_Down = ucKey_Val & (ucKey_Old ^ ucKey_Val);
+  49   1        ucKey_Up = ~ucKey_Val & (ucKey_Old ^ ucKey_Val);
+  50   1        ucKey_Old = ucKey_Val;
+  51   1      
+  52   1        if(ucKey_Down)
+  53   1        {
+  54   2          ulKey_Time = ulms;
+C51 COMPILER V9.56.0.0   MAIN                                                              06/29/2019 08:10:34 PAGE 2   
+
+  55   2          SEG_Proc(ucKey_Down);
+  56   2        }
+  57   1        if(ucKey_Up)
+  58   1          SEG_Proc(ucKey_Up);
+  59   1        if(ucKey_Old && (ulms - ulKey_Time > 1000))
+  60   1        {
+  61   2          ulKey_Time = ulms;
+  62   2          SEG_Proc(ucKey_Old);
+  63   2        }
+  64   1      }
+  65          
+  66          void SEG_Proc(unsigned char ucSeg_Val)
+  67          {
+  68   1        unsigned char i;
+  69   1      
+  70   1        for(i=0; i<7; i++)
+  71   1          pucSeg_Buf[i] = pucSeg_Buf[i+1];  
+  72   1        if(ucSeg_Val < 14)
+  73   1          pucSeg_Buf[i] = ucSeg_Val-4+'0';
+  74   1        else
+  75   1          pucSeg_Buf[i] = ucSeg_Val-14+'A';
+  76   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    326    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     29       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

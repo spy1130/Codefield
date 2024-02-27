@@ -1,0 +1,185 @@
+C51 COMPILER V9.54   XIANSHI                                                               12/22/2017 11:04:57 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE XIANSHI
+OBJECT MODULE PLACED IN .\Objects\xianshi.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE xianshi.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings
+                    -\xianshi.lst) TABS(2) OBJECT(.\Objects\xianshi.obj)
+
+line level    source
+
+   1          sbit wr = P3^6;
+*** ERROR C202 IN LINE 1 OF xianshi.c: 'P3': undefined identifier
+   2          uchar ii,temp;
+*** ERROR C129 IN LINE 2 OF xianshi.c: missing ';' before 'ii'
+   3          code unsigned char wei_xuan[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
+   4          code unsigned char duan_xuan[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xbf,0xff,0xc6};
+   5          void xian_shi(void)
+   6          {
+   7            uchar i;
+   8            switch(i)
+   9            {
+  10              case 0:P0 = duan_xuan[hour/10];break;
+  11              case 1:P0 = duan_xuan[hour%10];break;
+  12              case 2:P0 = duan_xuan[10];break;
+  13              case 3:P0 = duan_xuan[min/10];break;
+  14              case 4:P0 = duan_xuan[min%10];break;
+  15              case 5:P0 = duan_xuan[10];break;
+  16              case 6:P0 = duan_xuan[sec/10];break;
+  17              case 7:P0 = duan_xuan[sec%10];break;
+  18            }
+  19            i++;
+  20            if(i>=8) i=0;
+  21          }
+  22          void xian_shi1(void)
+  23          {
+  24            uchar i;
+  25            switch(i)
+  26            {
+  27              case 0:P0 = duan_xuan[hour_i/10] | flash;break;
+  28              case 1:P0 = duan_xuan[hour_i%10] | flash;break;
+  29              case 2:P0 = duan_xuan[10];break;
+  30              case 3:P0 = duan_xuan[min/10];break;
+  31              case 4:P0 = duan_xuan[min%10];break;
+  32              case 5:P0 = duan_xuan[10];break;
+  33              case 6:P0 = duan_xuan[sec/10];break;
+  34              case 7:P0 = duan_xuan[sec%10];break;
+  35            }
+  36            i++;
+  37            if(i>=8) i=0;
+  38          }
+  39          void xian_shi2(void)
+  40          {
+  41            uchar i;
+  42            switch(i)
+  43            {
+  44              case 0:P0 = duan_xuan[hour/10];break;
+  45              case 1:P0 = duan_xuan[hour%10];break;
+  46              case 2:P0 = duan_xuan[10];break;
+  47              case 3:P0 = duan_xuan[min_i/10] | flash;break;
+  48              case 4:P0 = duan_xuan[min_i%10] | flash;break;
+  49              case 5:P0 = duan_xuan[10];break;
+  50              case 6:P0 = duan_xuan[sec/10];break;
+  51              case 7:P0 = duan_xuan[sec%10];break;
+  52            }
+C51 COMPILER V9.54   XIANSHI                                                               12/22/2017 11:04:57 PAGE 2   
+
+  53            i++;
+  54            if(i>=8) i=0;
+  55          }
+  56          void xian_shi3(void)
+  57          {
+  58            uchar i;
+  59            switch(i)
+  60            {
+  61              case 0:P0 = duan_xuan[hour/10];break;
+  62              case 1:P0 = duan_xuan[hour%10];break;
+  63              case 2:P0 = duan_xuan[10];break;
+  64              case 3:P0 = duan_xuan[min/10];break;
+  65              case 4:P0 = duan_xuan[min%10];break;
+  66              case 5:P0 = duan_xuan[10];break;
+  67              case 6:P0 = duan_xuan[sec_i/10] | flash;break;
+  68              case 7:P0 = duan_xuan[sec_i%10] | flash;break;
+  69            }
+  70            i++;
+  71            if(i>=8) i=0;
+  72          }
+  73          void xian_shi4(void)
+  74          {
+  75            uchar i;
+  76            switch(i)
+  77            {
+  78              case 0:P0 = duan_xuan[hour_n/10] | flash;break;
+  79              case 1:P0 = duan_xuan[hour_n%10] | flash;break;
+  80              case 2:P0 = duan_xuan[10];break;
+  81              case 3:P0 = duan_xuan[min_n/10];break;
+  82              case 4:P0 = duan_xuan[min_n%10];break;
+  83              case 5:P0 = duan_xuan[10];break;
+  84              case 6:P0 = duan_xuan[sec_n/10];break;
+  85              case 7:P0 = duan_xuan[sec_n%10];break;
+  86            }
+  87            i++;
+  88            if(i>=8) i=0;
+  89          }
+  90          void xian_shi5(void)
+  91          {
+  92            uchar i;
+  93            switch(i)
+  94            {
+  95              case 0:P0 = duan_xuan[hour_n/10];break;
+  96              case 1:P0 = duan_xuan[hour_n%10];break;
+  97              case 2:P0 = duan_xuan[10];break;
+  98              case 3:P0 = duan_xuan[min_n/10] | flash;break;
+  99              case 4:P0 = duan_xuan[min_n%10] | flash;break;
+ 100              case 5:P0 = duan_xuan[10];break;
+ 101              case 6:P0 = duan_xuan[sec_n/10];break;
+ 102              case 7:P0 = duan_xuan[sec_n%10];break;
+ 103            }
+ 104            i++;
+ 105            if(i>=8) i=0;
+ 106          }
+ 107          void xian_shi6(void)
+ 108          {
+ 109            uchar i;
+ 110            switch(i)
+ 111            {
+ 112              case 0:P0 = duan_xuan[hour_n/10];break;
+ 113              case 1:P0 = duan_xuan[hour_n%10];break;
+ 114              case 2:P0 = duan_xuan[10];break;
+C51 COMPILER V9.54   XIANSHI                                                               12/22/2017 11:04:57 PAGE 3   
+
+ 115              case 3:P0 = duan_xuan[min_n/10];break;
+ 116              case 4:P0 = duan_xuan[min_n%10];break;
+ 117              case 5:P0 = duan_xuan[10];break;
+ 118              case 6:P0 = duan_xuan[sec_n/10] | flash;break;
+ 119              case 7:P0 = duan_xuan[sec_n%10] | flash;break;
+ 120            }
+ 121            i++;
+ 122            if(i>=8) i=0;
+ 123          }
+ 124          void xian_shi7(void)
+ 125          {
+ 126            uchar i;
+ 127            switch(i)
+ 128            {
+ 129              case 0:P0 = duan_xuan[11];break;
+ 130              case 1:P0 = duan_xuan[11];break;
+ 131              case 2:P0 = duan_xuan[11];break;
+ 132              case 3:P0 = duan_xuan[11];break;
+ 133              case 4:P0 = duan_xuan[11];break;
+ 134              case 5:P0 = duan_xuan[temp/10];break;
+ 135              case 6:P0 = duan_xuan[temp%10];break;
+ 136              case 7:P0 = duan_xuan[12];break;
+ 137            }
+ 138            i++;
+ 139            if(i>=8) i=0;
+ 140          }
+ 141          void qie_huan(void)
+ 142          {
+ 143            switch(mode)
+ 144            {
+ 145              case 0: xian_shi();break; 
+ 146              case 1: xian_shi1();break;
+ 147              case 2: xian_shi2();break;
+ 148              case 3: xian_shi3();break;
+ 149              case 4: xian_shi4();break;
+ 150              case 5: xian_shi5();break;
+ 151              case 6: xian_shi6();break;
+ 152              case 7: xian_shi7();break;
+ 153            }
+ 154          }
+ 155          void fa_song(void)
+ 156          {
+ 157            wr = 0;
+ 158            P2 = 0xc0;
+ 159            P0 = wei_xuan[ii];
+ 160            P2 = 0x00;
+ 161            P2 = 0xe0;
+ 162            qie_huan();
+ 163            P2 = 0x00;
+ 164            wr = 1;
+ 165            ii++;
+ 166            if(ii>=8) ii=0;
+ 167          }
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  2 ERROR(S)

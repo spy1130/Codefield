@@ -1,0 +1,152 @@
+C51 COMPILER V9.52.0.0   __________________                                                03/11/2018 15:04:17 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE __________________
+OBJECT MODULE PLACED IN 独立按键的扩展应用.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE 独立按键的扩展应用.c BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "reg52.h"
+   2          
+   3          sbit S7 = P3^0;
+   4          sbit S6 = P3^1;
+   5          sbit S5 = P3^2;
+   6          sbit S4 = P3^3;
+   7          
+   8          sbit L1 = P0^0;
+   9          sbit L2 = P0^1;
+  10          sbit L3 = P0^2;
+  11          sbit L4 = P0^3;
+  12          sbit L5 = P0^4;
+  13          sbit L6 = P0^5;
+  14          
+  15          void SelectHC573(unsigned char channel)
+  16          {
+  17   1        switch(channel)
+  18   1        {
+  19   2          case 4:
+  20   2            P2 = (P2 & 0x1f) | 0x80;
+  21   2          break;
+  22   2          case 5:
+  23   2            P2 = (P2 & 0x1f) | 0xa0;
+  24   2          break;
+  25   2          case 6:
+  26   2            P2 = (P2 & 0x1f) | 0xc0;
+  27   2          break;
+  28   2          case 7:
+  29   2            P2 = (P2 & 0x1f) | 0xe0;
+  30   2          break;
+  31   2        }
+  32   1      }
+  33          
+  34          void DelayK(unsigned char t)
+  35          {
+  36   1        while(t--);
+  37   1      }
+  38          
+  39          unsigned char stat_k = 0;
+  40          void ScanKeys_Alone()
+  41          {
+  42   1        if(S7 == 0)
+  43   1        {
+  44   2          DelayK(100);
+  45   2          if(S7 == 0)
+  46   2          {
+  47   3            if(stat_k == 0)
+  48   3            {
+  49   4              L1 = 0;
+  50   4              stat_k = 1;
+  51   4            }
+  52   3            else if(stat_k == 1)
+  53   3            {
+  54   4              L1 = 1;
+  55   4              stat_k = 0;
+C51 COMPILER V9.52.0.0   __________________                                                03/11/2018 15:04:17 PAGE 2   
+
+  56   4            }
+  57   3            while(S7 == 0);
+  58   3          }
+  59   2        }
+  60   1        if(S6 == 0)
+  61   1        {
+  62   2          DelayK(100);
+  63   2          if(S6 == 0)
+  64   2          {
+  65   3            if(stat_k == 0)
+  66   3            {
+  67   4              L2 = 0;
+  68   4              stat_k = 2;
+  69   4            }
+  70   3            else if(stat_k == 2)
+  71   3            {
+  72   4              L2 = 1;
+  73   4              stat_k = 0;
+  74   4            }
+  75   3            while(S6 == 0);
+  76   3          }
+  77   2        }
+  78   1        if(S5 == 0)
+  79   1        {
+  80   2          DelayK(100);
+  81   2          if(S5 == 0)
+  82   2          {
+  83   3            if(stat_k == 1)
+  84   3            {
+  85   4              L3 = 0;
+  86   4              while(S5 == 0);
+  87   4              L3 = 1;
+  88   4            }
+  89   3            else if(stat_k == 2)
+  90   3            {
+  91   4              L5 = 0;
+  92   4              while(S5 == 0);
+  93   4              L5 = 1;
+  94   4            }
+  95   3          }
+  96   2        }
+  97   1        if(S4 == 0)
+  98   1        {
+  99   2          DelayK(100);
+ 100   2          if(S4 == 0)
+ 101   2          {
+ 102   3            if(stat_k == 1)
+ 103   3            {
+ 104   4              L4 = 0;
+ 105   4              while(S4 == 0);
+ 106   4              L4 = 1;
+ 107   4            }
+ 108   3            else if(stat_k == 2)
+ 109   3            {
+ 110   4              L6 = 0;
+ 111   4              while(S4 == 0);
+ 112   4              L6 = 1;
+ 113   4            }
+ 114   3          }
+ 115   2        }
+ 116   1      }
+ 117          
+C51 COMPILER V9.52.0.0   __________________                                                03/11/2018 15:04:17 PAGE 3   
+
+ 118          void main()
+ 119          {
+ 120   1        SelectHC573(4);
+ 121   1        while(1)
+ 122   1        {
+ 123   2          ScanKeys_Alone();
+ 124   2        }
+ 125   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    212    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

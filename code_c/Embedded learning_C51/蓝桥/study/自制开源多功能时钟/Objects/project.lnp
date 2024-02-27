@@ -1,0 +1,10 @@
+".\Objects\main.obj",
+".\Objects\timer.obj",
+".\Objects\bsp_seg.obj",
+".\Objects\bsp_key.obj",
+".\Objects\bsp_led.obj",
+".\Objects\init.obj",
+".\Objects\ds1302.obj",
+".\Objects\onewire.obj" 
+TO ".\Objects\project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 

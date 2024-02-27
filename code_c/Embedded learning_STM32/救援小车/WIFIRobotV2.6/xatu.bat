@@ -1,0 +1,1 @@
+start "" "C:\Users\asus\Desktop\WIFIRobotV2.6\camera.exe"

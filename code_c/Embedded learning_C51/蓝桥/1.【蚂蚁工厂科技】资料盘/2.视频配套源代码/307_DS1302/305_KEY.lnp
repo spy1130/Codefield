@@ -1,0 +1,9 @@
+"..\307_DS1302\main.obj",
+"..\307_DS1302\timer.obj",
+"..\307_DS1302\bsp_init.obj",
+"..\307_DS1302\bsp_seg.obj",
+"..\307_DS1302\bsp_key.obj",
+"..\307_DS1302\bsp_led.obj",
+"..\307_DS1302\bsp_ds1302.obj" 
+TO "..\307_DS1302\305_KEY" 
+PRINT(".\Listings\305_KEY.m51") RAMSIZE(256) 

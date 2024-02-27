@@ -1,0 +1,24 @@
+C51 COMPILER V9.52.0.0   ________________                                                  03/11/2018 20:12:53 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE ________________
+OBJECT MODULE PLACED IN .\工厂灯光控制系统.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\15-基础技能综合实训案例\工厂灯光控制系统.c BROWSE DEBUG OBJECTEXTEND 
+                    -PRINT(.\工厂灯光控制系统.lst) TABS(2) OBJECT(.\工厂灯光控制系统.obj)
+
+line level    source
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    640    ----
+   CONSTANT SIZE    =     18    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      6    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,122 @@
+C51 COMPILER V9.54   MAIN                                                                  12/18/2017 20:15:59 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ma
+                    -in.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "STC15F2K60S2.h"
+   2          #include "onewire.h"
+   3          #include "intrins.h"
+   4          #define uint unsigned int
+   5          #define uchar unsigned char
+   6          
+   7          uchar dsbuff[8]={11,11,11,11,11,11,0,0};
+   8          uchar code tab[]={0XC0,0XF9,0XA4,0XB0,0X99,0X92,0X82,0XF8,0X80,0X90,0XBF,0XFF};
+   9          uchar discount;
+  10          
+  11          void Delay50us()    //@11.0592MHz
+  12          {
+  13   1        unsigned char i, j;
+  14   1      
+  15   1        _nop_();
+  16   1        i = 1;
+  17   1        j = 134;
+  18   1        do
+  19   1        {
+  20   2          while (--j);
+  21   2        } while (--i);
+  22   1      }
+  23          
+  24          uchar read_temperature()
+  25          {
+  26   1        uchar high,low;
+  27   1        char temp;
+  28   1        Init_DS18B20();
+  29   1        Write_DS18B20(0XCC);
+  30   1        Write_DS18B20(0X44);
+  31   1        Delay50us();
+  32   1        Delay50us();
+  33   1        
+  34   1        Init_DS18B20();
+  35   1        Write_DS18B20(0XCC);
+  36   1        Write_DS18B20(0XBE);
+  37   1        low=Read_DS18B20();
+  38   1        high=Read_DS18B20();
+  39   1        temp=high<<4;
+  40   1        temp |= (low>>4);
+  41   1        return temp;
+  42   1      }
+  43          void allinit()
+  44          {
+  45   1          P2=0x80;P0=0XFF;
+  46   1          P2=0XA0;P0=0X00;
+  47   1          P2=0XC0;P0=0XFF;
+  48   1          P2=0XEF;P0=0XFF;
+  49   1      }
+  50          
+  51          void display()
+  52          {
+  53   1        P2=0XEF;
+  54   1        P0=0XFF;
+C51 COMPILER V9.54   MAIN                                                                  12/18/2017 20:15:59 PAGE 2   
+
+  55   1        P2=0X1F;
+  56   1        
+  57   1        P2=0XCF;
+  58   1        P0=1<<discount;
+  59   1        P2=0x1f;
+  60   1        
+  61   1        P2=0XEF;
+  62   1        P0=tab[dsbuff[discount]];
+  63   1        P2=0X1F;
+  64   1        
+  65   1        if(++discount==8) discount=0;
+  66   1      }
+  67          
+  68          void Timer0Init()   //2毫秒@11.0592MHz
+  69          {
+  70   1        AUXR |= 0x80;   //定时器时钟1T模式
+  71   1        TMOD &= 0xF0;   //设置定时器模式
+  72   1        TL0 = 0x9A;   //设置定时初值
+  73   1        TH0 = 0xA9;   //设置定时初值
+  74   1        TF0 = 0;    //清除TF0标志
+  75   1        TR0 = 1;    //定时器0开始计时
+  76   1        ET0=1;
+  77   1        EA=1;
+  78   1      }
+  79          
+  80          void main()
+  81          {
+  82   1        uchar wendu;
+  83   1        allinit();
+  84   1        Timer0Init();
+  85   1        while(1)
+  86   1        {
+  87   2          wendu=read_temperature();
+  88   2          dsbuff[7]=wendu%10;
+  89   2          dsbuff[6]=wendu/10;
+  90   2        }
+  91   1      }
+  92          
+  93          void Timer0() interrupt 1
+  94          {
+  95   1        display();
+  96   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    225    ----
+   CONSTANT SIZE    =     12    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      9       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

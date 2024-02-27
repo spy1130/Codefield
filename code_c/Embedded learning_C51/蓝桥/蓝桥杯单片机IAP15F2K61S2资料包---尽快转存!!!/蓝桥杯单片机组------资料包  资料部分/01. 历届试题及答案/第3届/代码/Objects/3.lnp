@@ -1,0 +1,7 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\DS.obj",
+".\Objects\IIC.obj",
+".\Objects\RELAY.obj" 
+TO ".\Objects\3" 
+PRINT(".\Listings\3.m51") RAMSIZE(256) 

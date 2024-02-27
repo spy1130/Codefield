@@ -1,0 +1,211 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        03/11/2018  15:03:29  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+C:\KEIL_V5\C51\BIN\BL51.EXE STARTUP.obj, 独立按键的基本操作.obj TO 独立按键的基本操作 RAMSIZE (256)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  STARTUP.obj (?C_STARTUP)
+  独立按键的基本操作.obj (__________________)
+
+
+LINK MAP OF MODULE:  独立按键的基本操作 (?C_STARTUP)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            IDATA   0008H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     0049H     UNIT         ?PR?SCANKEYS_ALONE?__________________
+            CODE    004CH     0033H     UNIT         ?PR?_SELECTHC573?__________________
+            CODE    007FH     000CH     UNIT         ?C_C51STARTUP
+            CODE    008BH     000AH     UNIT         ?PR?MAIN?__________________
+            CODE    0095H     0007H     UNIT         ?PR?_DELAYK?__________________
+
+
+
+OVERLAY MAP OF MODULE:   独立按键的基本操作 (?C_STARTUP)
+
+
+SEGMENT
+  +--> CALLED SEGMENT
+---------------------
+?C_C51STARTUP
+  +--> ?PR?MAIN?__________________
+
+?PR?MAIN?__________________
+  +--> ?PR?_SELECTHC573?__________________
+  +--> ?PR?SCANKEYS_ALONE?__________________
+
+?PR?SCANKEYS_ALONE?__________________
+  +--> ?PR?_DELAYK?__________________
+
+
+
+SYMBOL TABLE OF MODULE:  独立按键的基本操作 (?C_STARTUP)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        ?C_STARTUP
+  C:007FH         SEGMENT       ?C_C51STARTUP
+  I:0008H         SEGMENT       ?STACK
+BL51 BANKED LINKER/LOCATER V6.22                                                      03/11/2018  15:03:29  PAGE 2
+
+
+  C:0000H         PUBLIC        ?C_STARTUP
+  D:00E0H         SYMBOL        ACC
+  D:00F0H         SYMBOL        B
+  D:0083H         SYMBOL        DPH
+  D:0082H         SYMBOL        DPL
+  N:0000H         SYMBOL        IBPSTACK
+  N:0100H         SYMBOL        IBPSTACKTOP
+  N:0080H         SYMBOL        IDATALEN
+  C:0082H         SYMBOL        IDATALOOP
+  N:0000H         SYMBOL        PBPSTACK
+  N:0100H         SYMBOL        PBPSTACKTOP
+  N:0000H         SYMBOL        PDATALEN
+  N:0000H         SYMBOL        PDATASTART
+  N:0000H         SYMBOL        PPAGE
+  N:0000H         SYMBOL        PPAGEENABLE
+  D:00A0H         SYMBOL        PPAGE_SFR
+  D:0081H         SYMBOL        SP
+  C:007FH         SYMBOL        STARTUP1
+  N:0000H         SYMBOL        XBPSTACK
+  N:0000H         SYMBOL        XBPSTACKTOP
+  N:0000H         SYMBOL        XDATALEN
+  N:0000H         SYMBOL        XDATASTART
+  C:0000H         LINE#         126
+  C:007FH         LINE#         133
+  C:0081H         LINE#         134
+  C:0082H         LINE#         135
+  C:0083H         LINE#         136
+  C:0085H         LINE#         185
+  C:0088H         LINE#         196
+  -------         ENDMOD        ?C_STARTUP
+
+  -------         MODULE        __________________
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  B:0080H.2       PUBLIC        L3
+  B:0080H.3       PUBLIC        L4
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  B:00B0H.3       PUBLIC        S4
+  B:00B0H.2       PUBLIC        S5
+  B:00B0H.1       PUBLIC        S6
+  B:00B0H.0       PUBLIC        S7
+  D:00A8H         PUBLIC        IE
+  C:004CH         PUBLIC        _SelectHC573
+  D:00B8H         PUBLIC        IP
+  C:008BH         PUBLIC        main
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  C:0095H         PUBLIC        _DelayK
+  D:00C8H         PUBLIC        T2CON
+  C:0003H         PUBLIC        ScanKeys_Alone
+  D:00D0H         PUBLIC        PSW
+  B:0080H.0       PUBLIC        L1
+  B:0080H.1       PUBLIC        L2
+  -------         PROC          _SELECTHC573
+  D:0007H         SYMBOL        channel
+BL51 BANKED LINKER/LOCATER V6.22                                                      03/11/2018  15:03:29  PAGE 3
+
+
+  C:004CH         LINE#         15
+  C:004CH         LINE#         16
+  C:004CH         LINE#         17
+  C:005BH         LINE#         18
+  C:005BH         LINE#         19
+  C:005BH         LINE#         20
+  C:0063H         LINE#         21
+  C:0064H         LINE#         22
+  C:0064H         LINE#         23
+  C:006CH         LINE#         24
+  C:006DH         LINE#         25
+  C:006DH         LINE#         26
+  C:0075H         LINE#         27
+  C:0076H         LINE#         28
+  C:0076H         LINE#         29
+  C:007EH         LINE#         30
+  C:007EH         LINE#         31
+  C:007EH         LINE#         32
+  -------         ENDPROC       _SELECTHC573
+  -------         PROC          _DELAYK
+  D:0007H         SYMBOL        t
+  C:0095H         LINE#         34
+  C:0095H         LINE#         35
+  C:0095H         LINE#         36
+  C:009BH         LINE#         37
+  -------         ENDPROC       _DELAYK
+  -------         PROC          SCANKEYS_ALONE
+  C:0003H         LINE#         39
+  C:0003H         LINE#         40
+  C:0003H         LINE#         41
+  C:0006H         LINE#         42
+  C:0006H         LINE#         43
+  C:000BH         LINE#         44
+  C:000EH         LINE#         45
+  C:000EH         LINE#         46
+  C:0010H         LINE#         47
+  C:0013H         LINE#         48
+  C:0015H         LINE#         49
+  C:0015H         LINE#         50
+  C:0015H         LINE#         51
+  C:0018H         LINE#         52
+  C:0018H         LINE#         53
+  C:001DH         LINE#         54
+  C:0020H         LINE#         55
+  C:0020H         LINE#         56
+  C:0022H         LINE#         57
+  C:0025H         LINE#         58
+  C:0027H         LINE#         59
+  C:0027H         LINE#         60
+  C:0027H         LINE#         61
+  C:002AH         LINE#         62
+  C:002AH         LINE#         63
+  C:002FH         LINE#         64
+  C:0032H         LINE#         65
+  C:0032H         LINE#         66
+  C:0034H         LINE#         67
+  C:0037H         LINE#         68
+BL51 BANKED LINKER/LOCATER V6.22                                                      03/11/2018  15:03:29  PAGE 4
+
+
+  C:0039H         LINE#         69
+  C:0039H         LINE#         70
+  C:0039H         LINE#         71
+  C:003CH         LINE#         72
+  C:003CH         LINE#         73
+  C:0041H         LINE#         74
+  C:0044H         LINE#         75
+  C:0044H         LINE#         76
+  C:0046H         LINE#         77
+  C:0049H         LINE#         78
+  C:004BH         LINE#         79
+  C:004BH         LINE#         80
+  C:004BH         LINE#         81
+  -------         ENDPROC       SCANKEYS_ALONE
+  -------         PROC          MAIN
+  C:008BH         LINE#         83
+  C:008BH         LINE#         84
+  C:008BH         LINE#         85
+  C:0090H         LINE#         86
+  C:0090H         LINE#         87
+  C:0090H         LINE#         88
+  C:0093H         LINE#         89
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        __________________
+
+Program Size: data=9.0 xdata=0 code=156
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

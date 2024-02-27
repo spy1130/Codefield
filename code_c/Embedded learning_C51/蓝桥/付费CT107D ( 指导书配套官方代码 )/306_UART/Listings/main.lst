@@ -1,0 +1,89 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              06/30/2019 17:16:01 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_C51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PR
+                    -INT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "tim.h"
+   2          #include "seg.h"
+   3          #include "stdio.h"
+   4          #include "uart.h"
+   5          
+   6          unsigned char ucSec, ucSec1, ucLed;
+   7          unsigned char pucSeg_Buf[11], pucSeg_Code[8], ucSeg_Pos;
+   8          unsigned char pucUart_Buf[2], ucUart_Num;
+   9          unsigned long ulms;
+  10          
+  11          void Uart_Proc(void);
+  12          
+  13          void main(void)
+  14          { 
+  15   1        Cls_Peripheral();
+  16   1        Timer1Init();
+  17   1        UartInit();
+  18   1      
+  19   1        while(1)
+  20   1        {
+  21   2          sprintf(pucSeg_Buf, "%08u\r\n", (unsigned int)ucSec);
+  22   2          Seg_Tran(pucSeg_Buf, pucSeg_Code);
+  23   2          Uart_Proc();
+  24   2        }
+  25   1      }
+  26          
+  27          void Time_1(void) interrupt 3
+  28          {
+  29   1        ulms++;
+  30   1        if(!(ulms % 1000))
+  31   1        {
+  32   2          ulms = 0;
+  33   2          ucSec++;
+  34   2      
+  35   2          ucLed ^= 1;
+  36   2          Led_Disp(ucLed);
+  37   2        } 
+  38   1        Seg_Disp(pucSeg_Code, ucSeg_Pos);
+  39   1        if(++ucSeg_Pos == 8) ucSeg_Pos = 0;
+  40   1      }
+  41          
+  42          void Uart_Proc(void)
+  43          {
+  44   1        if(ucSec1 != ucSec)
+  45   1        {
+  46   2          ucSec1 = ucSec;
+  47   2          Uart_SendString(pucSeg_Buf);
+  48   2        }
+  49   1        if(ucUart_Num == 2)
+  50   1        {
+  51   2          ucSec = ((pucUart_Buf[0]-'0')*10) + pucUart_Buf[1]-'0';
+  52   2          ucUart_Num = 0;
+  53   2        }
+  54   1      }
+C51 COMPILER V9.56.0.0   MAIN                                                              06/30/2019 17:16:01 PAGE 2   
+
+  55          
+  56          void uart_0(void) interrupt 4
+  57          {
+  58   1        if(RI)
+  59   1        {
+  60   2          pucUart_Buf[ucUart_Num++] = SBUF;
+  61   2          RI = 0;
+  62   2        }
+  63   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    278    ----
+   CONSTANT SIZE    =      7    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     30    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

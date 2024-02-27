@@ -1,0 +1,438 @@
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 11:24:18 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ma
+                    -in.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /****************************************************************************************
+   2          实验功能：第八届省赛试题程序设计
+   3          时间：2017.12.25
+   4          作者：吴康
+   5          *****************************************************************************************/
+   6          #include <STC15F2K60S2.h>
+   7          #include <onewire.h>
+   8          
+   9          #define uchar unsigned char
+  10          #define uint unsigned int 
+  11          
+  12          uint count0,count1,count2;          //定时所需要的变量
+  13          uchar mode;                         //模式选择变量
+  14          uchar baojing;                      //闹钟报警的标志位
+  15          uchar flag=0;                       //LED灯闪烁时间隔设定的标志位
+  16          uchar flash=0;                        //数码管显示闪烁的标志位
+  17          uchar s1=0,s2=0,s3=0,s4=0;
+  18          uchar hour_n=0,min_n=0,sec_n=0;     //设定的闹钟
+  19          uchar hour=23,min=59,sec=50;        //设定的初始时间
+  20          uchar hour_i,min_i,sec_i;           //设定的时间
+  21          uchar temp;                         //温度存储变量
+  22          uchar discount;                     //数码管显示扫描变量
+  23          uchar code wei_xuan[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
+  24          uchar code duan_xuan[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xbf,0xff,0xc6};
+  25          
+  26          /****************************************************************************************
+  27          函数名称：delay
+  28          功能：延时函数
+  29          *****************************************************************************************/
+  30          void delay(uint x)
+  31          {
+  32   1        uint i,j;
+  33   1        for(i=x;i>0;i--)
+  34   1        for(j=110;j>0;j--);
+  35   1      }
+  36          
+  37          /****************************************************************************************
+  38          函数名称：allinit
+  39          功能：板子初始化函数
+  40          *****************************************************************************************/
+  41          void allinit()
+  42          {
+  43   1        P2=0XA0;P0=0X00;
+  44   1        P2=0X80;P0=0XFF;
+  45   1        P2=0XC0;P0=0XFF;
+  46   1        P2=0XE0;P0=0XFF;
+  47   1      }
+  48          
+  49          /****************************************************************************************
+  50          函数名称：key
+  51          功能：按键函数
+  52          *****************************************************************************************/
+  53          void key()
+  54          {
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 11:24:18 PAGE 2   
+
+  55   1        if(P30==0)
+  56   1          {
+  57   2            delay(20);
+  58   2            if(P30==0)              //按键调整时间
+  59   2              {
+  60   3                while(!P30);
+  61   3                hour_i=hour;        //把此时的时间赋值给要调的变量
+  62   3                min_i=min;
+  63   3                sec_i=sec;
+  64   3                mode++;             
+  65   3                if(mode>=4) mode=0; //前三个模式用于调整时间，后三个由于闹钟时间的设定
+  66   3              }
+  67   2          }
+  68   1          
+  69   1        if(P31==0)
+  70   1          {
+  71   2            delay(20);
+  72   2            if(P31==0)              //用于控制闹钟设定切换按键
+  73   2              {
+  74   3                while(!P31);
+  75   3                if(mode>=4) mode++;//判断此时的模式是否在后三个模式，如果不是给它调整到后三个模式
+  76   3                if(mode<4)  mode=4;
+  77   3                if(mode>=7) mode=0;
+  78   3              }
+  79   2          }
+  80   1          
+  81   1        if(P32==0)
+  82   1          {
+  83   2            delay(20);
+  84   2            if(P32==0)
+  85   2              {
+  86   3                while(!P32);        //判断在那个模式就加哪个数值
+  87   3                switch(mode)
+  88   3                  {
+  89   4                    case 1: hour_i++;if(hour_i>=24) hour_i=0;hour = hour_i;break;
+  90   4                    case 2: min_i++;if(min_i>=60) min_i=0;min = min_i;break;
+  91   4                    case 3: sec_i++;if(sec_i>=60) sec_i=0;sec = sec_i;break;
+  92   4                    case 4: hour_n++;if(hour_n>=24) hour_n=0;break;
+  93   4                    case 5: min_n++;if(min_n>=60) min_n=0;break;
+  94   4                    case 6: sec_n++;if(sec_n>=60) sec_n=0;break;
+  95   4                  }
+  96   3              }
+  97   2              
+  98   2          }
+  99   1          
+ 100   1        if(P33==0)
+ 101   1          {
+ 102   2            delay(20);
+ 103   2            if(P33==0)              //判断在那个模式就减哪个数值
+ 104   2              {
+ 105   3                if(mode==0) mode=7; //在按键没有松开时则模式为7，此时显示温度
+ 106   3                while(!P33);        //判断建松开后则又到显示时间界面
+ 107   3                if(mode==7) mode=0;
+ 108   3                switch(mode)
+ 109   3                  {
+ 110   4                    case 1: hour_i--;if(hour_i<=0) hour_i=23;hour = hour_i;break;
+ 111   4                    case 2: min_i--;if(min_i<=0) min_i=59;min = min_i;break;
+ 112   4                    case 3: sec_i--;if(sec_i<=0) sec_i=59;sec = sec_i;break;
+ 113   4                    case 4: hour_n--;if(hour_n<=0) hour_n=23;break;
+ 114   4                    case 5: min_n--;if(min_n<=0) min_n=59;break;
+ 115   4                    case 6: sec_n--;if(sec_n<=0) sec_n=59;break;
+ 116   4                  }
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 11:24:18 PAGE 3   
+
+ 117   3              }
+ 118   2          }
+ 119   1      }
+ 120          
+ 121          /****************************************************************************************
+ 122          函数名称：xian_shi
+ 123          功能：显示函数
+ 124          *****************************************************************************************/
+ 125          void xian_shi(void)
+ 126          {
+ 127   1        uchar i;
+ 128   1        switch(i)
+ 129   1        {
+ 130   2          case 0:P0 = duan_xuan[hour/10];break;
+ 131   2          case 1:P0 = duan_xuan[hour%10];break;
+ 132   2          case 2:P0 = duan_xuan[10];break;
+ 133   2          case 3:P0 = duan_xuan[min/10];break;
+ 134   2          case 4:P0 = duan_xuan[min%10];break;
+ 135   2          case 5:P0 = duan_xuan[10];break;
+ 136   2          case 6:P0 = duan_xuan[sec/10];break;
+ 137   2          case 7:P0 = duan_xuan[sec%10];break;
+ 138   2        }
+ 139   1        i++;
+ 140   1        if(i>=8) i=0;
+ 141   1      }
+ 142          
+ 143          void xian_shi1(void)
+ 144          {
+ 145   1        uchar i;
+ 146   1        switch(i)
+ 147   1        {
+ 148   2          case 0:P0 = duan_xuan[hour_i/10] | flash;break;
+ 149   2          case 1:P0 = duan_xuan[hour_i%10] | flash;break;
+ 150   2          case 2:P0 = duan_xuan[10];break;
+ 151   2          case 3:P0 = duan_xuan[min/10];break;
+ 152   2          case 4:P0 = duan_xuan[min%10];break;
+ 153   2          case 5:P0 = duan_xuan[10];break;
+ 154   2          case 6:P0 = duan_xuan[sec/10];break;
+ 155   2          case 7:P0 = duan_xuan[sec%10];break;
+ 156   2        }
+ 157   1        i++;
+ 158   1        if(i>=8) i=0;
+ 159   1      }
+ 160          
+ 161          void xian_shi2(void)
+ 162          {
+ 163   1        uchar i;
+ 164   1        switch(i)
+ 165   1        {
+ 166   2          case 0:P0 = duan_xuan[hour/10];break;
+ 167   2          case 1:P0 = duan_xuan[hour%10];break;
+ 168   2          case 2:P0 = duan_xuan[10];break;
+ 169   2          case 3:P0 = duan_xuan[min_i/10] | flash;break;
+ 170   2          case 4:P0 = duan_xuan[min_i%10] | flash;break;
+ 171   2          case 5:P0 = duan_xuan[10];break;
+ 172   2          case 6:P0 = duan_xuan[sec/10];break;
+ 173   2          case 7:P0 = duan_xuan[sec%10];break;
+ 174   2        }
+ 175   1        i++;
+ 176   1        if(i>=8) i=0;
+ 177   1      }
+ 178          
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 11:24:18 PAGE 4   
+
+ 179          void xian_shi3(void)
+ 180          {
+ 181   1        uchar i;
+ 182   1        switch(i)
+ 183   1        {
+ 184   2          case 0:P0 = duan_xuan[hour/10];break;
+ 185   2          case 1:P0 = duan_xuan[hour%10];break;
+ 186   2          case 2:P0 = duan_xuan[10];break;
+ 187   2          case 3:P0 = duan_xuan[min/10];break;
+ 188   2          case 4:P0 = duan_xuan[min%10];break;
+ 189   2          case 5:P0 = duan_xuan[10];break;
+ 190   2          case 6:P0 = duan_xuan[sec_i/10] | flash;break;
+ 191   2          case 7:P0 = duan_xuan[sec_i%10] | flash;break;
+ 192   2        }
+ 193   1        i++;
+ 194   1        if(i>=8) i=0;
+ 195   1      }
+ 196          
+ 197          void xian_shi4(void)
+ 198          {
+ 199   1        uchar i;
+ 200   1        switch(i)
+ 201   1        {
+ 202   2          case 0:P0 = duan_xuan[hour_n/10] | flash;break;
+ 203   2          case 1:P0 = duan_xuan[hour_n%10] | flash;break;
+ 204   2          case 2:P0 = duan_xuan[10];break;
+ 205   2          case 3:P0 = duan_xuan[min_n/10];break;
+ 206   2          case 4:P0 = duan_xuan[min_n%10];break;
+ 207   2          case 5:P0 = duan_xuan[10];break;
+ 208   2          case 6:P0 = duan_xuan[sec_n/10];break;
+ 209   2          case 7:P0 = duan_xuan[sec_n%10];break;
+ 210   2        }
+ 211   1        i++;
+ 212   1        if(i>=8) i=0;
+ 213   1      }
+ 214          
+ 215          void xian_shi5(void)
+ 216          {
+ 217   1        uchar i;
+ 218   1        switch(i)
+ 219   1        {
+ 220   2          case 0:P0 = duan_xuan[hour_n/10];break;
+ 221   2          case 1:P0 = duan_xuan[hour_n%10];break;
+ 222   2          case 2:P0 = duan_xuan[10];break;
+ 223   2          case 3:P0 = duan_xuan[min_n/10] | flash;break;
+ 224   2          case 4:P0 = duan_xuan[min_n%10] | flash;break;
+ 225   2          case 5:P0 = duan_xuan[10];break;
+ 226   2          case 6:P0 = duan_xuan[sec_n/10];break;
+ 227   2          case 7:P0 = duan_xuan[sec_n%10];break;
+ 228   2        }
+ 229   1        i++;
+ 230   1        if(i>=8) i=0;
+ 231   1      }
+ 232          
+ 233          void xian_shi6(void)
+ 234          {
+ 235   1        uchar i;
+ 236   1        switch(i)
+ 237   1        {
+ 238   2          case 0:P0 = duan_xuan[hour_n/10];break;
+ 239   2          case 1:P0 = duan_xuan[hour_n%10];break;
+ 240   2          case 2:P0 = duan_xuan[10];break;
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 11:24:18 PAGE 5   
+
+ 241   2          case 3:P0 = duan_xuan[min_n/10];break;
+ 242   2          case 4:P0 = duan_xuan[min_n%10];break;
+ 243   2          case 5:P0 = duan_xuan[10];break;
+ 244   2          case 6:P0 = duan_xuan[sec_n/10] | flash;break;
+ 245   2          case 7:P0 = duan_xuan[sec_n%10] | flash;break;
+ 246   2        }
+ 247   1        i++;
+ 248   1        if(i>=8) i=0;
+ 249   1      }
+ 250          
+ 251          void xian_shi7(void)
+ 252          {
+ 253   1        uchar i;
+ 254   1        switch(i)
+ 255   1        {
+ 256   2          case 0:P0 = duan_xuan[11];break;
+ 257   2          case 1:P0 = duan_xuan[11];break;
+ 258   2          case 2:P0 = duan_xuan[11];break;
+ 259   2          case 3:P0 = duan_xuan[11];break;
+ 260   2          case 4:P0 = duan_xuan[11];break;
+ 261   2          case 5:P0 = duan_xuan[temp/10];break;
+ 262   2          case 6:P0 = duan_xuan[temp%10];break;
+ 263   2          case 7:P0 = duan_xuan[12];break;
+ 264   2        }
+ 265   1        i++;
+ 266   1        if(i>=8) i=0;
+ 267   1      }
+ 268          /****************************************************************************************
+ 269          函数名称：qie_huan
+ 270          功能：显示切换函数
+ 271          *****************************************************************************************/
+ 272          void qie_huan(void)
+ 273          {
+ 274   1        switch(mode)
+ 275   1        {
+ 276   2          case 0: xian_shi();break; 
+ 277   2          case 1: xian_shi1();break;
+ 278   2          case 2: xian_shi2();break;
+ 279   2          case 3: xian_shi3();break;
+ 280   2          case 4: xian_shi4();break;
+ 281   2          case 5: xian_shi5();break;
+ 282   2          case 6: xian_shi6();break;
+ 283   2          case 7: xian_shi7();break;
+ 284   2        }
+ 285   1      }
+ 286          
+ 287          /****************************************************************************************
+ 288          函数名称：display
+ 289          功能：显示扫描函数
+ 290          *****************************************************************************************/
+ 291          void display(void)
+ 292          {
+ 293   1        P2 = 0xc0;
+ 294   1        P0 = wei_xuan[discount];
+ 295   1        P2 = 0x00;
+ 296   1        P2 = 0xe0;
+ 297   1        qie_huan();
+ 298   1        P2 = 0x00;
+ 299   1      
+ 300   1        if(++discount>=8) discount=0;
+ 301   1      }
+ 302          
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 11:24:18 PAGE 6   
+
+ 303          /****************************************************************************************
+ 304          函数名称：Timer0Init
+ 305          功能：定时器0初始化函数
+ 306          *****************************************************************************************/
+ 307          void Timer0Init(void)   //2毫秒@11.0592MHz
+ 308          {
+ 309   1        AUXR |= 0x80;         //定时器时钟1T模式
+ 310   1        TMOD &= 0xF0;         //设置定时器模式
+ 311   1        TL0 = 0x9A;           //设置定时初值
+ 312   1        TH0 = 0xA9;           //设置定时初值
+ 313   1        TF0 = 0;              //清除TF0标志
+ 314   1        TR0 = 1;              //定时器0开始计时
+ 315   1        EA=1;
+ 316   1        ET0=1;
+ 317   1      }
+ 318          
+ 319          /****************************************************************************************
+ 320          函数名称：LED
+ 321          功能：LED亮灭控制函数函数
+ 322          *****************************************************************************************/
+ 323          void led(uchar liang)
+ 324          {
+ 325   1        P2=P2&0x1f;
+ 326   1        P2=0x80;
+ 327   1        P0=liang;
+ 328   1        P2=P2&0x1f;
+ 329   1      }
+ 330          
+ 331          /****************************************************************************************
+ 332          函数名称：main
+ 333          功能：主函数
+ 334          *****************************************************************************************/
+ 335          void main()
+ 336          {
+ 337   1        allinit();                  //板子整体初始化
+ 338   1        Timer0Init();               //定时器0初始化
+ 339   1        while(1)
+ 340   1        {
+ 341   2          temp=Read_Temperature();  //读取温度
+ 342   2          key();                    //按键扫描
+ 343   2          if((hour==hour_n)&&(min==min_n)&&(sec==sec_n)) baojing=1;//闹钟报警判断
+ 344   2        } 
+ 345   1      }
+ 346          
+ 347          /****************************************************************************************
+ 348          函数名称：Timer0
+ 349          功能：定时器0的中断服务函数
+ 350          *****************************************************************************************/
+ 351          void Timer0(void) interrupt 1
+ 352          {
+ 353   1        display();
+ 354   1        count0++;               //用于控制整体时钟变化
+ 355   1        count1++;               //用于控制LED灯闪烁
+ 356   1        if(baojing==1)          //让灯闪烁时间间隔位0.2秒
+ 357   1          {
+ 358   2            if(count1>=100) 
+ 359   2              {
+ 360   3                  count1=0;
+ 361   3                if(flag==0)
+ 362   3                  {
+ 363   4                    flag=1;
+ 364   4                    led(0xff);
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 11:24:18 PAGE 7   
+
+ 365   4                  }
+ 366   3                else 
+ 367   3                  {
+ 368   4                    flag=0;
+ 369   4                    led(0xfe);
+ 370   4                  }
+ 371   3              }
+ 372   2          }
+ 373   1        else
+ 374   1          { 
+ 375   2            P2=0x80;
+ 376   2            P0=0xff;
+ 377   2          } 
+ 378   1        if(count0>=500)
+ 379   1          {
+ 380   2              count0=0;
+ 381   2              if(baojing==1) count2++;    //限定灯就闪烁5秒
+ 382   2              if(count2>5)
+ 383   2                {
+ 384   3                  count2=0;
+ 385   3                  baojing=0;
+ 386   3                } 
+ 387   2              sec++;
+ 388   2              flash=~flash;               //在设定时间的时候让设置的数字以间隔为一秒闪烁
+ 389   2              if(sec>=60)
+ 390   2                {
+ 391   3                  sec=0;
+ 392   3                  min++;
+ 393   3                  if(min>=60)
+ 394   3                    {
+ 395   4                      min=0;
+ 396   4                      hour++;
+ 397   4                      if(hour>=24) hour=0;
+ 398   4                    }
+ 399   3                }
+ 400   2            }
+ 401   1      }
+ 402          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1641    ----
+   CONSTANT SIZE    =     21    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     25       8
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

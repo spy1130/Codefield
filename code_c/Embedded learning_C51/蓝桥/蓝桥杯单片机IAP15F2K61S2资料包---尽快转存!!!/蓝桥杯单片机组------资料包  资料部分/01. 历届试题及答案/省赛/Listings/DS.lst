@@ -1,0 +1,118 @@
+C51 COMPILER V9.57.0.0   DS                                                                02/10/2020 15:14:17 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE DS
+OBJECT MODULE PLACED IN .\Objects\DS.obj
+COMPILER INVOKED BY: E:\keil~5\C51\BIN\C51.EXE DS.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\DS.lst)
+                    - TABS(2) OBJECT(.\Objects\DS.obj)
+
+line level    source
+
+   1          #include <DS.h>
+   2          #include <intrins.h>
+   3          
+   4          unsigned char tab[] = {0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90, 0xFF, 0xBF};
+   5          
+   6          unsigned char wei = 0x01;
+   7          
+   8          void Delay1ms()   //@11.0592MHz
+   9          {
+  10   1        unsigned char i, j;
+  11   1      
+  12   1        _nop_();
+  13   1        _nop_();
+  14   1        _nop_();
+  15   1        i = 11;
+  16   1        j = 190;
+  17   1        do
+  18   1        {
+  19   2          while (--j);
+  20   2        } while (--i);
+  21   1      }
+  22          
+  23          void DS1(unsigned char yi,unsigned char er)
+  24          {
+  25   1        P2 = Y6;
+  26   1        P0 = wei<<0;
+  27   1        P2 = Y7;
+  28   1        P0 = tab[yi];
+  29   1        Delay1ms();
+  30   1        P2 = 0x00;
+  31   1        
+  32   1        P2 = Y6;
+  33   1        P0 = wei<<1;
+  34   1        P2 = Y7;
+  35   1        P0 = tab[er];
+  36   1        Delay1ms();
+  37   1        P2 = 0x00;  
+  38   1      }
+  39          
+  40          void DS2(unsigned char yi)
+  41          {
+  42   1        P2 = Y6;
+  43   1        P0 = wei<<2;
+  44   1        P2 = Y7;
+  45   1        P0 = tab[yi];
+  46   1        Delay1ms();
+  47   1        P2 = 0x00;
+  48   1      }
+  49              
+  50          void DS3(unsigned char yi,unsigned char er)
+  51          {
+  52   1        P2 = Y6;
+  53   1        P0 = wei<<3;
+  54   1        P2 = Y7;
+C51 COMPILER V9.57.0.0   DS                                                                02/10/2020 15:14:17 PAGE 2   
+
+  55   1        P0 = tab[yi];
+  56   1        Delay1ms();
+  57   1        P2 = 0x00;
+  58   1        
+  59   1        P2 = Y6;
+  60   1        P0 = wei<<4;
+  61   1        P2 = Y7;
+  62   1        P0 = tab[er];
+  63   1        Delay1ms();
+  64   1        P2 = 0x00;  
+  65   1      }
+  66          
+  67          void DS4(unsigned char yi)
+  68          {
+  69   1        P2 = Y6;
+  70   1        P0 = wei<<5;
+  71   1        P2 = Y7;
+  72   1        P0 = tab[yi];
+  73   1        Delay1ms();
+  74   1        P2 = 0x00;
+  75   1      }
+  76          
+  77          void DS5(unsigned char yi,unsigned char er)
+  78          {
+  79   1        P2 = Y6;
+  80   1        P0 = wei<<6;
+  81   1        P2 = Y7;
+  82   1        P0 = tab[yi];
+  83   1        Delay1ms();
+  84   1        P2 = 0x00;
+  85   1        
+  86   1        P2 = Y6;
+  87   1        P0 = wei<<7;
+  88   1        P2 = Y7;
+  89   1        P0 = tab[er];
+  90   1        Delay1ms();
+  91   1        P2 = 0x00;  
+  92   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    171    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     13    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

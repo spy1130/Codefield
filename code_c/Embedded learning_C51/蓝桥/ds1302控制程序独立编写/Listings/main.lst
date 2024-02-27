@@ -1,0 +1,85 @@
+C51 COMPILER V9.54   MAIN                                                                  11/22/2023 23:42:08 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\keil c51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\mai
+                    -n.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include "ds1302.h"
+   3          #include "decoder_138.h"
+   4          #include "delay.h"
+   5          
+   6          unsigned char table[11] = {0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90 ,0XBF};
+   7          unsigned char pucRtc[3] = {23,45,6};//时 分 秒
+   8          unsigned char write_address[3]  = {0x84,0x82,0x80};//时 分 秒
+   9          unsigned char read_address[3]   = {0x85,0x83,0x81};
+  10          void dushu(unsigned char*pucRtc);
+  11          void SMG_display(unsigned char location,unsigned char num)
+  12          {
+  13   1              control_138decoder(6);
+  14   1              P0=1<<location;
+  15   1              control_138decoder(7);
+  16   1              P0=table[num];
+  17   1              control_138decoder(0);
+  18   1              delay_ms(2);
+  19   1      }
+  20          void Set_Rtc(unsigned char* pucRtc,unsigned char*write_address)
+  21          {
+  22   1              unsigned char i,temp;
+  23   1              write_ds1302_byte(0x8e,0);//WP置0关闭写保护
+  24   1              for(i=0;i<3;i++)
+  25   1              {
+  26   2                      temp=((pucRtc[i]/10)<<4)+pucRtc[i]%10;
+  27   2                      write_ds1302_byte(write_address[i],temp);
+  28   2              }
+  29   1              write_ds1302_byte(0x8e,0x80);//WP置1开启写保护
+  30   1      }
+  31          void Read_Rtc(unsigned char*pucRtc,unsigned char*read_address)
+  32          {
+  33   1              unsigned char i,temp;
+  34   1              for(i=0;i<3;i++)
+  35   1              {
+  36   2                      temp=read_ds1302_byte(read_address[i]);
+  37   2                      pucRtc[i]=(temp>>4)*10+(temp&0xf);
+  38   2                      dushu(pucRtc);
+  39   2              }
+  40   1      }
+  41          void dushu(unsigned char*pucRtc)
+  42          {
+  43   1              SMG_display(0,pucRtc[0]/10);
+  44   1              SMG_display(1,pucRtc[0]%10);
+  45   1              SMG_display(2,10);
+  46   1              SMG_display(3,pucRtc[1]/10);
+  47   1              SMG_display(4,pucRtc[1]%10);
+  48   1              SMG_display(5,10);
+  49   1              SMG_display(6,pucRtc[2]/10);
+  50   1              SMG_display(7,pucRtc[2]%10);
+  51   1      }
+  52          void main()
+  53          {       
+  54   1              Set_Rtc(pucRtc,write_address);
+C51 COMPILER V9.54   MAIN                                                                  11/22/2023 23:42:08 PAGE 2   
+
+  55   1              while(1)
+  56   1              {
+  57   2                      Read_Rtc(pucRtc,read_address);
+  58   2              }
+  59   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    384    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     20      21
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

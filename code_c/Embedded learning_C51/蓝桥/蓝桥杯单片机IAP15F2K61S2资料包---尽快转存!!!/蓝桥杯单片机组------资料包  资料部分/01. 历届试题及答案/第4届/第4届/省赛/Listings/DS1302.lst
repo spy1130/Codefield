@@ -1,0 +1,105 @@
+C51 COMPILER V9.59.0.0   DS1302                                                            02/13/2022 10:35:05 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE DS1302
+OBJECT MODULE PLACED IN .\Objects\DS1302.obj
+COMPILER INVOKED BY: D:\Keil\Keil_C51\C51\BIN\C51.EXE DS1302.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listi
+                    -ngs\DS1302.lst) TABS(2) OBJECT(.\Objects\DS1302.obj)
+
+line level    source
+
+   1          #include "DS1302.h"
+   2          
+   3          
+   4          sbit CE = P1^3;
+   5          sbit DA = P2^3;
+   6          sbit SCK = P1^7;
+   7          //8 ±30∑÷0√Î
+   8          unsigned char Write_Addr[3] = {0x84, 0x82, 0x80};
+   9          unsigned char Read_Addr[3] = {0x85, 0x83, 0x81};
+  10          unsigned char Init_Time[3] = {0x08, 0x30, 0x00};
+  11          unsigned char Display_time[3] = {0x00, 0x00, 0x00};
+  12          
+  13          
+  14          
+  15          
+  16          void Write_DS1302_Byte(unsigned char da)
+  17          {
+  18   1        unsigned char i;
+  19   1        for(i=0; i<8; i++)
+  20   1        {
+  21   2          SCK = 0;
+  22   2          DA = da&0x01;
+  23   2          da >>= 1;
+  24   2          SCK = 1;
+  25   2        }
+  26   1      }
+  27          
+  28          unsigned char Read_DS1302_Byte(unsigned char addr)
+  29          {
+  30   1        unsigned char i,time;
+  31   1        CE = 0; _nop_();
+  32   1        SCK = 0; _nop_();
+  33   1        CE = 1; _nop_();
+  34   1        Write_DS1302_Byte(addr);
+  35   1        for(i=0; i<8; i++)
+  36   1        {
+  37   2          SCK = 0;
+  38   2          time >>= 1;
+  39   2          if(DA)
+  40   2            time |= 0x80;
+  41   2          SCK = 1;
+  42   2        }
+  43   1        CE=0; _nop_();
+  44   1        SCK=0;  _nop_();
+  45   1        SCK=1;  _nop_();
+  46   1        DA=0; _nop_();
+  47   1        DA=1; _nop_();
+  48   1        
+  49   1        return time;
+  50   1      }
+  51          
+  52          void Write_DS1302(unsigned char addr,unsigned da)
+  53          {
+  54   1        CE = 0; _nop_();
+C51 COMPILER V9.59.0.0   DS1302                                                            02/13/2022 10:35:05 PAGE 2   
+
+  55   1        SCK = 0; _nop_();
+  56   1        CE = 1; _nop_();
+  57   1        
+  58   1        Write_DS1302_Byte(addr);
+  59   1        Write_DS1302_Byte(da);
+  60   1        CE = 0;
+  61   1      }
+  62          
+  63          void Init_DS1302()
+  64          {
+  65   1        unsigned char i;
+  66   1        for(i=0; i<3; i++)
+  67   1        {
+  68   2          Write_DS1302(Write_Addr[i], Init_Time[i]);
+  69   2        }
+  70   1      } 
+  71          
+  72          void Read_DS1302()
+  73          {
+  74   1        unsigned char i;
+  75   1        for(i=0; i<3; i++)
+  76   1        {
+  77   2          Display_time[i] = Read_DS1302_Byte(Read_Addr[i]);
+  78   2        }
+  79   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    171    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     12    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

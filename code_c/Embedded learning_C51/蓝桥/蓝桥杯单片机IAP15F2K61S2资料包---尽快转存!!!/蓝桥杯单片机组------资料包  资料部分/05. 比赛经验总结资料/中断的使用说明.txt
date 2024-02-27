@@ -1,0 +1,8 @@
+这是中断函数（C语言的），其中Timerolnterrupt是函数名，是自己定义的，也可以叫别的什么名字如zhongduan.xyz 等等。 interrutpt1是中断序号，这是定时器0中断的意思，只要用定时器0中断，必须用此句。
+interrutpt1是定时器0
+interrutpt0 外中断0
+interrutpt2 外中断1
+interrutpt3 定时器1
+interrutpt4 串行口中断
+
+

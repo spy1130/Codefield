@@ -1,0 +1,168 @@
+C51 COMPILER V9.57.0.0   MAIN                                                              02/06/2020 19:25:25 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: E:\keil~5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main.
+                    -lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.h>
+   2          #include <intrins.h>
+   3          #include "DS.h"
+   4          #include "RELAY.h"
+   5          #include "IIC.h"
+   6          //每10毫秒1ml的水
+   7          sbit S7 = P3^0;
+   8          sbit S6 = P3^1;
+   9          
+  10          bit S7_flag = 0;
+  11          bit S6_flag = 0;
+  12          
+  13          bit choose = 0;
+  14          
+  15          unsigned long int Temp = 0;    
+  16          unsigned long int The_mL = 0;    //99.99L 时停止， 99990
+  17          float The_L = 0;
+  18          float The_Money = 0;
+  19          
+  20          void Delay5ms();
+  21          void KeyPress();
+  22          void Close_buzz();
+  23          void Time0Init();
+  24          
+  25          void main()
+  26          {
+  27   1        Close_buzz(); 
+  28   1        Time0Init();
+  29   1      
+  30   1        while(1)
+  31   1        {
+  32   2          Pcf8591();
+  33   2          KeyPress(); 
+  34   2          DS1();
+  35   2          if(S7_flag == 1)
+  36   2          { 
+  37   3            TR0 = 1;    //定时器0开始计时
+  38   3            S7_flag = 0;
+  39   3            OppenRelay();
+  40   3            choose = 0;     
+  41   3          }
+  42   2          if(S6_flag == 1)
+  43   2          {
+  44   3            TR0 = 0;    //定时器0停止计时
+  45   3            S6_flag = 0;
+  46   3            CloseRelay();
+  47   3            choose = 1;
+  48   3            TL0 = 0x00;   //设置定时初值
+  49   3            TH0 = 0xDC;   //设置定时初值
+  50   3            The_L = The_mL;
+  51   3            The_mL = 0;
+  52   3          }
+  53   2          if (choose == 0)
+  54   2          {
+C51 COMPILER V9.57.0.0   MAIN                                                              02/06/2020 19:25:25 PAGE 2   
+
+  55   3            if (The_mL > 99990)
+  56   3            {
+  57   4              TR0 = 0;    //定时器0停止计时
+  58   4              CloseRelay();
+  59   4              choose = 1;
+  60   4              TL0 = 0x00;   //设置定时初值
+  61   4              TH0 = 0xDC;   //设置定时初值
+  62   4              The_L = The_mL;
+  63   4              The_mL = 0;
+  64   4            }
+  65   3            DS2(The_mL/10);
+  66   3          }
+  67   2          else
+  68   2          {
+  69   3            The_Money = The_L*0.5/10;
+  70   3            DS2(The_Money);     
+  71   3          } 
+  72   2        }
+  73   1      }
+  74          
+  75          void Delay5ms()   //@11.0592MHz
+  76          {
+  77   1        unsigned char i, j;
+  78   1      
+  79   1        i = 54;
+  80   1        j = 199;
+  81   1        do
+  82   1        {
+  83   2          while (--j);
+  84   2        } while (--i);
+  85   1      }
+  86          
+  87          void KeyPress()
+  88          {
+  89   1        if (S7 == 0)
+  90   1        {
+  91   2          Delay5ms();
+  92   2          if (S7 == 0)
+  93   2          {
+  94   3            S7_flag = 1;
+  95   3          }
+  96   2          while(S7 == 0);
+  97   2        }
+  98   1        
+  99   1        if (S6 == 0)
+ 100   1        {
+ 101   2          Delay5ms();
+ 102   2          if (S6 == 0)
+ 103   2          {
+ 104   3            S6_flag = 1;
+ 105   3          }
+ 106   2          while(S6 == 0);
+ 107   2        }
+ 108   1      }
+ 109          
+ 110          void Close_buzz()
+ 111          {
+ 112   1        P2 = 0xA0;
+ 113   1        P0 = 0x00;
+ 114   1        P2 = 0x00;
+ 115   1        
+ 116   1        P2 = 0x80;
+C51 COMPILER V9.57.0.0   MAIN                                                              02/06/2020 19:25:25 PAGE 3   
+
+ 117   1        P0 = 0xFF;
+ 118   1        P2 = 0x00;
+ 119   1      }
+ 120          
+ 121          void Time0Init()
+ 122          { 
+ 123   1        AUXR &= 0x7F;   //定时器时钟12T模式
+ 124   1        TMOD &= 0xF0;   //设置定时器模式
+ 125   1        TMOD |= 0x01;   //设置定时器模式
+ 126   1        TL0 = 0x00;   //设置定时初值
+ 127   1        TH0 = 0xDC;   //设置定时初值
+ 128   1        TF0 = 0;    //清除TF0标志
+ 129   1        
+ 130   1        ET0 = 1;
+ 131   1        EA = 1;
+ 132   1      }
+ 133          
+ 134          void Time0int() interrupt 1
+ 135          {
+ 136   1        TL0 = 0x00;   //设置定时初值
+ 137   1        TH0 = 0xDC;   //设置定时初值
+ 138   1        The_mL++;
+ 139   1        TF0 = 0;
+ 140   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    321    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     16    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

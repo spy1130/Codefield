@@ -1,0 +1,1 @@
+"..\Driver\ultrasonic.c" OPTIMIZE (8,SPEED) BROWSE INCDIR(..\Driver) DEFINE (EEPROM_AT24C02,PCF8591_DAC) DEBUG OBJECTEXTEND PRINT(.\Listings\ultrasonic.lst) TABS (2) OBJECT(.\Objects\ultrasonic.obj)

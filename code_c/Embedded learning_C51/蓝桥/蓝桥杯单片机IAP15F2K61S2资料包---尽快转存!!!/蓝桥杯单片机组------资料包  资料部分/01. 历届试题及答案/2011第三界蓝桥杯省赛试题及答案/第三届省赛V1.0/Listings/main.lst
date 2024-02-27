@@ -1,0 +1,370 @@
+C51 COMPILER V9.54   MAIN                                                                  12/20/2017 21:40:12 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ma
+                    -in.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include <intrins.h>
+   3          
+   4          #define uchar unsigned char 
+   5          #define uint unsigned int 
+   6            
+   7          sbit scl=P2^0;
+   8          sbit sda=P2^1;
+   9          
+  10          uchar code tab[]={0XC0,0XF9,0XA4,0XB0,0X99,0X92,0X82,0XF8,0X80,0X90,0XFF};
+  11          uchar code dot[]={0X40,0x79,0x24,0x30,0x19,0x12,0x20,0x78,0x00,0x10};
+  12          
+  13          uchar yi,er,san,si,wu ,liu,qi,ba;
+  14          uchar tt=0;
+  15          uint ML=0;
+  16          uint money=0;
+  17          uchar guan=0;
+  18          
+  19          void delayms(int ms)
+  20          {
+  21   1        int i,j;
+  22   1        for(i=ms;i>0;i--)
+  23   1          for(j=845;j>0;j--);
+  24   1      }
+  25          
+  26          void allinit()
+  27          {
+  28   1        P2=0XA0;
+  29   1        P0=0X00;//关闭蜂鸣器，继电器
+  30   1        
+  31   1        P2=0X80;
+  32   1        P0=0XFF;//关闭LED灯
+  33   1        
+  34   1        P2=0XC0;
+  35   1        P0=0XFF;//选择所有数码管
+  36   1        P2=0XFF;
+  37   1        P0=0XFF;//关闭所有数码管
+  38   1      }
+  39          
+  40          void display1(uchar yi,uchar er)
+  41          {
+  42   1          P2=0XC0;//打开位选573   U8
+  43   1          P0=0X01;//选择第一个数码管
+  44   1          P2=0XFF;//打开段选573   U7
+  45   1          P0=tab[yi];
+  46   1          delayms(1);
+  47   1          
+  48   1          P2=0XC0;//打开位选573   U8
+  49   1          P0=0X02;//选择第二个数码管
+  50   1          P2=0XFF;//打开段选573   U7
+  51   1          P0=dot[er];
+  52   1          delayms(1);
+  53   1      } 
+  54          
+C51 COMPILER V9.54   MAIN                                                                  12/20/2017 21:40:12 PAGE 2   
+
+  55          void display2(uchar san,uchar si)
+  56          {
+  57   1          P2=0XC0;//打开位选573   U8
+  58   1          P0=0X04;//选择第三个数码管
+  59   1          P2=0XFF;//打开段选573   U7
+  60   1          P0=tab[san];
+  61   1          delayms(1);
+  62   1          
+  63   1          P2=0XC0;//打开位选573   U8
+  64   1          P0=0X08;//选择第四个数码管
+  65   1          P2=0XFF;//打开段选573   U7
+  66   1          P0=tab[si];
+  67   1          delayms(1);
+  68   1      }
+  69          
+  70          void display3(uchar wu,uchar liu)
+  71          {
+  72   1          P2=0XC0;//打开位选573   U8
+  73   1          P0=0X10;//选择第一个数码管
+  74   1          P2=0XFF;//打开段选573   U7
+  75   1          P0=tab[wu];
+  76   1          delayms(1);
+  77   1          
+  78   1          P2=0XC0;//打开位选573   U8
+  79   1          P0=0X20;//选择第一个数码管
+  80   1          P2=0XFF;//打开段选573   U7
+  81   1          P0=dot[liu];
+  82   1          delayms(1);
+  83   1      }
+  84          
+  85          void display4(uchar qi,uchar ba)
+  86          {
+  87   1          P2=0XC0;//打开位选573   U8
+  88   1          P0=0X40;//选择第一个数码管
+  89   1          P2=0XFF;//打开段选573   U7
+  90   1          P0=tab[qi];
+  91   1          delayms(1);
+  92   1          
+  93   1          P2=0XC0;//打开位选573   U8
+  94   1          P0=0X80;//选择第一个数码管
+  95   1          P2=0XFF;//打开段选573   U7
+  96   1          P0=tab[ba];
+  97   1          delayms(1);
+  98   1      }
+  99          
+ 100          void Timer0Init(void)   //5毫秒@11.0592MHz
+ 101          {
+ 102   1        AUXR |= 0x80;   //定时器时钟1T模式
+ 103   1        TMOD &= 0xF0;   //设置定时器模式
+ 104   1        TL0 = 0x00;   //设置定时初值
+ 105   1        TH0 = 0x28;   //设置定时初值
+ 106   1        TF0 = 0;    //清除TF0标志
+ 107   1        TR0 = 1;    //定时器0开始计时
+ 108   1      }
+ 109          
+ 110          void rel(uchar dong)
+ 111          {
+ 112   1        if(dong==0)
+ 113   1        {
+ 114   2          P2=0XA0;P0=0X00;//全关
+ 115   2        }
+ 116   1        else if(dong==1)
+C51 COMPILER V9.54   MAIN                                                                  12/20/2017 21:40:12 PAGE 3   
+
+ 117   1        {
+ 118   2          P2=0XA0;P0=0X40;//开蜂鸣器 
+ 119   2        }
+ 120   1        else if(dong==2)
+ 121   1        {
+ 122   2          P2=0XA0;P0=0X10;//开继电器
+ 123   2        }
+ 124   1        else if(dong==3)
+ 125   1        {
+ 126   2          P2=0XA0;P0=0Xff;//全开
+ 127   2        }
+ 128   1      }
+ 129          
+ 130          void keyscan()
+ 131          {
+ 132   1        if(P30==0)
+ 133   1        {
+ 134   2          delayms(5);
+ 135   2          if(P30==0)
+ 136   2          {
+ 137   3            rel(2);
+ 138   3            wu=0;
+ 139   3            liu=0;
+ 140   3            qi=0;
+ 141   3            ba=0;
+ 142   3            EA=1;
+ 143   3            ET0=1;
+ 144   3          }
+ 145   2          while(!P30);
+ 146   2        }
+ 147   1        else if(P31==0)
+ 148   1        {
+ 149   2          delayms(5);
+ 150   2          if(P31==0)
+ 151   2          {
+ 152   3            EA=0;
+ 153   3            ET0=0;
+ 154   3            rel(0);
+ 155   3            money=ML*5;
+ 156   3            wu=money/100000;
+ 157   3            liu=money%100000/10000;
+ 158   3            qi=money%10000/1000;
+ 159   3            ba=money%1000/100;
+ 160   3            ML=0; 
+ 161   3          }
+ 162   2          while(!P31);
+ 163   2        }
+ 164   1      }
+ 165          
+ 166          void iicdelay(uchar m)
+ 167          {
+ 168   1        do
+ 169   1        {
+ 170   2          _nop_();
+ 171   2        }
+ 172   1        while(m--);
+ 173   1      }
+ 174          
+ 175          void iicstrat()
+ 176          {
+ 177   1        sda=1;
+ 178   1        _nop_();
+C51 COMPILER V9.54   MAIN                                                                  12/20/2017 21:40:12 PAGE 4   
+
+ 179   1        scl=1;
+ 180   1        _nop_();
+ 181   1        sda=0;
+ 182   1        _nop_();
+ 183   1        scl=0;
+ 184   1        _nop_();
+ 185   1      }
+ 186          
+ 187          
+ 188          void iicstop()
+ 189          {
+ 190   1        sda=0;
+ 191   1        _nop_();
+ 192   1        scl=1;
+ 193   1        _nop_();
+ 194   1        sda=1;
+ 195   1        _nop_();
+ 196   1      }
+ 197          
+ 198          void writebyte(uchar dat)
+ 199          {
+ 200   1        uchar i;
+ 201   1        for(i=0;i<8;i++)
+ 202   1        {
+ 203   2          scl=0;
+ 204   2          sda=dat&0x80;
+ 205   2          scl=1;
+ 206   2          dat<<=1;
+ 207   2        }
+ 208   1        scl=0;
+ 209   1      }
+ 210          
+ 211          
+ 212          uchar iicreadbyte()
+ 213          {
+ 214   1        uchar dat;
+ 215   1        uchar i;
+ 216   1        for(i=0;i<8;i++)
+ 217   1        {
+ 218   2          scl=1;
+ 219   2          iicdelay(5);
+ 220   2          dat<<=1;
+ 221   2          if(sda)
+ 222   2          {
+ 223   3            dat|=0x01;
+ 224   3          }
+ 225   2          scl=0;
+ 226   2        }
+ 227   1        
+ 228   1        return dat;
+ 229   1      }
+ 230          
+ 231          uchar ack()
+ 232          {
+ 233   1        scl=1;
+ 234   1        iicdelay(5);
+ 235   1        if(sda==1)
+ 236   1        {
+ 237   2          scl=0;
+ 238   2          iicstop();
+ 239   2          return 0;
+ 240   2        }
+C51 COMPILER V9.54   MAIN                                                                  12/20/2017 21:40:12 PAGE 5   
+
+ 241   1        else 
+ 242   1        {
+ 243   2          scl=0;
+ 244   2          return 1;
+ 245   2        }
+ 246   1      }
+ 247          
+ 248          uchar iicread(uchar add)
+ 249          {
+ 250   1        uchar temp;
+ 251   1        
+ 252   1        iicstrat();
+ 253   1        writebyte(0x90);
+ 254   1        ack();
+ 255   1        writebyte(add);
+ 256   1        ack();
+ 257   1        iicstop();
+ 258   1        
+ 259   1        iicstrat();
+ 260   1        writebyte(0x91);
+ 261   1        ack();
+ 262   1        temp=iicreadbyte();
+ 263   1        iicstop();
+ 264   1        
+ 265   1        temp=0.39*temp;
+ 266   1        
+ 267   1        return temp;
+ 268   1      }
+ 269          
+ 270          void adrun()
+ 271          {
+ 272   1        uchar num;
+ 273   1        num=iicread(0x01);
+ 274   1        if(num<25)
+ 275   1        {
+ 276   2          P2=0X80;P0=0XFE;
+ 277   2        }
+ 278   1        else 
+ 279   1        {
+ 280   2          P2=0X80;P0=0XFF;
+ 281   2        }
+ 282   1      }
+ 283          
+ 284          void main()
+ 285          {
+ 286   1        allinit();
+ 287   1        Timer0Init();
+ 288   1        
+ 289   1        yi=10;er=0;san=5;si=0;wu=0;liu=0;qi=0;ba=0;
+ 290   1        while(1)
+ 291   1        {
+ 292   2          adrun();
+ 293   2          keyscan();
+ 294   2          display1(yi,er);
+ 295   2          display2(san,si);
+ 296   2          display3(wu,liu);
+ 297   2          display4(qi,ba);
+ 298   2        }
+ 299   1      }
+ 300          
+ 301          
+ 302          void time0() interrupt 1
+C51 COMPILER V9.54   MAIN                                                                  12/20/2017 21:40:12 PAGE 6   
+
+ 303          {
+ 304   1        tt++;
+ 305   1        if(tt==20)
+ 306   1        {
+ 307   2          tt=0;
+ 308   2          ML=ML+10;
+ 309   2          wu=ML/10000;
+ 310   2          liu=ML%10000/1000;
+ 311   2          qi=ML%1000/100;
+ 312   2          ba=ML%100/10;//qiu=ML%10;
+ 313   2          if(ML>99990)
+ 314   2          {
+ 315   3            EA=0;ET0=0;
+ 316   3            rel(0);
+ 317   3            money=ML*5;
+ 318   3            wu=money/100000;
+ 319   3            liu=money%100000/10000;
+ 320   3            qi=money%10000/1000;
+ 321   3            ba=money%1000/100;
+ 322   3            ML=0; 
+ 323   3          }
+ 324   2        }
+ 325   1      }
+ 326          
+ 327          
+ 328          
+ 329          
+ 330          
+ 331          
+ 332          
+ 333          
+ 334          
+ 335          
+ 336          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1012    ----
+   CONSTANT SIZE    =     21    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     14    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

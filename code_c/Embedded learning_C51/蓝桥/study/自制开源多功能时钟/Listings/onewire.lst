@@ -1,0 +1,112 @@
+C51 COMPILER V9.54   ONEWIRE                                                               12/10/2023 20:01:32 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE ONEWIRE
+OBJECT MODULE PLACED IN .\Objects\onewire.obj
+COMPILER INVOKED BY: D:\keil c51\C51\BIN\C51.EXE onewire.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -onewire.lst) OBJECT(.\Objects\onewire.obj)
+
+line level    source
+
+   1          /*      #       单总线代码片段说明
+   2                  1.      本文件夹中提供的驱动代码供参赛选手完成程序设计参考。
+   3                  2.      参赛选手可以自行编写相关代码或以该代码为基础，根据所选单片机类型、�
+             -�行速度和试题
+   4                          中对单片机时钟频率的要求，进行代码调试和修改。
+   5          */
+   6          # include "onewire.h"
+   7          
+   8          
+   9          void Delay_OneWire(unsigned int t)  
+  10          {
+  11   1              unsigned char i;/*晶振是12Mhz所以一个时钟周期为0.083333us*/
+  12   1              while(t--){
+  13   2                      for(i=0;i<12;i++); //3us
+  14   2              }
+  15   1      }
+  16          
+  17          //
+  18          void Write_DS18B20(unsigned char dat)
+  19          {
+  20   1              unsigned char i;
+  21   1              for(i=0;i<8;i++)
+  22   1              {
+  23   2                      DQ = 0;//DQ从1到0写时序开始
+  24   2                      DQ = dat&0x01;//进行时序的传输，
+  25   2                      Delay_OneWire(5);//写一位的间隔15us
+  26   2                      DQ = 1;
+  27   2                      dat >>= 1;
+  28   2              }
+  29   1              Delay_OneWire(5);//表示一个字节写完了
+  30   1      }
+  31          
+  32          //
+  33          unsigned char Read_DS18B20(void)
+  34          {
+  35   1              unsigned char i;
+  36   1              unsigned char dat;
+  37   1        
+  38   1              for(i=0;i<8;i++)
+  39   1              {
+  40   2                      DQ = 0;
+  41   2                      dat >>= 1;
+  42   2                      DQ = 1;//释放
+  43   2                      if(DQ)
+  44   2                      {
+  45   3                              dat |= 0x80;
+  46   3                      }           
+  47   2                      Delay_OneWire(5);//表示一个字节写完了
+  48   2              }
+  49   1              return dat;
+  50   1      }
+  51          
+  52          //参考初始化程序
+  53          bit init_ds18b20(void)
+C51 COMPILER V9.54   ONEWIRE                                                               12/10/2023 20:01:32 PAGE 2   
+
+  54          {
+  55   1              bit initflag = 0;
+  56   1              
+  57   1              DQ = 1;//单片机操作DQ先拉高
+  58   1              Delay_OneWire(12);//等待一会
+  59   1              DQ = 0;//单片机拉低总线
+  60   1              Delay_OneWire(80);//等待480us发送一个复位脉冲
+  61   1              DQ = 1;//单片机释放总线
+  62   1              Delay_OneWire(10); //总线由上拉电阻拉高到高电平，等待15到60us
+  63   1          initflag = DQ;    //18b20操作总线发送存在脉冲，initflag表示初始化成功的标志位，
+             -成功为1
+  64   1              Delay_OneWire(5);//18b20将总线拉高有上拉电阻产生一个存在脉冲
+  65   1              return initflag;//初始化成功为0
+  66   1      }
+  67          unsigned int Read_Tm()
+  68          {
+  69   1              unsigned char high;
+  70   1              unsigned char low;
+  71   1              init_ds18b20();
+  72   1              Write_DS18B20(0xcc);//忽略rom直接读取
+  73   1              Write_DS18B20(0x44);//温度转换完之后返回到1（初始化），所以18b20必须再次进行初�
+             -�化
+  74   1              
+  75   1              init_ds18b20();
+  76   1              Write_DS18B20(0xcc);//跳过rom
+  77   1              Write_DS18B20(0xbe);//给一个读取rom的指令，共返回9个字节其中只有LSB，LSB能够用到�
+             -��温度的低位，高位。
+  78   1              low=Read_DS18B20();//从字节0开始,先读低位，在读高位。
+  79   1              high=Read_DS18B20();
+  80   1              
+  81   1              return (high<<8)+low;
+  82   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    166    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

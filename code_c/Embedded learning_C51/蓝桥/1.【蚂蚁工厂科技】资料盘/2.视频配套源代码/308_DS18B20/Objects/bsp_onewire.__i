@@ -1,0 +1,1 @@
+"..\Driver\bsp_onewire.c" OPTIMIZE (8,SPEED) BROWSE INCDIR(..\Driver;..\Sys) DEBUG OBJECTEXTEND PRINT(.\Listings\bsp_onewire.lst) TABS (2) OBJECT(.\Objects\bsp_onewire.obj)

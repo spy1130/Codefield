@@ -1,0 +1,20 @@
+<html>
+<body>
+<pre>
+<h1>礦ision Build Log</h1>
+<h2>Project:</h2>
+D:\1\CT107D\CT107D单片机综合训练平台_IAP15\CT107D单片机综合训练平台\CT107D单片机综合训练平台\实验例程_IAP15F2K61S2\5.按键控制LED位移\KEY_2.uvproj
+Project File Date:  01/24/2015
+
+<h2>Output:</h2>
+Build target 'Target 1'
+compiling ex5.c...
+linking...
+Program Size: data=9.0 xdata=0 code=191
+creating hex file from "KEY_2"...
+"KEY_2" - 0 Error(s), 0 Warning(s).
+Build target 'Target 1'
+linking...
+Program Size: data=9.0 xdata=0 code=191
+creating hex file from "KEY_2"...
+"KEY_2" - 0 Error(s), 0 Warning(s).

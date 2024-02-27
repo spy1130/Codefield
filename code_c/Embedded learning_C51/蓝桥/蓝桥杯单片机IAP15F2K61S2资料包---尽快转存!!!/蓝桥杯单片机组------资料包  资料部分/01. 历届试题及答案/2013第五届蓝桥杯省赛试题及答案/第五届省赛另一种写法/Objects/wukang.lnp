@@ -1,0 +1,5 @@
+".\Objects\STARTUP.obj",
+".\Objects\wukang.obj",
+".\Objects\onewire.obj" 
+TO ".\Objects\wukang" 
+PRINT(".\Listings\wukang.m51") RAMSIZE(256) 

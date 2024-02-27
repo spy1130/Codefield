@@ -1,0 +1,202 @@
+C51 COMPILER V9.54   ZXIIC                                                                 12/19/2017 20:49:14 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE ZXIIC
+OBJECT MODULE PLACED IN .\Objects\zxiic.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE zxiic.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\z
+                    -xiic.lst) TABS(2) OBJECT(.\Objects\zxiic.obj)
+
+line level    source
+
+   1          #include "zxiic.h"
+   2          #define uint unsigned int
+   3          
+   4          sbit SCL = P2^0;
+   5          sbit SDA = P2^1;
+   6          
+   7          //us延时函数
+   8          void delay()
+   9          {
+  10   1        _nop_();
+  11   1        _nop_();
+  12   1      }
+  13          
+  14          //1ms延时函数
+  15          void delay1ms(uint z)
+  16          {
+  17   1         uint x,y;
+  18   1         for(x=z;x>0;x--)
+  19   1          for(y=850;y>0;y--);
+  20   1      }
+  21          
+  22          //IIC初始化
+  23          void IICInit()
+  24          {
+  25   1        SCL = 1;
+  26   1        delay();
+  27   1        SDA = 1;
+  28   1        delay();
+  29   1      }
+  30          
+  31          void start()  //起始信号
+  32          {
+  33   1        SDA = 1;
+  34   1        delay();
+  35   1        SCL = 1;
+  36   1        delay();
+  37   1        SDA = 0;
+  38   1        delay();
+  39   1        SCL = 0;
+  40   1        delay();
+  41   1      }
+  42          
+  43          void stop() //停止信号
+  44          {
+  45   1        SDA = 0;
+  46   1        delay();
+  47   1        SCL = 1;
+  48   1        delay();
+  49   1        SDA = 1;
+  50   1        delay();
+  51   1      }
+  52          
+  53          void respons() //应答信号
+  54          {
+C51 COMPILER V9.54   ZXIIC                                                                 12/19/2017 20:49:14 PAGE 2   
+
+  55   1        uchar i;
+  56   1        SCL = 1;
+  57   1        delay();
+  58   1        while((SDA==1)&&(i<250))   //等待应答信号i++用于延时等待。
+  59   1        i++;
+  60   1        SCL = 0;
+  61   1        delay();
+  62   1      }
+  63          
+  64          void write_byte(uchar date)   //写一个字节数据
+  65          {
+  66   1        uchar i,temp;
+  67   1        temp = date;
+  68   1        for(i=0;i<8;i++)
+  69   1        {
+  70   2          temp<<=1;
+  71   2          SCL = 0;  //低电平期间数据可变
+  72   2          delay();
+  73   2          SDA = CY;  //temp左移时，移出的最高位的值放入了CY中
+  74   2          delay();
+  75   2          SCL = 1;  //高电平期间数据应保持稳定  数据读入
+  76   2          delay();
+  77   2        }
+  78   1        SCL = 0;
+  79   1        delay();  //低电平期间数据才可变，才能释放总线。
+  80   1        SDA = 1;  //释放总线
+  81   1        delay();
+  82   1      }
+  83          
+  84          uchar read_byte() //读一个字节数据
+  85          {
+  86   1        uchar i;
+  87   1        uchar tmp=0;
+  88   1        SCL = 0;
+  89   1        delay();
+  90   1        SDA = 1;
+  91   1        delay();
+  92   1        for(i=0;i<8;i++)
+  93   1        {
+  94   2          SCL = 1;
+  95   2          delay();
+  96   2          tmp = (tmp<<1)|SDA;
+  97   2          delay();
+  98   2          SCL = 0;
+  99   2          delay();
+ 100   2        }
+ 101   1        delay();
+ 102   1        return tmp;
+ 103   1      }
+ 104          
+ 105          //向24c02addr地址中写入一个数据dat
+ 106          //芯片地址0xa0为写，0xa1为读。
+ 107          void write_24c02(uchar addr,uchar dat)
+ 108          {
+ 109   1        start();//起始信号
+ 110   1        write_byte(0xa0);//写入芯片地址 写操作
+ 111   1        respons();//应答
+ 112   1        write_byte(addr);//写入存储地址
+ 113   1        respons();
+ 114   1        write_byte(dat);//写入数据
+ 115   1        respons();
+ 116   1        stop();
+C51 COMPILER V9.54   ZXIIC                                                                 12/19/2017 20:49:14 PAGE 3   
+
+ 117   1        delay1ms(1);   //延时，芯片写入数据需要一定时间
+ 118   1      }
+ 119          
+ 120          //从24c02addr地址中读出一个数据
+ 121          //芯片地址0xa0为写，0xa1为读。
+ 122          uchar read_24c02(uchar addr)
+ 123          {
+ 124   1        uchar temp;//存储读取的数据
+ 125   1        start();
+ 126   1        write_byte(0xa0); //写入芯片地址 写操作
+ 127   1        respons();
+ 128   1        write_byte(addr); //写入要读取的地址
+ 129   1        respons();
+ 130   1        start();
+ 131   1        write_byte(0xa1); //写入芯片地址 读操作
+ 132   1        respons();
+ 133   1        temp = read_byte();
+ 134   1        stop(); //非应答，停止
+ 135   1        return temp;
+ 136   1      }
+ 137          
+ 138          //向PCF8591DAC写入数据
+ 139          //芯片地址0x90为写，0x91为读。
+ 140          //void write_DAC(uchar dat)
+ 141          //{
+ 142          //  start();//起始信号
+ 143          //  write_byte(0x90);//写入芯片地址 DAC
+ 144          //  respons();//应答
+ 145          //  write_byte(0x40);//写入存储地址
+ 146          //  respons();
+ 147          //  write_byte(dat);//写入数据
+ 148          //  respons();
+ 149          //  stop();
+ 150          //}
+ 151          
+ 152          //读取ADC数据，CH通道数  CH的值分别为0、1、2、3，分别代表1-4通道
+ 153          //芯片地址0x90为写，0x91为读。
+ 154          uchar read_ADC(uchar CH)
+ 155          {
+ 156   1        uchar temp;//存储读取的数据
+ 157   1        start();
+ 158   1        write_byte(0x90); //写入芯片地址 ADC
+ 159   1        respons();
+ 160   1        write_byte(0x40|CH);  //CH的值分别为0、1、2、3，分别代表1-4通道
+ 161   1        respons();
+ 162   1        start();
+ 163   1        write_byte(0x91); //写入芯片地址 读操作
+ 164   1        respons();
+ 165   1        temp = read_byte();
+ 166   1        stop(); //非应答，停止
+ 167   1        return temp;
+ 168   1      }
+ 169          
+ 170          
+ 171          
+ 172            
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    282    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   ZXIIC                                                                 12/19/2017 20:49:14 PAGE 4   
+
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

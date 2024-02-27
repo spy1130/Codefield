@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"串口进阶应用.obj" 
+TO "串口进阶应用案例" 
+RAMSIZE(256) 

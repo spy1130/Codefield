@@ -1,0 +1,13 @@
+C51 COMPILER V9.54   DS13022                                                               12/24/2017 15:25:39 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DS13022
+OBJECT MODULE PLACED IN .\Objects\ds13022.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE ds13022.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings
+                    -\ds13022.lst) TABS(2) OBJECT(.\Objects\ds13022.obj)
+
+line level    source
+
+*** ERROR C318 OF ds13022.c: can't open file 'ds13022.c'
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  1 ERROR(S)

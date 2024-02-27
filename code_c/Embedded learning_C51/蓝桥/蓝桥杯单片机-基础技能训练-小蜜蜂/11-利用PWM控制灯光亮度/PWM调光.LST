@@ -1,0 +1,120 @@
+C51 COMPILER V9.52.0.0   PWM____                                                           02/15/2019 22:04:10 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE PWM____
+OBJECT MODULE PLACED IN PWM调光.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE PWM调光.c BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "reg52.h"
+   2          
+   3          sbit L1 = P0^0;
+   4          sbit S7 = P3^0;
+   5          
+   6          void SelectHC573()
+   7          {
+   8   1        P2 = (P2 & 0x1f) | 0x80;
+   9   1      }
+  10          
+  11          //============定时相关的函数================
+  12          unsigned char count = 0;
+  13          unsigned char pwm_duty = 0;
+  14          void InitTimer0()
+  15          {
+  16   1        TMOD = 0x01;
+  17   1        TH0 = (65535 - 100) / 256;
+  18   1        TL0 = (65535 - 100) % 256;
+  19   1        
+  20   1        ET0 = 1;
+  21   1        EA = 1;
+  22   1      }
+  23          
+  24          void ServiceTimer0() interrupt 1
+  25          {
+  26   1        TH0 = (65535 - 100) / 256;
+  27   1        TL0 = (65535 - 100) % 256;
+  28   1        
+  29   1        count++;
+  30   1        if(count == pwm_duty)
+  31   1        {
+  32   2          L1 = 1;
+  33   2        }
+  34   1        else if(count == 100)
+  35   1        {
+  36   2          L1 = 0;
+  37   2          count = 0;
+  38   2        }
+  39   1      }
+  40          //==========================================
+  41          
+  42          //============按键相关的函数================
+  43          void Delay(unsigned int t)
+  44          {
+  45   1        while(t--);
+  46   1      }
+  47          
+  48          unsigned char stat = 0;
+  49          void ScanKeys()
+  50          {
+  51   1        if(S7 == 0)
+  52   1        {
+  53   2          Delay(100);
+  54   2          if(S7 == 0)
+  55   2          {
+C51 COMPILER V9.52.0.0   PWM____                                                           02/15/2019 22:04:10 PAGE 2   
+
+  56   3            switch(stat)
+  57   3            {
+  58   4              case 0:
+  59   4                L1 = 0;
+  60   4                TR0 = 1;
+  61   4                pwm_duty = 10;
+  62   4                stat = 1;
+  63   4              break;
+  64   4              
+  65   4              case 1:
+  66   4                pwm_duty = 50;
+  67   4                stat = 2;
+  68   4              break;
+  69   4              
+  70   4              case 2:
+  71   4                pwm_duty = 90;
+  72   4                stat = 3;
+  73   4              break;
+  74   4              
+  75   4              case 3:
+  76   4                L1 = 1;
+  77   4                TR0 = 0;
+  78   4                stat = 0;
+  79   4              break;
+  80   4            }
+  81   3            while(S7 == 0);
+  82   3          }
+  83   2        }
+  84   1      }
+  85          //============================================
+  86          void main()
+  87          {
+  88   1        SelectHC573();
+  89   1        L1 = 1;
+  90   1        InitTimer0();
+  91   1        while(1)
+  92   1        {
+  93   2          ScanKeys();
+  94   2        }
+  95   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    150    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

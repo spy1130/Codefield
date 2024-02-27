@@ -1,0 +1,140 @@
+C51 COMPILER V9.54   DS13022                                                               12/19/2017 22:03:11 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DS13022
+OBJECT MODULE PLACED IN .\Objects\ds13022.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE ds13022.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings
+                    -\ds13022.lst) TABS(2) OBJECT(.\Objects\ds13022.obj)
+
+line level    source
+
+   1          #include "ds13022.h"
+   2          /********************************************************************/ 
+   3          /*单字节写入一字节数据*/
+   4          
+   5          uchar clk[7]={30,30,8,10,11,2,20};
+   6          uchar shijian[7];
+   7          
+   8          /*********************************************************************/
+   9          void ds_write()
+  10          {
+  11   1        uchar i,wadd;
+  12   1        wadd=0x80;
+  13   1        Ds1302_Single_Byte_Write(0x8e,0x00);
+  14   1        for(i=0;i<7;i++)
+  15   1        {
+  16   2          Ds1302_Single_Byte_Write(wadd,clk[i]);
+  17   2          wadd+=2;
+  18   2        }
+  19   1        Ds1302_Single_Byte_Write(0x8e,0x80);
+  20   1      }
+  21          
+  22          void ds_read()
+  23          {
+  24   1        uchar i,wadd;
+  25   1        wadd=0x81;
+  26   1        Ds1302_Single_Byte_Write(0x8e,0x00);
+  27   1        for(i=0;i<7;i++)
+  28   1        {
+  29   2          shijian[i]=Ds1302_Single_Byte_Read(wadd);  
+  30   2          wadd+=2;
+  31   2        }
+  32   1        Ds1302_Single_Byte_Write(0x8e,0x80);  
+  33   1      }
+  34          /*********************************************************************/
+  35          
+  36          void Write_Ds1302_Byte(unsigned char dat) 
+  37          {
+  38   1        unsigned char i;
+  39   1        SCK = 0;
+  40   1        for (i=0;i<8;i++) 
+  41   1        { 
+  42   2          if (dat & 0x01)   // 等价于if((addr & 0x01) ==1) 
+  43   2          {
+  44   3            SDA_SET;    //#define SDA_SET SDA=1 /*电平置高*/
+  45   3          }
+  46   2          else 
+  47   2          {
+  48   3            SDA_CLR;    //#define SDA_CLR SDA=0 /*电平置低*/
+  49   3          }    
+  50   2          SCK_SET;
+  51   2          SCK_CLR;    
+  52   2          dat = dat >> 1; 
+  53   2        } 
+  54   1      }
+C51 COMPILER V9.54   DS13022                                                               12/19/2017 22:03:11 PAGE 2   
+
+  55          /********************************************************************/ 
+  56          /*单字节读出一字节数据*/
+  57          unsigned char Read_Ds1302_Byte(void) 
+  58          {
+  59   1        unsigned char i, dat=0; 
+  60   1        for (i=0;i<8;i++)
+  61   1        { 
+  62   2          dat = dat >> 1;
+  63   2          if (SDA_R)    //等价于if(SDA_R==1)    #define SDA_R SDA /*电平读取*/  
+  64   2          {
+  65   3            dat |= 0x80;
+  66   3          }
+  67   2          else 
+  68   2          {
+  69   3            dat &= 0x7F;
+  70   3          }
+  71   2          SCK_SET;
+  72   2          SCK_CLR;
+  73   2        }
+  74   1        return dat;
+  75   1      }
+  76          
+  77          /********************************************************************/ 
+  78          /*向DS1302 单字节写入一字节数据*/
+  79          void Ds1302_Single_Byte_Write(unsigned char addr, unsigned char dat)
+  80          { 
+  81   1          uchar num;
+  82   1        RST_CLR;      /*RST脚置低，实现DS1302的初始化*/
+  83   1        SCK_CLR;      /*SCK脚置低，实现DS1302的初始化*/
+  84   1      
+  85   1        RST_SET;      /*启动DS1302总线,RST=1电平置高 */
+  86   1        addr = addr & 0xFE;  
+  87   1        Write_Ds1302_Byte(addr); /*写入目标地址：addr,保证是写操作,写之前将最低位置零*/
+  88   1        num=(dat/10<<4)|(dat%10); 
+  89   1        Write_Ds1302_Byte(num);  /*写入数据：dat*/
+  90   1        RST_CLR;         /*停止DS1302总线*/
+  91   1        SDA_CLR;
+  92   1      }
+  93          
+  94          /********************************************************************/ 
+  95          /*从DS1302单字节读出一字节数据*/
+  96          unsigned char Ds1302_Single_Byte_Read(unsigned char addr) 
+  97          { 
+  98   1        unsigned char temp,temp_l,temp_h;
+  99   1        RST_CLR;      /*RST脚置低，实现DS1302的初始化*/
+ 100   1        SCK_CLR;      /*SCK脚置低，实现DS1302的初始化*/
+ 101   1      
+ 102   1        RST_SET;  /*启动DS1302总线,RST=1电平置高 */ 
+ 103   1        addr = addr | 0x01;  
+ 104   1        Write_Ds1302_Byte(addr); /*写入目标地址：addr,保证是读操作,写之前将最低位置高*/
+ 105   1        temp=Read_Ds1302_Byte(); /*从DS1302中读出一个字节的数据*/
+ 106   1        temp_h=temp/16;
+ 107   1        temp_l=temp%16;
+ 108   1        temp=temp_h*10+temp_l;    
+ 109   1        RST_CLR;  /*停止DS1302总线*/
+ 110   1        SDA_CLR;            
+ 111   1        return temp;
+ 112   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    218    ----
+C51 COMPILER V9.54   DS13022                                                               12/19/2017 22:03:11 PAGE 3   
+
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     14       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

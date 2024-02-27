@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"定时器实现秒闪功能.obj" 
+TO "定时器实现秒闪功能" 
+RAMSIZE(256) 

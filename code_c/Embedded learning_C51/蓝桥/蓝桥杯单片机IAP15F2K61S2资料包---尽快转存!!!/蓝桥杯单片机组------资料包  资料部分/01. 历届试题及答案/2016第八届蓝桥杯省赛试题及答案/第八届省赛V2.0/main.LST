@@ -1,0 +1,104 @@
+C51 COMPILER V9.54   MAIN                                                                  12/21/2017 22:10:18 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include<reg51.h>
+   2          #include<key.c>
+   3          #include<xianshi.c>
+   4          #include<ds18b20.c>
+   5          uchar cp,cp1,cp2,fl;
+   6          bit led;
+   7          sbit P0_0 = P0^0;
+   8          void kongzhi_2003(uchar w,uchar ww)
+   9          {
+  10   1        wr = 0;
+  11   1        P2 = w;
+  12   1        P0 = ww;
+  13   1        P2 = 0x00;
+  14   1        wr = 1;
+  15   1      }
+  16          void led_func(void)
+  17          {
+  18   1        wr = 0;
+  19   1        P2 = 0x80;
+  20   1        P0 = 0xff;
+  21   1        P0_0 = led;
+  22   1        P2 = 0x00;
+  23   1        wr = 1;}
+  24          void Timer0_isr(void) interrupt 1
+  25          {
+  26   1        TH0 = (65536 - 2000) / 256;
+  27   1        TL0 = (65536 - 2000) % 256;
+  28   1        fa_song();
+  29   1        cp++;
+  30   1        if(cp>=100) led = ~led;
+  31   1        if(cp>=250)
+  32   1        {
+  33   2          cp=0;
+  34   2          cp1++;
+  35   2          if(cp1>=2)
+  36   2          {
+  37   3            if(fl==1) cp2++;
+  38   3            if(cp2>5) {cp2 = 0; fl = 0;} 
+  39   3            sec++;
+  40   3            flash = ~flash;
+  41   3            if(sec>=60)
+  42   3            {
+  43   4              sec = 0;
+  44   4              min++;
+  45   4              if(min>=60)
+  46   4              {
+  47   5                min = 0;
+  48   5                hour++;
+  49   5                if(hour>=24) hour=0;
+  50   5              }
+  51   4            }
+  52   3          }
+  53   2        }
+  54   1      
+  55   1      }
+C51 COMPILER V9.54   MAIN                                                                  12/21/2017 22:10:18 PAGE 2   
+
+  56          void Timer_init(void)
+  57          {
+  58   1        TMOD = 0X01;
+  59   1        TH0 = (65536 - 2000) / 256;
+  60   1        TL0 = (65536 - 2000) % 256;
+  61   1        EA = 1;
+  62   1        ET0 = 1;
+  63   1        TR0 = 1;
+  64   1      }
+  65          void main()
+  66          {
+  67   1        kongzhi_2003(0xa0,0x00);
+  68   1        kongzhi_2003(0x80,0xff);
+  69   1        Timer_init();
+  70   1        while(1)
+  71   1        {
+  72   2          temp = Read_Temperature();
+  73   2          key_func();
+  74   2          if((hour == hour_n)&&(min == min_n)&&(sec == sec_n)) fl = 1;
+  75   2          if(fl == 1) led_func();
+  76   2          else kongzhi_2003(0x80,0xff); 
+  77   2      
+  78   2        } 
+  79   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1766    ----
+   CONSTANT SIZE    =     21    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     20      10
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

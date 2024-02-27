@@ -1,0 +1,223 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        01/25/2015  00:42:58  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+D:\KEIL\C51\BIN\BL51.EXE STARTUP.obj, ex15.obj TO UART_2 RAMSIZE (256)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  STARTUP.obj (?C_STARTUP)
+  ex15.obj (EX15)
+  D:\KEIL\C51\LIB\C51S.LIB (?C_INIT)
+  D:\KEIL\C51\LIB\C51S.LIB (?C?CLDPTR)
+
+
+LINK MAP OF MODULE:  UART_2 (?C_STARTUP)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0001H     UNIT         ?DT?EX15
+                    0009H     0017H                  *** GAP ***
+            BIT     0020H.0   0000H.1   UNIT         ?BI?EX15
+                    0020H.1   0000H.7                *** GAP ***
+            IDATA   0021H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+                    0003H     0020H                  *** GAP ***
+            CODE    0023H     0003H     ABSOLUTE     
+                    0026H     07DAH                  *** GAP ***
+            CODE    0800H     0097H     UNIT         ?PR?MAIN?EX15
+            CODE    0897H     008CH     UNIT         ?C_C51STARTUP
+            CODE    0923H     0019H     UNIT         ?C?LIB_CODE
+            CODE    093CH     0016H     UNIT         ?PR?_UART_SENDSTRING?EX15
+            CODE    0952H     000DH     UNIT         ?PR?ISR_UART?EX15
+            CODE    095FH     0008H     UNIT         ?CO?EX15
+            CODE    0967H     0006H     UNIT         ?C_INITSEG
+
+
+
+OVERLAY MAP OF MODULE:   UART_2 (?C_STARTUP)
+
+
+SEGMENT
+  +--> CALLED SEGMENT
+---------------------
+?C_C51STARTUP
+  +--> ?PR?MAIN?EX15
+  +--> ?C_INITSEG
+
+?PR?MAIN?EX15
+  +--> ?CO?EX15
+  +--> ?PR?_UART_SENDSTRING?EX15
+
+
+BL51 BANKED LINKER/LOCATER V6.22                                                      01/25/2015  00:42:58  PAGE 2
+
+
+
+SYMBOL TABLE OF MODULE:  UART_2 (?C_STARTUP)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        ?C_STARTUP
+  C:0897H         SEGMENT       ?C_C51STARTUP
+  I:0021H         SEGMENT       ?STACK
+  C:0000H         PUBLIC        ?C_STARTUP
+  D:00E0H         SYMBOL        ACC
+  D:00F0H         SYMBOL        B
+  D:0083H         SYMBOL        DPH
+  D:0082H         SYMBOL        DPL
+  N:0000H         SYMBOL        IBPSTACK
+  N:0100H         SYMBOL        IBPSTACKTOP
+  N:0080H         SYMBOL        IDATALEN
+  C:089AH         SYMBOL        IDATALOOP
+  N:0000H         SYMBOL        PBPSTACK
+  N:0100H         SYMBOL        PBPSTACKTOP
+  N:0000H         SYMBOL        PDATALEN
+  N:0000H         SYMBOL        PDATASTART
+  N:0000H         SYMBOL        PPAGE
+  N:0000H         SYMBOL        PPAGEENABLE
+  D:00A0H         SYMBOL        PPAGE_SFR
+  D:0081H         SYMBOL        SP
+  C:0897H         SYMBOL        STARTUP1
+  N:0000H         SYMBOL        XBPSTACK
+  N:0000H         SYMBOL        XBPSTACKTOP
+  N:0000H         SYMBOL        XDATALEN
+  N:0000H         SYMBOL        XDATASTART
+  C:0000H         LINE#         126
+  C:0897H         LINE#         133
+  C:0899H         LINE#         134
+  C:089AH         LINE#         135
+  C:089BH         LINE#         136
+  C:089DH         LINE#         185
+  C:08A0H         LINE#         196
+  -------         ENDMOD        ?C_STARTUP
+
+  -------         MODULE        EX15
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0090H         PUBLIC        P1
+  D:00B0H         PUBLIC        P3
+  B:00A8H.7       PUBLIC        EA
+  D:00A8H         PUBLIC        IE
+  B:00A8H.4       PUBLIC        ES
+  D:00B8H         PUBLIC        IP
+  B:0098H.0       PUBLIC        RI
+  B:0098H.1       PUBLIC        TI
+  C:0800H         PUBLIC        main
+  D:0099H         PUBLIC        SBUF
+  D:0098H         PUBLIC        SCON
+  D:0089H         PUBLIC        TMOD
+  D:0088H         PUBLIC        TCON
+  D:008EH         PUBLIC        AUXR
+  D:008DH         PUBLIC        TH1
+BL51 BANKED LINKER/LOCATER V6.22                                                      01/25/2015  00:42:58  PAGE 3
+
+
+  B:0020H.0       PUBLIC        rxc
+  D:008BH         PUBLIC        TL1
+  B:0088H.6       PUBLIC        TR1
+  C:093CH         PUBLIC        _uart_sendstring
+  D:00C8H         PUBLIC        T2CON
+  D:0008H         PUBLIC        rx
+  C:0952H         PUBLIC        isr_uart
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          MAIN
+  C:0800H         LINE#         27
+  C:0800H         LINE#         28
+  C:0800H         LINE#         29
+  C:0803H         LINE#         31
+  C:0806H         LINE#         32
+  C:0809H         LINE#         33
+  C:080CH         LINE#         34
+  C:080FH         LINE#         35
+  C:0811H         LINE#         36
+  C:0813H         LINE#         37
+  C:0815H         LINE#         39
+  C:0815H         LINE#         40
+  C:0815H         LINE#         41
+  C:0818H         LINE#         42
+  C:081AH         LINE#         43
+  C:0849H         LINE#         44
+  C:0849H         LINE#         45
+  C:084FH         LINE#         46
+  C:0851H         LINE#         47
+  C:0851H         LINE#         48
+  C:0857H         LINE#         49
+  C:0859H         LINE#         50
+  C:0859H         LINE#         51
+  C:085FH         LINE#         52
+  C:0861H         LINE#         53
+  C:0861H         LINE#         54
+  C:0867H         LINE#         55
+  C:0869H         LINE#         56
+  C:0869H         LINE#         57
+  C:086FH         LINE#         58
+  C:0871H         LINE#         59
+  C:0871H         LINE#         60
+  C:0877H         LINE#         61
+  C:0879H         LINE#         62
+  C:0879H         LINE#         63
+  C:087FH         LINE#         64
+  C:0881H         LINE#         65
+  C:0881H         LINE#         66
+  C:0887H         LINE#         67
+  C:0889H         LINE#         68
+  C:0889H         LINE#         69
+  C:0892H         LINE#         70
+  C:0892H         LINE#         71
+  C:0892H         LINE#         72
+  C:0894H         LINE#         73
+  C:0894H         LINE#         74
+  -------         ENDPROC       MAIN
+  -------         PROC          ISR_UART
+BL51 BANKED LINKER/LOCATER V6.22                                                      01/25/2015  00:42:58  PAGE 4
+
+
+  C:0952H         LINE#         78
+  C:0952H         LINE#         80
+  C:0955H         LINE#         81
+  C:0955H         LINE#         82
+  C:0957H         LINE#         83
+  C:095AH         LINE#         84
+  C:095CH         LINE#         85
+  C:095EH         LINE#         86
+  C:095EH         LINE#         87
+  -------         ENDPROC       ISR_UART
+  -------         PROC          _UART_SENDSTRING
+  D:0001H         SYMBOL        str
+  -------         DO            
+  D:0001H         SYMBOL        p
+  -------         ENDDO         
+  C:093CH         LINE#         90
+  C:093CH         LINE#         91
+  C:093CH         LINE#         94
+  C:093CH         LINE#         95
+  C:0941H         LINE#         96
+  C:0941H         LINE#         97
+  C:0943H         LINE#         98
+  C:0946H         LINE#         99
+  C:0948H         LINE#         100
+  C:094FH         LINE#         101
+  C:0951H         LINE#         102
+  -------         ENDPROC       _UART_SENDSTRING
+  -------         ENDMOD        EX15
+
+  -------         MODULE        ?C?CLDPTR
+  C:0923H         PUBLIC        ?C?CLDPTR
+  -------         ENDMOD        ?C?CLDPTR
+
+******************************************************************************
+* RESTRICTED VERSION WITH 0800H BYTE CODE SIZE LIMIT; USED: 00D9H BYTE (10%) *
+******************************************************************************
+
+Program Size: data=10.1 xdata=0 code=371
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

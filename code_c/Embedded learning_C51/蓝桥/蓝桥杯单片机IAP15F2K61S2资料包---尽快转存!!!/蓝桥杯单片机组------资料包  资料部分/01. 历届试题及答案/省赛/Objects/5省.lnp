@@ -1,0 +1,6 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\DS.obj",
+".\Objects\DS18B20.obj" 
+TO ".\Objects\5ʡ" 
+PRINT(".\Listings\5ʡ.m51") RAMSIZE(256) 

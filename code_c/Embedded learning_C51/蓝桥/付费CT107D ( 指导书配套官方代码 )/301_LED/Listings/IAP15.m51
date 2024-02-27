@@ -1,0 +1,132 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        02/05/2021  14:20:53  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+D:\10.1 KEIL51\C51\BIN\BL51.EXE .\Objects\main.obj TO .\Objects\IAP15 PRINT (.\Listings\IAP15.m51) RAMSIZE (256)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  .\Objects\main.obj (MAIN)
+  D:\10.1 KEIL51\C51\LIB\C51S.LIB (?C_STARTUP)
+
+
+LINK MAP OF MODULE:  .\Objects\IAP15 (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            IDATA   0008H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     0033H     UNIT         ?PR?MAIN?MAIN
+            CODE    0036H     001EH     UNIT         ?PR?_DELAY?MAIN
+            CODE    0054H     001DH     UNIT         ?PR?CLS_PERIPHERAL?MAIN
+            CODE    0071H     0010H     UNIT         ?PR?_LED_DISP?MAIN
+            CODE    0081H     000CH     UNIT         ?C_C51STARTUP
+
+
+
+OVERLAY MAP OF MODULE:   .\Objects\IAP15 (MAIN)
+
+
+SEGMENT
+  +--> CALLED SEGMENT
+---------------------
+?C_C51STARTUP
+  +--> ?PR?MAIN?MAIN
+
+?PR?MAIN?MAIN
+  +--> ?PR?CLS_PERIPHERAL?MAIN
+  +--> ?PR?_LED_DISP?MAIN
+  +--> ?PR?_DELAY?MAIN
+
+
+
+SYMBOL TABLE OF MODULE:  .\Objects\IAP15 (MAIN)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+BL51 BANKED LINKER/LOCATER V6.22                                                      02/05/2021  14:20:53  PAGE 2
+
+
+  D:00B0H         PUBLIC        P3
+  C:0071H         PUBLIC        _Led_Disp
+  D:00A8H         PUBLIC        IE
+  C:0054H         PUBLIC        Cls_Peripheral
+  D:00B8H         PUBLIC        IP
+  C:0003H         PUBLIC        main
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  D:00C8H         PUBLIC        T2CON
+  C:0036H         PUBLIC        _Delay
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          CLS_PERIPHERAL
+  C:0054H         LINE#         5
+  C:0054H         LINE#         6
+  C:0054H         LINE#         7
+  C:0057H         LINE#         8
+  C:005FH         LINE#         9
+  C:0062H         LINE#         10
+  C:0065H         LINE#         11
+  C:006DH         LINE#         12
+  C:0070H         LINE#         15
+  -------         ENDPROC       CLS_PERIPHERAL
+  -------         PROC          _LED_DISP
+  D:0007H         SYMBOL        ucLed
+  C:0071H         LINE#         17
+  C:0071H         LINE#         18
+  C:0071H         LINE#         19
+  C:0075H         LINE#         20
+  C:007DH         LINE#         21
+  C:0080H         LINE#         23
+  -------         ENDPROC       _LED_DISP
+  -------         PROC          _DELAY
+  D:0006H         SYMBOL        num
+  -------         DO            
+  D:0004H         SYMBOL        i
+  -------         ENDDO         
+  C:0036H         LINE#         25
+  C:0036H         LINE#         26
+  C:0036H         LINE#         28
+  C:0040H         LINE#         29
+  C:0053H         LINE#         30
+  -------         ENDPROC       _DELAY
+  -------         PROC          MAIN
+  -------         DO            
+  D:0003H         SYMBOL        i
+  D:0001H         SYMBOL        j
+  -------         ENDDO         
+  C:0003H         LINE#         32
+  C:0003H         LINE#         33
+  C:0003H         LINE#         36
+  C:0006H         LINE#         38
+  C:0006H         LINE#         39
+  C:0006H         LINE#         40
+  C:0008H         LINE#         41
+  C:000AH         LINE#         42
+  C:000AH         LINE#         43
+  C:000FH         LINE#         44
+BL51 BANKED LINKER/LOCATER V6.22                                                      02/05/2021  14:20:53  PAGE 3
+
+
+  C:0019H         LINE#         45
+  C:001EH         LINE#         46
+  C:002CH         LINE#         47
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        MAIN
+
+Program Size: data=9.0 xdata=0 code=141
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

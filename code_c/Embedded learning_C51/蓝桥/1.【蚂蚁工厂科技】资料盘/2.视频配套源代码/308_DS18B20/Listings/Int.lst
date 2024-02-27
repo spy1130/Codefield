@@ -1,0 +1,42 @@
+C51 COMPILER V9.56.0.0   INT                                                               02/19/2021 08:36:01 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE INT
+OBJECT MODULE PLACED IN .\Objects\Int.obj
+COMPILER INVOKED BY: D:\10.1 keil51\C51\BIN\C51.EXE ..\Sys\Int.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver;..\Sys) DEBUG
+                    - OBJECTEXTEND PRINT(.\Listings\Int.lst) TABS(2) OBJECT(.\Objects\Int.obj)
+
+line level    source
+
+   1          # include "Int.h"
+   2          
+   3          
+   4          //函数名：外部中断初始化函数
+   5          //入口参数：无
+   6          //返回值：无
+   7          //函数功能：对外中断0和外中断1进行初始化配置，配置成下降沿触发方式
+   8          void Int_init(void)
+   9          {
+  10   1        IT0 = 1;//配置成下降沿触发
+  11   1        EX0 = 1;//配置外中断0使能
+  12   1        
+  13   1        IT1 = 1;//配置成下降沿触发
+  14   1        EX1 = 1;//配置外中断1使能
+  15   1      
+  16   1        EA = 1;//打开总中断
+  17   1      
+  18   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     11    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

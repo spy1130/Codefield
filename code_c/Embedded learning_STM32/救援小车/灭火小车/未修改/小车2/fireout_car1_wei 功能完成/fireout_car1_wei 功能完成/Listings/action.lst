@@ -1,0 +1,1130 @@
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE ACTION
+OBJECT MODULE PLACED IN .\Objects\action.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE action.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ac
+                    -tion.lst) TABS(2) OBJECT(.\Objects\action.obj)
+
+line level    source
+
+   1          #include "action.h"
+   2          
+   3          volatile unsigned int last_dis = 0;
+   4          volatile unsigned int left_dis = 0;
+   5          volatile unsigned int right_dis = 0;
+   6          volatile unsigned int front_dis = 0;
+   7          volatile unsigned int speed_right = 0;
+   8          volatile unsigned int speed_left = 0;
+   9          
+  10          float xdata time_i = 0;
+  11          float xdata error=0x00;
+  12          float xdata error_i=0x00;
+  13          float xdata sum_err=0x00;
+  14          float xdata error_dis=0x00;
+  15          float xdata error_dir=0x00;
+  16          
+  17          float xdata kp_dis=5.2; 
+  18          float xdata kp_dir=5.0;
+  19          
+  20          float xdata kp_dis_big=2.5; //2.3 -- 2.5 -- 2.3
+  21          float xdata ki_dis_big=2.3; //2.0 -- 2.3 -- 2.5
+  22          float xdata kp_dir_big=8.0; //7.0 -- 8.0 -- 7.0
+  23          
+  24          float xdata kp_dis_mid=2.0;//3.0*1.5;2.7-2.4
+  25          float xdata kp_dir_mid=30.7;//1.5*1.5;   34-30还不错
+  26          
+  27          float xdata kp_dis_samll=1.9;//1.9;//2.2有点猛;//1.8*1.5;1.5-1.2-1.0
+  28          float xdata kp_dir_small=40.0;//1.9;//2.2有点猛;//1.8*1.5;1.5-1.2-1.0
+  29          
+  30          
+  31          typedef struct Kalm_parameter
+  32          {
+  33            float p_mid;
+  34            float p_last;
+  35            float p_now;
+  36            float Q;
+  37            float kg;
+  38            float R;
+  39            float Sm;
+  40            float x_last;
+  41            float x_mid;
+  42          }
+  43          Kalm_par;
+  44          
+  45          Kalm_par kalm_front = {0.0, 0.0, 0.0, 0.018, 0.0, 0.0542, 0.0, 0.0, 0.0};
+  46          Kalm_par xdata kalm_left = {0.0, 0.0, 0.0, 0.001, 0.0, 0.012, 0.0, 0.0, 0.0};
+  47          Kalm_par xdata kalm_right = {0.0, 0.0, 0.0, 0.001, 0.0, 0.012, 0.0, 0.0, 0.0};
+  48          
+  49          int kalmanfilter(int z_measure, int position)//卡尔曼滤波
+  50          {
+  51   1        switch(position)
+  52   1        {
+  53   2          case 1:
+  54   2            kalm_front.x_mid = kalm_front.x_last;
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 2   
+
+  55   2            kalm_front.p_mid = kalm_front.p_last + kalm_front.Q;
+  56   2            kalm_front.kg = kalm_front.p_mid + kalm_front.Q;
+  57   2            kalm_front.Sm = (int)kalm_front.x_mid + kalm_front.kg * (z_measure - kalm_front.x_mid);
+  58   2            kalm_front.p_now = (1-kalm_front.kg) * kalm_front.p_mid;
+  59   2            kalm_front.p_last = kalm_front.p_now;
+  60   2            kalm_front.x_last = kalm_front.Sm;
+  61   2            break;
+  62   2          case 2:
+  63   2            kalm_left.x_mid = kalm_left.x_last;
+  64   2            kalm_left.p_mid = kalm_left.p_last + kalm_left.Q;
+  65   2            kalm_left.kg = kalm_left.p_mid + kalm_left.Q;
+  66   2            kalm_left.Sm = (int)kalm_left.x_mid + kalm_left.kg * (z_measure - kalm_left.x_mid);
+  67   2            kalm_left.p_now = (1-kalm_left.kg) * kalm_left.p_mid;
+  68   2            kalm_left.p_last = kalm_left.p_now;
+  69   2            kalm_left.x_last = kalm_left.Sm;
+  70   2            break;
+  71   2          case 3:
+  72   2            kalm_right.x_mid = kalm_right.x_last;
+  73   2            kalm_right.p_mid = kalm_right.p_last + kalm_right.Q;
+  74   2            kalm_right.kg = kalm_right.p_mid + kalm_right.Q;
+  75   2            kalm_right.Sm = (int)kalm_right.x_mid + kalm_right.kg * (z_measure - kalm_right.x_mid);
+  76   2            kalm_right.p_now = (1-kalm_right.kg) * kalm_right.p_mid;
+  77   2            kalm_right.p_last = kalm_right.p_now;
+  78   2            kalm_right.x_last = kalm_right.Sm;
+  79   2            break;
+  80   2          default:
+  81   2            break;
+  82   2        }
+  83   1        if(1 == position) 
+  84   1          return kalm_front.x_last;
+  85   1        else if(2 == position) 
+  86   1          return kalm_left.x_last;
+  87   1        else if(3 == position) 
+  88   1          return kalm_right.x_last;
+  89   1        
+  90   1        return 0;
+  91   1      }
+  92          
+  93          
+  94          void adjustDirection_1(unsigned int LeftSpeed,unsigned int RightSpeed)
+  95          {
+  96   1        Right_H_Speed = (int)(RightSpeed * 0.89);
+  97   1        Right_L_Speed = 18330 - Right_H_Speed;
+  98   1        
+  99   1        Left_H_Speed = (int)(LeftSpeed * 0.89);
+ 100   1        Left_L_Speed = 18330 - Left_H_Speed;
+ 101   1      }
+ 102          void Circulation_wall_right()
+ 103          {
+ 104   1         last_dis=right_dis;
+ 105   1         front_dis= kalmanfilter(Ultrasonic_Get_Front(),1);
+ 106   1         right_dis = Ultrasonic_Get_Right();
+ 107   1         //left_dis = Ultrasonic_Get_Left();
+ 108   1        
+ 109   1      //   front_dis= Ultrasonic_Get_Front();
+ 110   1      //   right_dis= Ultrasonic_Get_Right();
+ 111   1      //   left_dis= Ultrasonic_Get_Left();
+ 112   1        
+ 113   1         if(right_dis > 320)//右边不靠墙时扫描左边与墙的距离
+ 114   1         {
+ 115   2           speed_right=1300;
+ 116   2           speed_left=1700;
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 3   
+
+ 117   2           adjustDirection_1(speed_left,speed_right);
+ 118   2         }
+ 119   1      //--------------大于170--------------10  
+ 120   1         else if(right_dis >170)//turn right
+ 121   1         {
+ 122   2           error_dis=(right_dis-170)*kp_dis;// kp_dis=5.0
+ 123   2      /////////////////////////////大于220-------------------------------
+ 124   2      //小车离中心线大于50mm，有位置环pid，有方向环pid
+ 125   2      /////////////////////////        
+ 126   2           if(right_dis-170>50)
+ 127   2           {
+ 128   3             kp_dis=kp_dis_samll;//kp_dis_samll=1.9
+ 129   3             kp_dir=kp_dir_small;//kp_dir_small=40.0
+ 130   3      //------------------------------------------------------------------       
+ 131   3             error_dis=(right_dis-170)*kp_dis;//-------------10.2
+ 132   3             error_dir=(last_dis-right_dis)*kp_dir; 
+ 133   3      //       speed_right=1300+error_dis;
+ 134   3             if((last_dis-right_dis)>0)
+ 135   3               {
+ 136   4                 //现朝右墙远离中心，要使靠近中心线
+ 137   4                  speed_right=1300+error_dis-error_dir;
+ 138   4                  if(speed_right>=1500)
+ 139   4                   {
+ 140   5                     speed_right=1450;
+ 141   5                   }
+ 142   4                 speed_left=1700;
+ 143   4                 adjustDirection_1(1700,(int)speed_right);
+ 144   4               }
+ 145   3               else
+ 146   3               {
+ 147   4                 //现朝左远离中心线，使靠近中心线
+ 148   4                 speed_right=1300+error_dis-error_dir;
+ 149   4                 if(speed_right>=1500)
+ 150   4                 {
+ 151   5                   speed_right=1450;
+ 152   5                 }
+ 153   4                 speed_left=1700;
+ 154   4                 adjustDirection_1(1700,(int)speed_right);
+ 155   4               }
+ 156   3           }
+ 157   2           else
+ 158   2           {
+ 159   3      /////////////////////////////
+ 160   3      //小车离中心线小于50mm，大于30mm，有位置环pid，有方向环pid
+ 161   3      /////////////////////////      
+ 162   3             error_dis=(right_dis-170)*kp_dis;
+ 163   3             
+ 164   3             if(right_dis-170>30)
+ 165   3             {
+ 166   4                 kp_dis=kp_dis_mid;//kp_dis_mid=2.0
+ 167   4                 kp_dir=kp_dir_mid;//kp_dir_mid=30.7
+ 168   4                
+ 169   4                error_dis=(right_dis-170)*kp_dis;
+ 170   4                error_dir=(last_dis-right_dis)*kp_dir;
+ 171   4               
+ 172   4               if((last_dis-right_dis)>0)
+ 173   4               {
+ 174   5                 //靠近中心线
+ 175   5                 if(error_dir>=0.9*error_dis)
+ 176   5                 {
+ 177   6                   error_dir=0.9*error_dis;
+ 178   6                 }
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 4   
+
+ 179   5                  speed_right=1300+error_dis-error_dir;
+ 180   5                  if(speed_right>=1500)
+ 181   5                 {
+ 182   6                   speed_right=1450;
+ 183   6                 }
+ 184   5                 speed_left=1700;
+ 185   5                 adjustDirection_1(1700,(int)speed_right);
+ 186   5               }
+ 187   4               else
+ 188   4               {
+ 189   5                 //远离中心线
+ 190   5                 speed_right=1300+error_dis-error_dir;
+ 191   5                 if(speed_right>=1500)
+ 192   5                 {
+ 193   6                   speed_right=1450;
+ 194   6                 }
+ 195   5                 speed_left=1700;
+ 196   5                 adjustDirection_1(1700,(int)speed_right);
+ 197   5               }
+ 198   4             }
+ 199   3      ////////////////////////////
+ 200   3      //小车离中心线小于30mm，大于10mm，有位置环pid，有方向环pid
+ 201   3      ///////////////////////// 
+ 202   3             else
+ 203   3             {
+ 204   4              kp_dis=kp_dis_big;//kp_dis_big=2.3
+ 205   4              kp_dir=kp_dir_big;//kp_dir_big=7.0
+ 206   4              error_dis=(right_dis-170)*kp_dis;
+ 207   4              error_dir=(last_dis-right_dis)*kp_dir;
+ 208   4              error=(right_dis-170);
+ 209   4              if(15>=error&&time_i<=5)         
+ 210   4              {
+ 211   5                if(time_i<4)
+ 212   5                   sum_err=sum_err+error*0.3;
+ 213   5                else
+ 214   5                   sum_err=(sum_err+error)*0.7;
+ 215   5                
+ 216   5                error_i=sum_err*ki_dis_big;//ki_dis_big=2.0
+ 217   5                  
+ 218   5                time_i++;
+ 219   5              }
+ 220   4              else if (15<error||time_i>5)
+ 221   4              {
+ 222   5                sum_err=0;
+ 223   5                error_i=0;            
+ 224   5                time_i=0;
+ 225   5              }
+ 226   4              if((last_dis-right_dis)>0)//朝右(鼓励适当右)
+ 227   4              {
+ 228   5                //右转是大环境，这里离目标线很近，需要调整车头方向为左拐，防止超调 
+ 229   5                speed_left=1700+error_dis-error_dir*0.3+error_i;
+ 230   5                if(speed_left<=1500)
+ 231   5                {
+ 232   6                   speed_left=1550;
+ 233   6                }
+ 234   5                  speed_right=1300;
+ 235   5                 adjustDirection_1((int)speed_left,1300);
+ 236   5               }
+ 237   4               else if((last_dis-right_dis)<0)//朝左 error_dir<0
+ 238   4               {
+ 239   5                 //远离中心线
+ 240   5                 speed_right=1300+error_dis-error_dir+error_i;
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 5   
+
+ 241   5                 if(speed_right>=1500)
+ 242   5                 {
+ 243   6                   speed_right=1450;
+ 244   6                 }
+ 245   5                  speed_left=1700;
+ 246   5                 adjustDirection_1(1700,(int)speed_right);          
+ 247   5               }
+ 248   4               else //正向
+ 249   4               {
+ 250   5                //远离中心线
+ 251   5                speed_right=1300+error_dis+error_i;
+ 252   5                if(speed_right>=1500)
+ 253   5                {
+ 254   6                  speed_right=1450;
+ 255   6                }
+ 256   5                 speed_left=1700;
+ 257   5                adjustDirection_1(1700,(int)speed_right);         
+ 258   5               }
+ 259   4             }
+ 260   3           }
+ 261   2         }
+ 262   1      /////////////////////////////
+ 263   1      //-------------小车离墙距离小于170mm
+ 264   1      /////////////////////////  
+ 265   1         else if(right_dis <170)//turn left
+ 266   1         {
+ 267   2          error_dis=(170-right_dis)*kp_dis;
+ 268   2          if(170-right_dis>50)
+ 269   2          {
+ 270   3      /////////////////////////////
+ 271   3      //小车离中心线大于50mm，只有位置环pid，没有方向环pid
+ 272   3      /////////////////////////    
+ 273   3            kp_dis=kp_dis_samll;
+ 274   3            kp_dir=kp_dir_small;
+ 275   3             error_dis=(170-right_dis)*kp_dis;
+ 276   3            error_dir=(last_dis-right_dis)*kp_dir;
+ 277   3            if((last_dis-right_dis)>0)
+ 278   3            {
+ 279   4              //远近中心线
+ 280   4              kp_dis=kp_dis_big;
+ 281   4              kp_dir=kp_dir_big;
+ 282   4              speed_left=1700-error_dis-error_dir;
+ 283   4              if(speed_left<=1500)
+ 284   4              {
+ 285   5                speed_left=1550;
+ 286   5              }
+ 287   4              speed_right=1300;
+ 288   4              adjustDirection_1((int)speed_left,1300);
+ 289   4            }
+ 290   3            else
+ 291   3            {
+ 292   4              //靠近中心线
+ 293   4              if(-(error_dir)>=0.9*error_dis)
+ 294   4              {
+ 295   5                error_dir=-0.9*error_dis;
+ 296   5              }
+ 297   4              speed_left=1700-error_dis-error_dir;
+ 298   4              if(speed_left<=1500)
+ 299   4              {
+ 300   5                speed_left=1550;
+ 301   5              }
+ 302   4              speed_right=1300;
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 6   
+
+ 303   4              adjustDirection_1((int)speed_left,1300);
+ 304   4            }
+ 305   3          }
+ 306   2          else
+ 307   2          {
+ 308   3      /////////////////////////////
+ 309   3      //小车离中心线小于50mm，大于30mm，有位置环pid，有方向环pid
+ 310   3      /////////////////////////        
+ 311   3            if(170-right_dis>30)
+ 312   3            {
+ 313   4              kp_dis=kp_dis_mid;
+ 314   4              kp_dir=kp_dir_mid;
+ 315   4              error_dis=(170-right_dis)*kp_dis;
+ 316   4              error_dir=(last_dis-right_dis)*kp_dir;
+ 317   4              if((last_dis-right_dis)>0)
+ 318   4              {
+ 319   5                //远近中心线
+ 320   5                kp_dis=kp_dis_big;
+ 321   5                kp_dir=kp_dir_big;
+ 322   5                speed_left=1700-error_dis-error_dir;
+ 323   5                if(speed_left<=1500)
+ 324   5                {
+ 325   6                  speed_left=1550;
+ 326   6                }
+ 327   5                speed_right=1300;
+ 328   5                adjustDirection_1((int)speed_left,1300);
+ 329   5              }
+ 330   4              else
+ 331   4              {
+ 332   5                //靠近中心线
+ 333   5                if(-(error_dir)>=0.9*error_dis)
+ 334   5                {
+ 335   6                  error_dir=-0.9*error_dis;
+ 336   6                }
+ 337   5                speed_left=1700-error_dis-error_dir;
+ 338   5                if(speed_left<=1500)
+ 339   5                {
+ 340   6                  speed_left=1550;
+ 341   6                }
+ 342   5                speed_right=1300;
+ 343   5                adjustDirection_1((int)speed_left,1300);
+ 344   5              }
+ 345   4            }
+ 346   3       /////////////////////////////
+ 347   3      //小车离中心线小于30mm，大于10mm，有位置环pid，有方向环pid
+ 348   3      /////////////////////////
+ 349   3            else
+ 350   3            {
+ 351   4              kp_dis=kp_dis_big;
+ 352   4              kp_dir=kp_dir_big;
+ 353   4              error_dis=(170-right_dis)*kp_dis;
+ 354   4              error_dir=(last_dis-right_dis)*kp_dir;
+ 355   4              error=(170-right_dis);         
+ 356   4              if(15>=error&&time_i<=5)         
+ 357   4              {
+ 358   5                if(time_i<3)
+ 359   5                   sum_err=sum_err+error*0.3;
+ 360   5                else
+ 361   5                   sum_err=(sum_err+error)*0.6;
+ 362   5                error_i=sum_err*ki_dis_big;            
+ 363   5                time_i++;
+ 364   5              }
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 7   
+
+ 365   4              else if (15<error||time_i>5)
+ 366   4              {
+ 367   5              sum_err=0;
+ 368   5              error_i=0;            
+ 369   5              time_i=0;
+ 370   5              }
+ 371   4              if((last_dis-right_dis)>0)//朝右
+ 372   4              {
+ 373   5                //远近中心线
+ 374   5                
+ 375   5                kp_dis=kp_dis_big;
+ 376   5                kp_dir=kp_dir_big;
+ 377   5                 speed_left=1700-error_dis-error_dir-error_i;
+ 378   5                if(speed_left<=1500)
+ 379   5                {
+ 380   6                   speed_left=1550;
+ 381   6                }
+ 382   5                 speed_right=1300;
+ 383   5                adjustDirection_1((int)speed_left,1300);
+ 384   5              }
+ 385   4              else if((last_dis-right_dis)<0)//朝左(适当鼓励)
+ 386   4              {
+ 387   5                //靠近中心线
+ 388   5                //左转是大环境，这里离目标线很近，需要调整车头方向为右拐，防止超调
+ 389   5                speed_right=1300-error_dis-error_dir*0.3-error_i;
+ 390   5                if(speed_right>=1500)
+ 391   5                {
+ 392   6                  speed_right=1450;
+ 393   6                }
+ 394   5                speed_left=1700;
+ 395   5                adjustDirection_1(1700,(int)speed_right);
+ 396   5              }
+ 397   4              else //正向
+ 398   4              {
+ 399   5                //让朝右
+ 400   5                   
+ 401   5                speed_left=1700-error_dis-error_i;
+ 402   5                if(speed_left<=1500)
+ 403   5                {
+ 404   6                   speed_left=1550;
+ 405   6                }
+ 406   5                 speed_right=1300;
+ 407   5                adjustDirection_1((int)speed_left,1300);          
+ 408   5              }
+ 409   4            }
+ 410   3           }
+ 411   2         }
+ 412   1         else if(right_dis ==170)
+ 413   1         {
+ 414   2           adjustDirection_1(1700,1300);       
+ 415   2         }
+ 416   1      }
+ 417          
+ 418          /*
+ 419          void Circulation_wall_left(void)
+ 420          { 
+ 421             last_dis=left_dis;
+ 422             front_dis= kalmanfilter(Ultrasonic_Get_Front(),1);
+ 423             right_dis= Ultrasonic_Get_Right();
+ 424             left_dis= Ultrasonic_Get_Left();
+ 425          //   front_dis= Ultrasonic_Get_Front();
+ 426          //   left_dis= Ultrasonic_Get_Left();
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 8   
+
+ 427          //   right_dis= Ultrasonic_Get_Right();
+ 428            
+ 429            
+ 430            if(left_dis > 320)//右边不靠墙时扫描左边与墙的距离
+ 431             {     
+ 432               speed_right=1300;
+ 433               speed_left=1700;
+ 434               adjustDirection_1(speed_left,speed_right); 
+ 435             }
+ 436             
+ 437          /////////////////////////////
+ 438          //--------------------小车离墙距离小于172mm
+ 439          ///////////////////////// 
+ 440             else if(left_dis <=170)//turn right
+ 441             {
+ 442               error_dis=(170-left_dis)*kp_dis;
+ 443          /////////////////////////////
+ 444          //小车离中心线大于50mm，只有位置环pid，没有方向环pid
+ 445          /////////////////////////      
+ 446               if(170-left_dis>50)
+ 447               {
+ 448                 kp_dis=kp_dis_samll;
+ 449                 kp_dir=kp_dir_small;
+ 450                 error_dir=0.0;
+ 451                 error_dis=(170-left_dis)*kp_dis;
+ 452                 speed_right=1300+error_dis;
+ 453                  if(speed_right>=1500)
+ 454                 {
+ 455                   speed_right=1450;
+ 456                 }
+ 457                  speed_left=1700;
+ 458                  adjustDirection_1(speed_left,(int)speed_right);
+ 459               }
+ 460               else
+ 461               {
+ 462          /////////////////////////////
+ 463          //小车离中心线小于50mm，大于30mm，有位置环pid，有方向环pid
+ 464          ///////////////////////// 
+ 465                 if(170-left_dis>30)
+ 466                 {
+ 467                   kp_dis=kp_dis_mid;
+ 468                   kp_dir=kp_dir_mid;
+ 469                   error_dis=(170-left_dis)*kp_dis;
+ 470                   error_dir=(last_dis-left_dis)*kp_dir;
+ 471                   if((last_dis-left_dis)>0)//--------------朝左
+ 472                   {
+ 473                     //远离中心线
+ 474                    speed_right=1300+error_dis+error_dir;
+ 475                      if(speed_right>=1500)
+ 476                     {
+ 477                       speed_right=1450;
+ 478                        
+ 479                     }
+ 480                     speed_left=1700;
+ 481                     adjustDirection_1(speed_left,(int)speed_right);
+ 482                   }
+ 483                   else                  //--------------朝右
+ 484                   {
+ 485                     //靠近中心线
+ 486                      if(-(error_dir)>=0.9*error_dis)
+ 487                     {
+ 488                       error_dir=-0.9*error_dis;
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 9   
+
+ 489                     }
+ 490                      speed_right=1300+error_dis+error_dir;
+ 491                      if(speed_right>=1500)
+ 492                     {
+ 493                       speed_right=1450;
+ 494                      
+ 495                     }
+ 496                     speed_left=1700;
+ 497                     adjustDirection_1(speed_left,(int)speed_right);
+ 498                   }
+ 499                 }
+ 500                 else
+ 501                 {
+ 502          /////////////////////////////
+ 503          //小车离中心线小于30mm，有位置环pid，有方向环pid
+ 504          /////////////////////////          
+ 505                   
+ 506                      kp_dis=kp_dis_big;
+ 507                      kp_dir=kp_dir_big;
+ 508                      error_dis=(170-left_dis)*kp_dis;
+ 509                      error_dir=(last_dis-left_dis)*kp_dir;
+ 510                     if((last_dis-left_dis)>0)  //--------------朝左
+ 511                     {
+ 512                       //远离中心线
+ 513                        speed_right=1300+error_dis+error_dir;
+ 514                        if(speed_right>=1500)
+ 515                        {
+ 516                         speed_right=1450;
+ 517                        }
+ 518                        speed_left=1700;
+ 519                        adjustDirection_1(speed_left,(int)speed_right);
+ 520                     }
+ 521                     else if((last_dis-left_dis)<0)      //--------------朝右适当鼓励dir-
+ 522                     {
+ 523                       //靠近中心线
+ 524                       //转中的转
+ 525                        //右转是大环境，这里离目标线很近，需要调整车头左拐，防止超调
+ 526                      speed_left=1700+error_dis+error_dir*0.5;  //---适当鼓励朝右
+ 527                      if(speed_left<=1500)
+ 528                        
+ 529                      {
+ 530                        speed_left=1550;
+ 531                      }
+ 532                      speed_right=1300;
+ 533                      adjustDirection_1((int)speed_left,speed_right);
+ 534                     }
+ 535                      else //正向
+ 536                     {
+ 537                       //远离中心线
+ 538                         
+ 539                       speed_right=1300+error_dis;
+ 540                       if(speed_right>=1500)
+ 541                       {
+ 542                         speed_right=1450;
+ 543                       }
+ 544                       speed_left=1700;
+ 545                       adjustDirection_1(speed_left,(int)speed_right);          
+ 546                     }
+ 547                 }
+ 548               }
+ 549             }
+ 550          /////////////////////////////
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 10  
+
+ 551          //小车离墙距离大于172mm
+ 552          /////////////////////////  
+ 553             else//turn left
+ 554             {
+ 555               error_dis=(left_dis-170)*kp_dis;
+ 556          /////////////////////////////
+ 557          //小车离中心线大于50mm，只有位置环pid，没有方向环pid
+ 558          /////////////////////////    
+ 559               if(left_dis-170>50)
+ 560               {
+ 561                 kp_dis=kp_dis_samll;
+ 562                 kp_dir=kp_dir_small;
+ 563                 error_dis=(left_dis-170)*kp_dis;
+ 564                 error_dir=0.0;
+ 565                 speed_left=1700-error_dis;
+ 566                 if(speed_left<=1500)
+ 567                 {
+ 568                   speed_left=1550;
+ 569                 }
+ 570                  speed_right=1300;
+ 571                 adjustDirection_1((int)speed_left,speed_right);
+ 572               }
+ 573               else
+ 574               {
+ 575          /////////////////////////////
+ 576          //小车离中心线小于50mm，大于30mm，有位置环pid，有方向环pid
+ 577          /////////////////////////     
+ 578                 if(left_dis-170>30)
+ 579                 {
+ 580                     kp_dis=kp_dis_mid;
+ 581                     kp_dir=kp_dir_mid;
+ 582                   error_dis=(left_dis-170)*kp_dis;
+ 583                   error_dir=(last_dis-left_dis)*kp_dir;
+ 584                   
+ 585                   if((last_dis-left_dis)>0)//---------朝左
+ 586                   {
+ 587                     //靠近中心线
+ 588                      if(error_dir>=0.9*error_dis)
+ 589                     {
+ 590                       error_dir=0.9*error_dis;
+ 591                     }
+ 592                     speed_left=1700-error_dis+error_dir;
+ 593                      if(speed_left<=1500)
+ 594                     {
+ 595                       speed_left=1550;
+ 596                     }
+ 597                      speed_right=1300;
+ 598                     adjustDirection_1((int)speed_left,speed_right);
+ 599                   }
+ 600                   else       //---------朝右
+ 601                   {
+ 602                     //远近中心线
+ 603                    speed_left=1700-error_dis+error_dir*0.8;
+ 604                      if(speed_left<=1500)
+ 605                     {
+ 606                       speed_left=1550;
+ 607                     }
+ 608                      speed_right=1300;
+ 609                     adjustDirection_1((int)speed_left,speed_right);
+ 610                   }
+ 611                 }
+ 612                 else
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 11  
+
+ 613                 {
+ 614                   kp_dis=kp_dis_big;
+ 615                    kp_dir=kp_dir_big;
+ 616                   error_dis=(left_dis-170)*kp_dis;
+ 617          /////////////////////////////
+ 618          //小车离中心线小于30mm，--10mm，有位置环pid，有方向环pid
+ 619          /////////////////////////
+ 620                  
+ 621                    error_dir=(last_dis-left_dis)*kp_dir;
+ 622                     if((last_dis-left_dis)>0)//---------朝左适当鼓励
+ 623                     {
+ 624                       //靠近中心线
+ 625                       //左转是大环境，这里离目标线很近，需要调整车头右拐，防止超调
+ 626                       speed_right=1300-error_dis+error_dir*0.6;
+ 627                        if(speed_right>=1500)
+ 628                       {
+ 629                         speed_right=1450;
+ 630                       }
+ 631                        speed_left=1700;
+ 632                       adjustDirection_1(speed_left,(int)speed_right);
+ 633                     }
+ 634                  else if((last_dis-left_dis)<0) //---------朝右
+ 635                     {
+ 636                       //远近中心线
+ 637                      speed_left=1700-error_dis+error_dir*0.9;
+ 638                        if(speed_left<=1500)
+ 639                       {
+ 640                         speed_left=1550;
+ 641                       }
+ 642                        speed_right=1300;
+ 643                       adjustDirection_1((int)speed_left,speed_right);
+ 644                     }
+ 645                  
+ 646                   else //正向
+ 647                     {
+ 648                       //远离中心线
+ 649                         
+ 650                       speed_left=1700-error_dis;
+ 651                       if(speed_left<=1500)
+ 652                       {
+ 653                         speed_left=1550;
+ 654                       }
+ 655                        speed_right=1300;
+ 656                       adjustDirection_1((int)speed_left,speed_right);        
+ 657                     }
+ 658                 }  
+ 659               }
+ 660             }
+ 661          }
+ 662          */
+ 663          void car_stop()
+ 664          {
+ 665   1          Left_H_Speed = 1335;
+ 666   1          Left_L_Speed = 18330 - 1335;
+ 667   1          Right_H_Speed = 1335;
+ 668   1          Right_L_Speed = 18330 - 1335;
+ 669   1      }
+ 670          void forward()
+ 671          {
+ 672   1        adjustDirection_1(1700,1300);
+ 673   1      }
+ 674          void turn_left_90()
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 12  
+
+ 675          {
+ 676   1        adjustDirection_1(1350,1350);
+ 677   1        delay_ms(420);//延时500ms即可 ——原数据360改为540——5.18，400-5.19，420-5.20
+ 678   1      }
+ 679          void turn_right_90()
+ 680          {
+ 681   1        adjustDirection_1(1650,1650);
+ 682   1        delay_ms(420);//延时500ms即可 ——原数据360改为540——5.18，400-5.19，420-5.20
+ 683   1      }
+ 684          
+ 685          void turn_right_back_90()//回家转90；
+ 686          {
+ 687   1        adjustDirection_1(1650,1650);
+ 688   1        delay_ms(480);
+ 689   1      }
+ 690          
+ 691          void turn_right_180()
+ 692          {
+ 693   1        adjustDirection_1(1650,1650);
+ 694   1        delay_ms(840);//延时500ms即可 ——原数据760，改为延迟1080-5.17，1060-5.18，840-5.20，880
+             --5.26
+ 695   1      }
+ 696          
+ 697          void turn_left_90_big()
+ 698          {
+ 699   1        adjustDirection_1(1350,1350);
+ 700   1        delay_ms(480);//延时500ms即可 ——原数据400改为600——5.18，500-5.19，480-5.20
+ 701   1      }
+ 702          
+ 703          void Circulation_wall_left(void)
+ 704          { 
+ 705   1         last_dis=left_dis;
+ 706   1         front_dis= kalmanfilter(Ultrasonic_Get_Front(),1);
+ 707   1         //right_dis = Ultrasonic_Get_Right();
+ 708   1         left_dis = Ultrasonic_Get_Left();
+ 709   1        
+ 710   1        
+ 711   1        if(left_dis > 320)//右边不靠墙时扫描左边与墙的距离
+ 712   1         {
+ 713   2           left_dis = Ultrasonic_Get_Left();
+ 714   2      //      forwardOneStep();
+ 715   2      //      forwardOneStep();
+ 716   2      //      forwardOneStep();
+ 717   2      //      forwardOneStep();
+ 718   2      //      forwardOneStep(); 
+ 719   2           
+ 720   2           
+ 721   2           
+ 722   2           speed_right=1300;
+ 723   2           speed_left=1700;
+ 724   2           adjustDirection_1(speed_left,speed_right);
+ 725   2      //     sprintf(buf1,"直行");
+ 726   2      //    
+ 727   2      //    speak_len1=strlen(( const char *)buf1);
+ 728   2      //    speak_context((u8*)buf1,speak_len1);  
+ 729   2         }
+ 730   1      /////////////////////////////
+ 731   1      //--------------------小车离墙距离小于172mm
+ 732   1      ///////////////////////// 
+ 733   1          else if(left_dis <=170)//turn right
+ 734   1         {
+ 735   2           error_dis=(170-left_dis)*kp_dis;
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 13  
+
+ 736   2      /////////////////////////////
+ 737   2      //小车离中心线大于50mm，只有位置环pid，没有方向环pid
+ 738   2      /////////////////////////      
+ 739   2           if(170-left_dis>50)
+ 740   2           {
+ 741   3             kp_dis=kp_dis_samll;
+ 742   3             kp_dir=kp_dir_small;
+ 743   3             error_dir=0.0;
+ 744   3              error_dis=(170-left_dis)*kp_dis;
+ 745   3             speed_right=1300+error_dis;
+ 746   3              if(speed_right>=1500)
+ 747   3               {
+ 748   4                 speed_right=1450;
+ 749   4                
+ 750   4               }
+ 751   3              speed_left=1700;
+ 752   3            adjustDirection_1(speed_left,(int)speed_right);
+ 753   3      //      sprintf(buf1,"右转");
+ 754   3      //      speak_len1=strlen(( const char *)buf1);
+ 755   3      //      speak_context((u8*)buf1,speak_len1);  
+ 756   3             
+ 757   3           }
+ 758   2           else
+ 759   2           {
+ 760   3      /////////////////////////////
+ 761   3      //小车离中心线小于50mm，大于30mm，有位置环pid，有方向环pid
+ 762   3      ///////////////////////// 
+ 763   3             if(170-left_dis>30)
+ 764   3             {
+ 765   4               kp_dis=kp_dis_mid;
+ 766   4               kp_dir=kp_dir_mid;
+ 767   4                error_dis=(170-left_dis)*kp_dis;
+ 768   4               error_dir=(last_dis-left_dis)*kp_dir;
+ 769   4               if((last_dis-left_dis)>0)//--------------朝左
+ 770   4               {
+ 771   5                 //远离中心线
+ 772   5                speed_right=1300+error_dis+error_dir;
+ 773   5                  if(speed_right>=1500)
+ 774   5                 {
+ 775   6                   speed_right=1450;
+ 776   6                    
+ 777   6                 }
+ 778   5                 speed_left=1700;
+ 779   5                 adjustDirection_1(1700,(int)speed_right);
+ 780   5               }
+ 781   4               else                  //--------------朝右
+ 782   4               {
+ 783   5                 //靠近中心线
+ 784   5                  if(-(error_dir)>=0.9*error_dis)
+ 785   5                 {
+ 786   6                   error_dir=-0.9*error_dis;
+ 787   6                 }
+ 788   5      
+ 789   5                  speed_right=1300+error_dis+error_dir;
+ 790   5                  if(speed_right>=1500)
+ 791   5                 {
+ 792   6                   speed_right=1450;
+ 793   6                  
+ 794   6                 }
+ 795   5                   speed_left=1700;
+ 796   5                 adjustDirection_1(speed_left,(int)speed_right);
+ 797   5               }
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 14  
+
+ 798   4      //         sprintf(buf1,"右转");
+ 799   4      //        speak_len1=strlen(( const char *)buf1);
+ 800   4      //        speak_context((u8*)buf1,speak_len1);  
+ 801   4             }
+ 802   3             else
+ 803   3             {
+ 804   4      /////////////////////////////
+ 805   4      //小车离中心线小于30mm，有位置环pid，有方向环pid
+ 806   4      /////////////////////////          
+ 807   4               
+ 808   4                  kp_dis=kp_dis_big;
+ 809   4                  kp_dir=kp_dir_big;
+ 810   4                  error_dis=(170-left_dis)*kp_dis;
+ 811   4                  error_dir=(last_dis-left_dis)*kp_dir;
+ 812   4                 if((last_dis-left_dis)>0)  //--------------朝左
+ 813   4                 {
+ 814   5                   //远离中心线
+ 815   5                  speed_right=1300+error_dis+error_dir;
+ 816   5                    if(speed_right>=1500)
+ 817   5                   {
+ 818   6                     speed_right=1450;
+ 819   6                   }
+ 820   5                    speed_left=1700;
+ 821   5                   adjustDirection_1(1700,(int)speed_right);
+ 822   5      //              sprintf(buf1,"右转");
+ 823   5      //            speak_len1=strlen(( const char *)buf1);
+ 824   5      //            speak_context((u8*)buf1,speak_len1);  
+ 825   5                 }
+ 826   4                 else if((last_dis-left_dis)<0)      //--------------朝右适当鼓励dir-
+ 827   4                 {
+ 828   5                   //靠近中心线
+ 829   5        //            if(-(error_dir)>=0.9*error_dis)
+ 830   5        //           {
+ 831   5        //             error_dir=-0.9*error_dis;
+ 832   5        //           }
+ 833   5        //            speed_right=1300+error_dis+error_dir;
+ 834   5        //            if(speed_right>=1500)
+ 835   5        //           {
+ 836   5        //             speed_right=1450;
+ 837   5        //           }
+ 838   5        //           adjustDirection_1(1700,(int)speed_right);
+ 839   5                   //转中的转
+ 840   5                    //右转是大环境，这里离目标线很近，需要调整车头左拐，防止超调
+ 841   5                   
+ 842   5                  speed_left=1700+error_dis+error_dir*0.6;  //---适当鼓励朝右
+ 843   5                    if(speed_left<=1500)
+ 844   5                   {
+ 845   6                     speed_left=1550;
+ 846   6                   }
+ 847   5                   speed_right=1300;
+ 848   5                   adjustDirection_1((int)speed_left,1300);
+ 849   5                 
+ 850   5                   
+ 851   5                 }
+ 852   4               else //正向
+ 853   4                 {
+ 854   5                   //远离中心线
+ 855   5                     
+ 856   5                   speed_right=1300+error_dis;
+ 857   5                   if(speed_right>=1500)
+ 858   5                   {
+ 859   6                     speed_right=1450;
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 15  
+
+ 860   6                   }
+ 861   5                    speed_left=1700;
+ 862   5                   adjustDirection_1(1700,(int)speed_right);          
+ 863   5                 }
+ 864   4               
+ 865   4              
+ 866   4             }
+ 867   3            
+ 868   3               
+ 869   3           }
+ 870   2           
+ 871   2      //     sprintf(buf1,"F=%d,L=%d,s_l=1700,s_r=%d\n",front_dis,left_dis,(int)speed_right);
+ 872   2      //    speak_len1=strlen(( const char *)buf1);
+ 873   2      //    for( s_i = 0 ; s_i < speak_len1; s_i++) 
+ 874   2      //    {
+ 875   2      //  //    while((USART3->SR&0X40)==0);  
+ 876   2      //  //    USART3->DR = DataScope_OutPut_Buffer2[s_i]; 
+ 877   2      //      while((USART1->SR&0X40)==0);  
+ 878   2      //      USART1->DR = buf1[s_i];                                                                              
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 16  
+
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                          
+ 879   2      //    }
+ 880   2      
+ 881   2            
+ 882   2         }
+ 883   1      /////////////////////////////
+ 884   1      //小车离墙距离大于172mm
+ 885   1      /////////////////////////  
+ 886   1         else//turn left
+ 887   1         {
+ 888   2           error_dis=(left_dis-170)*kp_dis;
+ 889   2      /////////////////////////////
+ 890   2      //小车离中心线大于50mm，只有位置环pid，没有方向环pid
+ 891   2      /////////////////////////    
+ 892   2           if(left_dis-170>50)
+ 893   2           {
+ 894   3             kp_dis=kp_dis_samll;
+ 895   3             kp_dir=kp_dir_small;
+ 896   3             error_dis=(left_dis-170)*kp_dis;
+ 897   3             error_dir=0.0;
+ 898   3             speed_left=1700-error_dis;
+ 899   3             if(speed_left<=1500)
+ 900   3             {
+ 901   4               speed_left=1550;
+ 902   4             }
+ 903   3              speed_right=1300;
+ 904   3             adjustDirection_1((int)speed_left,1300);
+ 905   3             
+ 906   3      //       sprintf(buf1,"左转");
+ 907   3      //      speak_len1=strlen(( const char *)buf1);
+ 908   3      //      speak_context((u8*)buf1,speak_len1);
+ 909   3             
+ 910   3           }
+ 911   2           else
+ 912   2           {
+ 913   3      /////////////////////////////
+ 914   3      //小车离中心线小于50mm，大于30mm，有位置环pid，有方向环pid
+ 915   3      /////////////////////////     
+ 916   3             if(left_dis-170>30)
+ 917   3             {
+ 918   4                 kp_dis=kp_dis_mid;
+ 919   4                 kp_dir=kp_dir_mid;
+ 920   4               error_dis=(left_dis-170)*kp_dis;
+ 921   4               error_dir=(last_dis-left_dis)*kp_dir;
+ 922   4               
+ 923   4               if((last_dis-left_dis)>0)//---------朝左
+ 924   4               {
+ 925   5                 //靠近中心线
+ 926   5                  if(error_dir>=0.9*error_dis)
+ 927   5                 {
+ 928   6                   error_dir=0.9*error_dis;
+ 929   6                 }
+ 930   5                 speed_left=1700-error_dis+error_dir;
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 17  
+
+ 931   5                  if(speed_left<=1500)
+ 932   5                 {
+ 933   6                   speed_left=1550;
+ 934   6                 }
+ 935   5                  speed_right=1300;
+ 936   5                 adjustDirection_1((int)speed_left,1300);
+ 937   5      
+ 938   5                  
+ 939   5               }
+ 940   4               else       //---------朝右
+ 941   4               {
+ 942   5                 //远近中心线
+ 943   5                speed_left=1700-error_dis+error_dir*0.8;
+ 944   5                  if(speed_left<=1500)
+ 945   5                 {
+ 946   6                   speed_left=1550;
+ 947   6                 }
+ 948   5                  speed_right=1300;
+ 949   5                 adjustDirection_1((int)speed_left,1300);
+ 950   5               }
+ 951   4      //         sprintf(buf1,"左转");
+ 952   4      //        speak_len1=strlen(( const char *)buf1);
+ 953   4      //        speak_context((u8*)buf1,speak_len1);
+ 954   4             }
+ 955   3             else
+ 956   3             {
+ 957   4        
+ 958   4               
+ 959   4               kp_dis=kp_dis_big;
+ 960   4                kp_dir=kp_dir_big;
+ 961   4               error_dis=(left_dis-170)*kp_dis;
+ 962   4      /////////////////////////////
+ 963   4      //小车离中心线小于30mm，--10mm，有位置环pid，有方向环pid
+ 964   4      /////////////////////////
+ 965   4              
+ 966   4                error_dir=(last_dis-left_dis)*kp_dir;
+ 967   4                 if((last_dis-left_dis)>0)//---------朝左适当鼓励
+ 968   4                 {
+ 969   5                   //靠近中心线
+ 970   5                   
+ 971   5        
+ 972   5                   //左转是大环境，这里离目标线很近，需要调整车头右拐，防止超调
+ 973   5                   speed_right=1300-error_dis+error_dir*0.6;
+ 974   5                    if(speed_right>=1500)
+ 975   5                   {
+ 976   6                     speed_right=1450;
+ 977   6                   }
+ 978   5                    speed_left=1700;
+ 979   5                   adjustDirection_1(1700,(int)speed_right);
+ 980   5                   
+ 981   5      //             sprintf(buf1,"右转");
+ 982   5      //            speak_len1=strlen(( const char *)buf1);
+ 983   5      //            speak_context((u8*)buf1,speak_len1);
+ 984   5      
+ 985   5                    
+ 986   5                 }
+ 987   4              else if((last_dis-left_dis)<0) //---------朝右
+ 988   4                 {
+ 989   5                   //远近中心线
+ 990   5                  speed_left=1700-error_dis+error_dir*0.9;
+ 991   5                    if(speed_left<=1500)
+ 992   5                   {
+C51 COMPILER V9.60.0.0   ACTION                                                            10/02/2023 19:45:42 PAGE 18  
+
+ 993   6                     speed_left=1550;
+ 994   6                   }
+ 995   5                    speed_right=1300;
+ 996   5                   adjustDirection_1((int)speed_left,1300);
+ 997   5      //             sprintf(buf1,"左转");
+ 998   5      //            speak_len1=strlen(( const char *)buf1);
+ 999   5      //            speak_context((u8*)buf1,speak_len1);
+1000   5                 }
+1001   4              
+1002   4               else //正向
+1003   4                 {
+1004   5                   //远离中心线
+1005   5                     
+1006   5                   speed_left=1700-error_dis;
+1007   5                   if(speed_left<=1500)
+1008   5                   {
+1009   6                     speed_left=1550;
+1010   6                   }
+1011   5                    speed_right=1300;
+1012   5                   adjustDirection_1((int)speed_left,1300);       
+1013   5                 }
+1014   4             }   
+1015   3           }
+1016   2         }
+1017   1      }
+1018          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   6770    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    132    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     48       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,16 @@
+<html>
+<body>
+<pre>
+<h1>礦ision Build Log</h1>
+<h2>Project:</h2>
+E:\蓝桥杯单片机-基础技能训练\15-基础技能综合实训案例（IO扩展版）\工厂灯光控制系统.uvproj
+Project File Date:  03/12/2018
+
+<h2>Output:</h2>
+Rebuild target 'Target 1'
+assembling STARTUP.A51...
+compiling 工厂灯光控制系统(IO版).c...
+linking...
+Program Size: data=15.0 xdata=0 code=876
+creating hex file from "工厂灯光控制系统"...
+"工厂灯光控制系统" - 0 Error(s), 0 Warning(s).

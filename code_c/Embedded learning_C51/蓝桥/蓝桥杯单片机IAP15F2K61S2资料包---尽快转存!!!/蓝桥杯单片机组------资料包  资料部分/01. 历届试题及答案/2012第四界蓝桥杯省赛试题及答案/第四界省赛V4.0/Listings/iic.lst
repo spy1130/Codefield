@@ -1,0 +1,204 @@
+C51 COMPILER V9.54   IIC                                                                   12/21/2017 17:31:08 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE IIC
+OBJECT MODULE PLACED IN .\Objects\iic.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE iic.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\iic
+                    -.lst) TABS(2) OBJECT(.\Objects\iic.obj)
+
+line level    source
+
+   1          /*
+   2            程序说明: IIC总线驱动程序
+   3            软件环境: Keil uVision 4.10 
+   4            硬件环境: CT107单片机综合实训平台(12MHz)
+   5            日    期: 2011-8-9
+   6          */
+   7          
+   8          #include "iic.h"
+   9          #define uint unsigned int 
+  10          
+  11          //void IICInit();
+  12          //void IIC_Start(void); 
+  13          //void IIC_Stop(void);  
+  14          //void IIC_Ack(unsigned char ackbit); 
+  15          //void IIC_SendByte(unsigned char byt); 
+  16          //bit IIC_WaitAck(void);  
+  17          //unsigned char IIC_RecByte(void); 
+  18          
+  19          
+  20          void at_iic_write(unsigned char add,unsigned char dat)
+  21          {
+  22   1        IIC_Start();
+  23   1        IIC_SendByte(0xa0);
+  24   1        IIC_WaitAck();
+  25   1        IIC_SendByte(add);
+  26   1        IIC_WaitAck();
+  27   1        
+  28   1        IIC_SendByte(dat);
+  29   1        IIC_WaitAck();
+  30   1        IIC_Stop();
+  31   1        Delay1ms();
+  32   1        
+  33   1      }
+  34          
+  35          unsigned char at_iic_read(unsigned char add)
+  36          {
+  37   1        unsigned char num =0;
+  38   1        IIC_Start();
+  39   1        IIC_SendByte(0xa0);
+  40   1        IIC_WaitAck();
+  41   1        IIC_SendByte(add);
+  42   1        IIC_WaitAck();
+  43   1          
+  44   1      
+  45   1        IIC_Start();
+  46   1        IIC_SendByte(0xa1);
+  47   1        IIC_WaitAck();
+  48   1        num = IIC_RecByte();
+  49   1        IIC_WaitAck();
+  50   1        IIC_Stop(); 
+  51   1        return num;
+  52   1      }
+  53          
+  54          //总线启动条件
+C51 COMPILER V9.54   IIC                                                                   12/21/2017 17:31:08 PAGE 2   
+
+  55          void IIC_Start(void)
+  56          {
+  57   1        SDA = 1;
+  58   1        Delay5us(); 
+  59   1        SCL = 1;
+  60   1        Delay5us(); 
+  61   1        SDA = 0;
+  62   1        Delay5us();
+  63   1        SCL = 0;
+  64   1        Delay5us(); 
+  65   1      }
+  66          
+  67          //总线停止条件
+  68          void IIC_Stop(void)
+  69          {
+  70   1        SDA = 0;
+  71   1        Delay5us();
+  72   1        SCL = 1;
+  73   1        Delay5us();
+  74   1        SDA = 1;
+  75   1        Delay5us();
+  76   1      }
+  77          
+  78          
+  79          //等待应答
+  80          bit IIC_WaitAck(void)
+  81          {
+  82   1        SDA = 1;
+  83   1        Delay5us();
+  84   1        SCL = 1;
+  85   1        Delay5us();
+  86   1        if(SDA)    
+  87   1        {   
+  88   2          SCL = 0;
+  89   2          IIC_Stop();
+  90   2          return 0;
+  91   2        }
+  92   1        else  
+  93   1        { 
+  94   2          SCL = 0;
+  95   2          return 1;
+  96   2        }
+  97   1      }
+  98          
+  99          
+ 100          //通过I2C总线发送数据
+ 101          void IIC_SendByte(unsigned char byt)
+ 102          {
+ 103   1        unsigned char i;
+ 104   1        for(i=0;i<8;i++)
+ 105   1        {   
+ 106   2          if(byt&0x80) 
+ 107   2          { 
+ 108   3            SDA = 1;
+ 109   3          }
+ 110   2          else 
+ 111   2          {
+ 112   3            SDA = 0;
+ 113   3          }
+ 114   2          Delay5us();
+ 115   2          SCL = 1;
+ 116   2          byt <<= 1;
+C51 COMPILER V9.54   IIC                                                                   12/21/2017 17:31:08 PAGE 3   
+
+ 117   2          Delay5us();
+ 118   2          SCL = 0;
+ 119   2        }
+ 120   1      
+ 121   1      }
+ 122          
+ 123          //从I2C总线上接收数据
+ 124          unsigned char IIC_RecByte(void)
+ 125          {
+ 126   1        unsigned char da;
+ 127   1        unsigned char i;     
+ 128   1        
+ 129   1        for(i=0;i<8;i++)
+ 130   1        {   
+ 131   2          SCL = 1;
+ 132   2          Delay5us();
+ 133   2          da <<= 1;
+ 134   2          if(SDA) 
+ 135   2          da |= 0x01;
+ 136   2          SCL = 0;
+ 137   2          Delay5us();
+ 138   2        }
+ 139   1        return da;
+ 140   1      }
+ 141          
+ 142          
+ 143          //void iic_write(unsigned char add,unsigned char dat)
+ 144          //{
+ 145          //  IIC_Start();
+ 146          //  IIC_SendByte(0x90);
+ 147          //  IIC_WaitAck();
+ 148          //  IIC_SendByte(add);
+ 149          //  IIC_WaitAck();
+ 150          //  IIC_SendByte(dat);
+ 151          //  IIC_WaitAck();
+ 152          //  IIC_Stop();
+ 153          //  
+ 154          //}
+ 155          unsigned char iic_read(unsigned char add)
+ 156          {
+ 157   1        unsigned char num =0;
+ 158   1        IIC_Start();
+ 159   1        IIC_SendByte(0x90);
+ 160   1        IIC_WaitAck();
+ 161   1        IIC_SendByte(add);
+ 162   1        IIC_WaitAck();
+ 163   1        
+ 164   1      
+ 165   1        IIC_Start();
+ 166   1        IIC_SendByte(0x91);
+ 167   1        IIC_WaitAck();
+ 168   1        num = IIC_RecByte();
+ 169   1        IIC_WaitAck();
+ 170   1        IIC_Stop(); 
+ 171   1        num=0.39*num;
+ 172   1        return num;
+ 173   1      }
+ 174          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    293    ----
+C51 COMPILER V9.54   IIC                                                                   12/21/2017 17:31:08 PAGE 4   
+
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      10
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

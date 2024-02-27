@@ -1,0 +1,37 @@
+C51 COMPILER V9.54   DECODER_138                                                           11/22/2023 11:43:35 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DECODER_138
+OBJECT MODULE PLACED IN .\Objects\decoder_138.obj
+COMPILER INVOKED BY: D:\keil c51\C51\BIN\C51.EXE decoder_138.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listi
+                    -ngs\decoder_138.lst) OBJECT(.\Objects\decoder_138.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          
+   3          void control_138decoder(unsigned char mode)
+   4          {
+   5   1              switch(mode)
+   6   1              {
+   7   2                      case 0 :P2=P2&0x1F |0x00;break;
+   8   2                      case 4 :P2=P2&0x1F |0x80;break;
+   9   2                      case 5 :P2=P2&0x1F |0xA0;break;
+  10   2                      case 6 :P2=P2&0x1F |0xC0;break;
+  11   2                      case 7 :P2=P2&0x1F |0xE0;break;
+  12   2              }
+  13   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     58    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

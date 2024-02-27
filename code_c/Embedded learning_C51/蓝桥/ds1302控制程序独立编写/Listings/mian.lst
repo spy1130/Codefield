@@ -1,0 +1,80 @@
+C51 COMPILER V9.54   MIAN                                                                  11/22/2023 12:19:45 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MIAN
+OBJECT MODULE PLACED IN .\Objects\mian.obj
+COMPILER INVOKED BY: D:\keil c51\C51\BIN\C51.EXE mian.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\mia
+                    -n.lst) OBJECT(.\Objects\mian.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.H>
+   2          #include "ds1302.h"
+   3          #include "decoder_138.h"
+   4          #include "delay.h"
+   5          #define w_seconds               0x80;
+   6          #define w_mintues               0x82;
+   7          #define w_hours                 0x84;
+   8          #define w_date                  0x86;
+   9          #define w_month                 0x88;
+  10          #define w_day                   0x8A;//星期
+  11          #define w_year                  0xbc;
+  12          #define w_wp                    0x8e;//写保护
+  13          unsigned int table[11]= {0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90 ,0XBF};
+*** ERROR C244 IN LINE 13 OF mian.c: 'table': can't initialize, bad type or class
+*** ERROR C132 IN LINE 13 OF mian.c: 'table': not in formal parameter list
+  14          void SMG_display(unsigned char location,unsigned char num);
+*** ERROR C132 IN LINE 14 OF mian.c: '_SMG_display': not in formal parameter list
+  15          void shizhong_init();
+*** ERROR C132 IN LINE 15 OF mian.c: 'shizhong_init': not in formal parameter list
+  16          void bcd_change(unsigned char adderss,unsigned int timer);
+*** ERROR C132 IN LINE 16 OF mian.c: '_bcd_change': not in formal parameter list
+  17          void main()
+  18          {       
+*** ERROR C132 IN LINE 18 OF mian.c: 'main': not in formal parameter list
+*** ERROR C141 IN LINE 18 OF mian.c: syntax error near '{'
+  19                  while(1)
+  20                  {
+  21                          shizhong_init();
+*** ERROR C132 IN LINE 21 OF mian.c: 'shizhong_init': not in formal parameter list
+  22                  }
+*** ERROR C141 IN LINE 22 OF mian.c: syntax error near '}'
+  23          }
+  24          void shizhong_init()
+  25          {
+  26   1              write_ds1302_byte(w_wp,0x00);//WP置0关闭写保护
+*** ERROR C141 IN LINE 26 OF mian.c: syntax error near ';'
+  27   1              
+  28   1              write_ds1302_byte(w_seconds,0x42);//秒
+  29   1              bcd_change(w_seconds,0x42);
+  30   1              write_ds1302_byte(w_minutes,0x40);//分
+  31   1              
+  32   1              write_ds1302_byte(w_hours,0x42);//24小时计数
+  33   1              
+  34   1              write_ds1302_byte(w_date,0x22);//日期
+  35   1              write_ds1302_byte(w_month,0xA1);//月
+  36   1              write_ds1302_byte(w_day,0x03);//星期
+  37   1              write_ds1302_byte(w_year,0x23);//年
+  38   1      }
+  39          void bcd_change(unsigned char adderss,unsigned char timer)
+  40          {       
+  41   1              switch(address)
+  42   1              {
+  43   2                      case w_seconds : SMG_display(0,timer%16); SMG_display(1,timer/16);break;
+  44   2                      case w_minutes : SMG_display(3,timer%16); SMG_display(4,timer/16);break;
+C51 COMPILER V9.54   MIAN                                                                  11/22/2023 12:19:45 PAGE 2   
+
+  45   2                      case w_hours   : SMG_display(6,timer%16); SMG_display(7,timer/16);break;
+  46   2              }
+  47   1      }
+  48          void SMG_display(unsigned char location,unsigned char num)
+  49          {
+  50   1              control_138decoder(6);
+  51   1              P0=1<<location;
+  52   1              control_138decoder(7);
+  53   1              P0=table[num];
+  54   1              control_138decoder(0);
+  55   1              delay_us(200);
+  56   1      }
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  10 ERROR(S)

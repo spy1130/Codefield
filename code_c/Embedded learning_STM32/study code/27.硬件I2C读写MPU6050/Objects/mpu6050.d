@@ -28,5 +28,4 @@
 .\objects\mpu6050.o: .\library\stm32f10x_usart.h
 .\objects\mpu6050.o: .\library\stm32f10x_wwdg.h
 .\objects\mpu6050.o: .\library\misc.h
-.\objects\mpu6050.o: Hardware\MyI2C.h
 .\objects\mpu6050.o: Hardware\MPU6050_Reg.h

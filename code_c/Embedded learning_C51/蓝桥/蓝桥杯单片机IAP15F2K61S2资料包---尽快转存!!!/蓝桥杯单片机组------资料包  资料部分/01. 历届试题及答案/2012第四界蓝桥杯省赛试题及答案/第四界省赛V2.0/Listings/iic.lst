@@ -1,0 +1,145 @@
+C51 COMPILER V9.54   IIC                                                                   12/19/2017 21:58:14 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE IIC
+OBJECT MODULE PLACED IN .\Objects\iic.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE iic.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\iic
+                    -.lst) TABS(2) OBJECT(.\Objects\iic.obj)
+
+line level    source
+
+   1          /*
+   2            程序说明: IIC总线驱动程序
+   3            软件环境: Keil uVision 4.10 
+   4            硬件环境: CT107单片机综合实训平台(12MHz)
+   5            日    期: 2011-8-9
+   6          */
+   7          
+   8          #include "iic.h"
+   9          #define uint unsigned int 
+  10          
+  11          
+  12          //总线启动条件
+  13          void IIC_Start(void)
+  14          {
+  15   1        SDA = 1;
+  16   1        Delay5us(); 
+  17   1        SCL = 1;
+  18   1        Delay5us(); 
+  19   1        SDA = 0;
+  20   1        Delay5us();
+  21   1        SCL = 0;
+  22   1        Delay5us(); 
+  23   1      }
+  24          
+  25          //总线停止条件
+  26          void IIC_Stop(void)
+  27          {
+  28   1        SDA = 0;
+  29   1        Delay5us();
+  30   1        SCL = 1;
+  31   1        Delay5us();
+  32   1        SDA = 1;
+  33   1        Delay5us();
+  34   1      }
+  35          
+  36          
+  37          //等待应答
+  38          bit IIC_WaitAck(void)
+  39          {
+  40   1        SDA = 1;
+  41   1        Delay5us();
+  42   1        SCL = 1;
+  43   1        Delay5us();
+  44   1        if(SDA)    
+  45   1        {   
+  46   2          SCL = 0;
+  47   2          IIC_Stop();
+  48   2          return 0;
+  49   2        }
+  50   1        else  
+  51   1        { 
+  52   2          SCL = 0;
+  53   2          return 1;
+  54   2        }
+C51 COMPILER V9.54   IIC                                                                   12/19/2017 21:58:14 PAGE 2   
+
+  55   1      }
+  56          
+  57          //通过I2C总线发送数据
+  58          void IIC_SendByte(unsigned char byt)
+  59          {
+  60   1        unsigned char i;
+  61   1        for(i=0;i<8;i++)
+  62   1        {   
+  63   2          if(byt&0x80) 
+  64   2          { 
+  65   3            SDA = 1;
+  66   3          }
+  67   2          else 
+  68   2          {
+  69   3            SDA = 0;
+  70   3          }
+  71   2          Delay5us();
+  72   2          SCL = 1;
+  73   2          byt <<= 1;
+  74   2          Delay5us();
+  75   2          SCL = 0;
+  76   2        }
+  77   1      }
+  78          
+  79          //从I2C总线上接收数据
+  80          unsigned char IIC_RecByte(void)
+  81          {
+  82   1        unsigned char da;
+  83   1        unsigned char i;     
+  84   1        
+  85   1        for(i=0;i<8;i++)
+  86   1        {   
+  87   2          SCL = 1;
+  88   2          Delay5us();
+  89   2          da <<= 1;
+  90   2          if(SDA) 
+  91   2          da |= 0x01;
+  92   2          SCL = 0;
+  93   2          Delay5us();
+  94   2        }
+  95   1        return da;
+  96   1      }
+  97          
+  98          unsigned char iic_read(unsigned char add)
+  99          {
+ 100   1        unsigned char num =0;
+ 101   1        IIC_Start();
+ 102   1        IIC_SendByte(0x90);
+ 103   1        IIC_WaitAck();
+ 104   1        IIC_SendByte(add);
+ 105   1        IIC_WaitAck();
+ 106   1        
+ 107   1      
+ 108   1        IIC_Start();
+ 109   1        IIC_SendByte(0x91);
+ 110   1        IIC_WaitAck();
+ 111   1        num = IIC_RecByte();
+ 112   1        IIC_WaitAck();
+ 113   1        IIC_Stop(); 
+ 114   1        num=0.39*num;
+ 115   1        return num;
+ 116   1      }
+C51 COMPILER V9.54   IIC                                                                   12/19/2017 21:58:14 PAGE 3   
+
+ 117          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    207    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,582 @@
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 18:52:11 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ma
+                    -in.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.h>
+   2          #include <delay.h>
+   3          #include <ds1302.h>
+   4          
+   5          #define uchar unsigned char
+   6          #define uint unsigned int
+   7          
+   8          #define TX P10
+   9          #define RX P11
+  10          #define somenop1 {_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();}
+  11          
+  12          uchar code tab[12]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xbf,0xff};
+  13          uchar dsbuff[8]={11,11,11,11,11,11,11,11};
+  14          uchar num[6]={11,11,11,11,11,11};
+  15          uchar mima[6]={6,5,4,3,2,1};
+  16          uchar discount = 0,ceju_flag=0,mima_flag;
+  17          uchar set=0,admit=0,reset=0,exit=0,i=0;
+  18          uchar now;
+  19          uchar false;
+  20          uchar xiang_flag;
+  21          uchar l_count=4;
+  22          uchar temp=0;
+  23          uint distance;
+  24          uchar k;
+  25          
+  26          void Timer0Init();
+  27          void Timer1Init();
+  28          void display();
+  29          void keyscan();
+  30          void beep(uchar demand);
+  31          void relay(uchar demand);
+  32          uint get_distance();
+  33          void zidongmen();
+  34          void mimamen();
+  35          void ledctrl(uchar lednum,uchar demand);
+  36          
+  37          void clear()
+  38          {
+  39   1        for(k=0;k<=5;k++)
+  40   1        num[k]=11;
+  41   1        i=0;    //特别注意！！
+  42   1      }
+  43          
+  44          void allinit()
+  45          {
+  46   1        P2=0x80;P0=0xff;
+  47   1        P2=0xa0;P0=0x00;
+  48   1        P2=0xc0;P0=0xff;
+  49   1        P2=0xe0;P0=0xff;
+  50   1      }
+  51          
+  52          void main()
+  53          {
+  54   1        allinit();//板子初始化
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 18:52:11 PAGE 2   
+
+  55   1        Timer0Init();//定时器0初始化
+  56   1        Timer1Init(); //定时器1初始化
+  57   1        dswrite();//时钟初始化
+  58   1        while(1)
+  59   1        {
+  60   2          keyscan();//按键扫描函数
+  61   2          dsread();//读取时间
+  62   2          if((shijian[2]>=7)&&(shijian[2]<22))//判断时间
+  63   2          {
+  64   3            mima_flag=0;//密码门状态标志位
+  65   3            zidongmen();//自动门控制函数
+  66   3          }
+  67   2          else //在密码门状态下
+  68   2          {
+  69   3            mima_flag=1;
+  70   3            mimamen();//密码门处理函数
+  71   3          }
+  72   2      
+  73   2          if(mima_flag==0)  //非密码门下显示
+  74   2          {
+  75   3            dsbuff[0]=shijian[2]/10;
+  76   3            dsbuff[1]=shijian[2]%10;
+  77   3            dsbuff[2]=10;
+  78   3            dsbuff[3]=shijian[1]/10;
+  79   3            dsbuff[4]=shijian[1]%10;
+  80   3            dsbuff[5]=10;
+  81   3            dsbuff[6]=shijian[0]/10;
+  82   3            dsbuff[7]=shijian[0]%10;
+  83   3          }
+  84   2        }
+  85   1      }
+  86          void mimamen()
+  87          {
+  88   1        static uchar wancheng_flag=0,j=0,true=0;
+  89   1        static uchar true_2=0,false_2=0,flag1=0;
+  90   1        if(set==0)//没有按下设置键时，显示— —密码
+  91   1        {
+  92   2          dsbuff[0]=10;
+  93   2          dsbuff[1]=10;
+  94   2          dsbuff[2]=num[0];
+  95   2          dsbuff[3]=num[1]; 
+  96   2          dsbuff[4]=num[2];
+  97   2          dsbuff[5]=num[3];
+  98   2          dsbuff[6]=num[4];
+  99   2          dsbuff[7]=num[5];
+ 100   2          if(admit==1)//按下确认键后进行对比，看输入的密码是否正确
+ 101   2          {
+ 102   3            admit=0;
+ 103   3            for(j=0;j<=5;j++)
+ 104   3            {
+ 105   4              if(num[j]==mima[j])
+ 106   4                true=1;//正确的标志位
+ 107   4              else 
+ 108   4              {
+ 109   5                true=2;//不正确的标志位
+ 110   5              }
+ 111   4            }
+ 112   3          }
+ 113   2          if(true==1)//如果正确
+ 114   2          {
+ 115   3            relay(1);//继电器打开
+ 116   3            clear();//验证通过清除数组里存储的密码
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 18:52:11 PAGE 3   
+
+ 117   3            if((shijian[0]-now==5)||(60+shijian[0]-now==5))//让继电器通5秒
+ 118   3            {
+ 119   4              true=0;//清除标志位
+ 120   4              relay(0);//关闭数码管
+ 121   4            }
+ 122   3          }
+ 123   2          else if (true==2)//如果密码不正确
+ 124   2          {
+ 125   3            false++;//错误的次数加一，到三次时，报警
+ 126   3            clear();//没输入完成一次都要把数组里存储的数据给清零，不要忘了把i也清零
+ 127   3            true=0;//清除标志位
+ 128   3          }
+ 129   2          if(false==3)//如果输入密码错误了三次
+ 130   2          {
+ 131   3            l_count=0;
+ 132   3            ledctrl(1,1);
+ 133   3            false=0;
+ 134   3            ledctrl(1,1);
+ 135   3            beep(1);
+ 136   3            
+ 137   3            if((shijian[0]-now==3)||(60+shijian[0]-now==3))//发蜂鸣器报警三秒
+ 138   3            {
+ 139   4              ledctrl(1,0);
+ 140   4              beep(0);
+ 141   4              false=0;
+ 142   4              admit=0;
+ 143   4            }
+ 144   3          } 
+ 145   2        }
+ 146   1        else //按下设置按键
+ 147   1        {
+ 148   2          if(exit==1)//退出键功能
+ 149   2          {
+ 150   3            exit=0;//推出标志位清零
+ 151   3            true_2=0;
+ 152   3            set=0;  
+ 153   3            clear(); //清空输入密码   
+ 154   3          }
+ 155   2          if(true_2==0)
+ 156   2          {
+ 157   3            dsbuff[0]=11;
+ 158   3            dsbuff[1]=10;
+ 159   3            dsbuff[2]=num[0];
+ 160   3            dsbuff[3]=num[1]; 
+ 161   3            dsbuff[4]=num[2];
+ 162   3            dsbuff[5]=num[3];
+ 163   3            dsbuff[6]=num[4];
+ 164   3            dsbuff[7]=num[5];
+ 165   3          }
+ 166   2          if(true_2==1)   //这里的admit与后面的admit相冲突 应该把状态判断放在后面 
+ 167   2          {
+ 168   3            if(flag1==1) 
+ 169   3            {
+ 170   4              clear();
+ 171   4              flag1=0;
+ 172   4            }
+ 173   3            dsbuff[0]=10;
+ 174   3            dsbuff[1]=11;
+ 175   3            dsbuff[2]=num[0];
+ 176   3            dsbuff[3]=num[1]; 
+ 177   3            dsbuff[4]=num[2];
+ 178   3            dsbuff[5]=num[3];
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 18:52:11 PAGE 4   
+
+ 179   3            dsbuff[6]=num[4];
+ 180   3            dsbuff[7]=num[5];
+ 181   3            
+ 182   3            if(admit==1)
+ 183   3            {
+ 184   4              admit=0; 
+ 185   4              ledctrl(2,1);
+ 186   4              for(k=0;k<=5;k++)
+ 187   4              {
+ 188   5                mima[k]=num[k];
+ 189   5              }
+ 190   4              wancheng_flag=1;
+ 191   4            }
+ 192   3            if(wancheng_flag==1)
+ 193   3            {
+ 194   4              wancheng_flag=0;
+ 195   4              set=0;
+ 196   4              true_2=0;
+ 197   4              ledctrl(1,1);
+ 198   4              clear();
+ 199   4            }//设置完后清空标志位   
+ 200   3          }   
+ 201   2          if(admit==1)
+ 202   2          {
+ 203   3            admit=0;
+ 204   3            for(k=0;k<=5;k++)
+ 205   3            {
+ 206   4              if(num[k]==mima[k])
+ 207   4                {
+ 208   5                  true_2=1;
+ 209   5                  flag1=1;
+ 210   5                }
+ 211   4              else 
+ 212   4                {
+ 213   5                  true_2=2;
+ 214   5                  clear();
+ 215   5                } //这个地方改变了true2的状态 
+ 216   4            } 
+ 217   3          }
+ 218   2          if(true_2==2)
+ 219   2          {
+ 220   3            false_2++;
+ 221   3            clear();
+ 222   3            true_2=0;
+ 223   3          }
+ 224   2          if(false_2==3)
+ 225   2          {
+ 226   3            set=0;
+ 227   3            ledctrl(2,1);
+ 228   3            xiang_flag=1;
+ 229   3            false_2=0;  
+ 230   3          }
+ 231   2        }
+ 232   1      
+ 233   1        if(reset==1)//按下复位按键
+ 234   1        {
+ 235   2          reset=0;
+ 236   2          for(k=0;k<=5;k++)
+ 237   2          {
+ 238   3            mima[k]=6-k;
+ 239   3          }
+ 240   2        }
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 18:52:11 PAGE 5   
+
+ 241   1      }
+ 242          
+ 243          void zidongmen()
+ 244          {
+ 245   1          static bit kai_flag=0;
+ 246   1          if(ceju_flag==1)
+ 247   1          {
+ 248   2            ceju_flag=0;
+ 249   2            distance=get_distance();
+ 250   2          } 
+ 251   1          if((distance<30)&&(kai_flag==0))
+ 252   1          {
+ 253   2            kai_flag=1;//开门的标志位
+ 254   2            temp=shijian[0];//将此时的时间赋值给temp
+ 255   2          }
+ 256   1          if(kai_flag==1)
+ 257   1          {
+ 258   2            relay(1);//开门打开继电器
+ 259   2            if((shijian[0]-temp==5)||(60+shijian[0]-temp==5))
+ 260   2            {
+ 261   3              kai_flag=0;
+ 262   3              relay(0);//5秒后关闭继电器
+ 263   3            } 
+ 264   2          }
+ 265   1      }
+ 266          void keyscan()
+ 267          {
+ 268   1        uchar temp;
+ 269   1        P3=0x7f;P44=0;P42=1;
+ 270   1        temp=P3;
+ 271   1        temp=P3&0x0f;
+ 272   1        if(temp!=0x0f)
+ 273   1        {
+ 274   2          Delay5ms();
+ 275   2          temp=P3&0x0f;
+ 276   2          if(temp!=0x0f)
+ 277   2          {
+ 278   3            switch(temp)
+ 279   3            {
+ 280   4              case 0x0e:if(i<=5){num[i]=0;i++;}break;
+ 281   4              case 0x0d:if(i<=5){num[i]=4;i++;}break;
+ 282   4              case 0x0b:if(i<=5){num[i]=8;i++;}break;
+ 283   4              case 0x07:break;
+ 284   4            }
+ 285   3          }
+ 286   2          while(temp!=0x0f)
+ 287   2          {
+ 288   3            temp=P3;
+ 289   3            temp=P3&0x0f;
+ 290   3          }
+ 291   2        }
+ 292   1      
+ 293   1        P3=0xbf;P44=1;P42=0;
+ 294   1        temp=P3;
+ 295   1        temp=P3&0x0f;
+ 296   1        if(temp!=0x0f)
+ 297   1        {
+ 298   2          Delay5ms();
+ 299   2          temp=P3&0x0f;
+ 300   2          if(temp!=0x0f)
+ 301   2          {
+ 302   3            switch(temp)
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 18:52:11 PAGE 6   
+
+ 303   3            {
+ 304   4              case 0x0e:if(i<=5){num[i]=1;i++;}break;
+ 305   4              case 0x0d:if(i<=5){num[i]=5;i++;}break;
+ 306   4              case 0x0b:if(i<=5){num[i]=9;i++;}break;
+ 307   4              case 0x07:
+ 308   4              if(admit==0)
+ 309   4              {
+ 310   5                if(i>=1)
+ 311   5                {
+ 312   6                  i=i-1;
+ 313   6                  num[i]=11;
+ 314   6                }
+ 315   5              }
+ 316   4              break;
+ 317   4            }
+ 318   3          }
+ 319   2            while(P3!=0xbf);
+ 320   2        } 
+ 321   1      
+ 322   1        P3=0xdf;P44=1;P42=1;
+ 323   1        temp=P3;
+ 324   1        temp=P3&0x0f;
+ 325   1        if(temp!=0x0f)
+ 326   1        {
+ 327   2          Delay5ms();
+ 328   2          temp=P3&0x0f;
+ 329   2          if(temp!=0x0f)
+ 330   2          {
+ 331   3            temp=P3&0x0f;
+ 332   3            switch(temp)
+ 333   3            {
+ 334   4              case 0x0e:if(i<=5){num[i]=2;i++;}break;
+ 335   4              case 0x0d:if(i<=5){num[i]=6;i++;}break;
+ 336   4              case 0x0b:if(set==0) clear(); set=1;admit=0;break;
+ 337   4              case 0x07:if(i==6){admit=1;now=shijian[0];}break;
+ 338   4            }
+ 339   3          }
+ 340   2          while(P3!=0xdf);
+ 341   2        }
+ 342   1      
+ 343   1        P3=0xef;
+ 344   1        temp=P3;
+ 345   1        temp=P3&0x0f;
+ 346   1        if(temp!=0x0f)
+ 347   1        {
+ 348   2          Delay5ms();
+ 349   2          temp=P3&0x0f;
+ 350   2          if(temp!=0x0f)
+ 351   2          {
+ 352   3            switch(temp)
+ 353   3            {
+ 354   4              case 0x0e:if(i<=5){num[i]=3;i++;}break;
+ 355   4              case 0x0d:if(i<=5){num[i]=7;i++;}break;
+ 356   4              case 0x0b:reset=1;break;
+ 357   4              case 0x07:exit=1;break;
+ 358   4            }
+ 359   3          }
+ 360   2          while(P3!=0xef);
+ 361   2        }
+ 362   1      }
+ 363          
+ 364          void time_0() interrupt 1
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 18:52:11 PAGE 7   
+
+ 365          {
+ 366   1        static uchar ss1=0;
+ 367   1        static uint ss2=0;
+ 368   1        static uchar ss3,s_flag;
+ 369   1        display();
+ 370   1        if(++ss1==100)
+ 371   1        {
+ 372   2          ss1=0;
+ 373   2          ceju_flag=1;
+ 374   2        }
+ 375   1        if(xiang_flag==1)
+ 376   1        {
+ 377   2          if(++ss2==1500)       
+ 378   2          {
+ 379   3            ss2=0;
+ 380   3            ledctrl(2,0);
+ 381   3            xiang_flag=0;
+ 382   3          }
+ 383   2        }
+ 384   1        if(l_count==0)
+ 385   1        {
+ 386   2          if(++ss3==200)
+ 387   2          {
+ 388   3            ss3=0;
+ 389   3            ledctrl(1,0);
+ 390   3            l_count=4;
+ 391   3          }
+ 392   2        }
+ 393   1        if(l_count<=2)//闪烁三次
+ 394   1        {
+ 395   2            if(++ss3==200)
+ 396   2            {
+ 397   3              ss3=0;
+ 398   3              if(s_flag==0)
+ 399   3              {
+ 400   4                s_flag=1;
+ 401   4                ledctrl(1,1);
+ 402   4              }
+ 403   3              else
+ 404   3              {
+ 405   4                s_flag=0;
+ 406   4                ledctrl(1,0);
+ 407   4                l_count++;
+ 408   4              }
+ 409   3            }
+ 410   2        }
+ 411   1      }
+ 412          
+ 413          void Timer0Init(void)   //2毫秒@11.0592MHz
+ 414          {
+ 415   1        AUXR |= 0x80;         //定时器时钟1T模式
+ 416   1        TMOD &= 0xF0;         //设置定时器模式
+ 417   1        TL0 = 0x9A;           //设置定时初值
+ 418   1        TH0 = 0xA9;           //设置定时初值
+ 419   1        TF0 = 0;              //清除TF0标志
+ 420   1        TR0 = 1;              //定时器0开始计时
+ 421   1        EA=1;
+ 422   1        ET0=1;
+ 423   1      }
+ 424          
+ 425          void display()
+ 426          {
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 18:52:11 PAGE 8   
+
+ 427   1        P2=(P2&0x1f)|0xe0;
+ 428   1        P0=0xff;
+ 429   1        P2=P2&0x1f;
+ 430   1        
+ 431   1        P2=(P2&0x1f)|0xc0;
+ 432   1        P0=1<<discount;
+ 433   1        P2=P2&0x1f;
+ 434   1        
+ 435   1        P2=(P2&0x1f)|0xe0;
+ 436   1        P0=tab[dsbuff[discount]];
+ 437   1        P2=P2&0x1f;
+ 438   1        if(++discount==8) discount=0;
+ 439   1      }
+ 440          
+ 441          void relay(uchar demand)
+ 442          {
+ 443   1        static uchar relay_state=0;
+ 444   1        if((demand==1)&&(relay_state==0))
+ 445   1        {
+ 446   2          relay_state=1;
+ 447   2          P2=(P2&0x1f)|0xa0;
+ 448   2          P0=0x10;
+ 449   2          P2=P2&0x1f;
+ 450   2        }
+ 451   1        else if((demand==0)&&(relay_state==1))
+ 452   1        {
+ 453   2          relay_state=0;
+ 454   2          P2=(P2&0x1f)|0xa0;
+ 455   2          P0=0x00;
+ 456   2          P2=P2&0x1f;
+ 457   2        }
+ 458   1      }
+ 459          
+ 460          void beep(uchar demand)
+ 461          {
+ 462   1        static uchar beep_state=0;
+ 463   1        if((demand==1)&&(beep_state==0))
+ 464   1        {
+ 465   2          beep_state=1;
+ 466   2          P2=(P2&0x1f)|0xa0;
+ 467   2          P0=0x40;
+ 468   2          P2=P2&0x1f;
+ 469   2        }
+ 470   1        else if((demand==0)&&(beep_state==1))
+ 471   1        {
+ 472   2          beep_state=0;
+ 473   2          P2=(P2&0x1f)|0xa0;
+ 474   2          P0=0x00;
+ 475   2          P2=P2&0x1f;
+ 476   2        }
+ 477   1      }
+ 478          
+ 479          void ledctrl(uchar lednum,uchar demand)
+ 480          {
+ 481   1        static uchar led_state=0;
+ 482   1        uchar n;
+ 483   1        lednum--;
+ 484   1        n=led_state&(0x01<<lednum);
+ 485   1        if((n==0)&&(demand==1))
+ 486   1        {
+ 487   2          led_state=0x01<<lednum;
+ 488   2          P2=(P2&0x1f)|0x80;
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 18:52:11 PAGE 9   
+
+ 489   2          P0=~(0x01<<lednum);
+ 490   2          P2=P2&0x1f;
+ 491   2        }
+ 492   1        else if((n>0)&&(demand==0))
+ 493   1        {
+ 494   2          led_state=0;
+ 495   2          P2=(P2&0x1f)|0x80;
+ 496   2          P0=0xff;
+ 497   2          P2=P2&0x1f;
+ 498   2        }
+ 499   1      }
+ 500          
+ 501          void sendwave()
+ 502          {
+ 503   1        TX=1;
+ 504   1        somenop1;somenop1;somenop1;somenop1;somenop1;
+ 505   1        somenop1;somenop1;somenop1;somenop1;somenop1;
+ 506   1        TX=0;
+ 507   1      }
+ 508          
+ 509          uint get_distance()
+ 510          {
+ 511   1        uint dis;
+ 512   1        sendwave();
+ 513   1        TR1=1;
+ 514   1        while((RX==1)&&(TF1==0));
+ 515   1        TR1=0;
+ 516   1        if(TF1)
+ 517   1        {
+ 518   2          TF1=0;
+ 519   2          dis=999;
+ 520   2        }
+ 521   1        else 
+ 522   1        {
+ 523   2          dis=(TH1<<8)|TL1;
+ 524   2          dis=dis*0.017;
+ 525   2        }
+ 526   1        TH1=TL1=0;
+ 527   1        return dis; 
+ 528   1      }
+ 529          
+ 530          void Timer1Init(void)   //0微秒@11.0592MHz
+ 531          {
+ 532   1        AUXR &= 0xBF;         //定时器时钟12T模式
+ 533   1        TMOD &= 0x0F;         //设置定时器模式
+ 534   1        TL1 = 0x00;           //设置定时初值
+ 535   1        TH1 = 0x00;           //设置定时初值
+ 536   1        TF1 = 0;              //清除TF1标志
+ 537   1        TR1 = 0;              //定时器1开始计时
+ 538   1      }
+ 539          
+ 540          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1744    ----
+   CONSTANT SIZE    =     12    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     50    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+C51 COMPILER V9.54   MAIN                                                                  12/27/2017 18:52:11 PAGE 10  
+
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

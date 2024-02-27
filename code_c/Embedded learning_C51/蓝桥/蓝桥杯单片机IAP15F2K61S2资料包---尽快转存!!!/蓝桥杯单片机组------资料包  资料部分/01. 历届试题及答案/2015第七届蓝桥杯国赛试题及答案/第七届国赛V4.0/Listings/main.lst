@@ -1,0 +1,510 @@
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 17:41:32 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ma
+                    -in.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.h>
+   2          #include <delay.h>
+   3          #include <iic.h>
+   4          #include <ds1302.h>
+   5          
+   6          #define uchar unsigned char  
+   7          #define uint unsigned int 
+   8          
+   9          uchar code tab[12]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xbf,0xff};
+  10          uchar shizhong_flag=0,dianya_flag=0,gongneng_flag=0,jia_flag=0,jian_flag=0;
+  11          uchar count_1=0,count_2=0,count_3=0,count_4=0,count_5=0;
+  12          uchar hour=0,minute=0,second=0,moshi_flag=0;
+  13          uchar discount = 0,k=0,dma_liang=0,dmi_liang=0;
+  14          uchar s_liang=0,f_liang=0,m_liang=0;
+  15          uchar dianya_max=20,dianya_min=10;
+  16          uchar dsbuff[8]={1,2,3,4,5,6,7,8};
+  17          uchar vol_max=0,vol_min=0;
+  18          uint voltage=0;
+  19          uint kk=0;
+  20          
+  21          void allinit()
+  22          {
+  23   1        P2=0x80;P0=0xff;
+  24   1        P2=0xa0;P0=0x00;
+  25   1        P2=0xc0;P0=0xff;
+  26   1        P2=0xe0;P0=0xff;
+  27   1      }
+  28          
+  29          void display()
+  30          {
+  31   1        P2=0xef;
+  32   1        P0=0xff;
+  33   1        P2=0x1f;
+  34   1      
+  35   1        P2=0xc0;
+  36   1        P0=1<<discount;
+  37   1        P2=0x1f;
+  38   1      
+  39   1        P2=0xef;
+  40   1        P0=tab[dsbuff[discount]];
+  41   1        P2=0x1f;
+  42   1      
+  43   1        if(++discount==8)
+  44   1         discount=0;
+  45   1      }
+  46          
+  47          void Timer0Init(void)   //2毫秒@11.0592MHz
+  48          {
+  49   1        AUXR |= 0x80;         //定时器时钟1T模式
+  50   1        TMOD &= 0xF0;         //设置定时器模式
+  51   1        TL0 = 0x9A;           //设置定时初值
+  52   1        TH0 = 0xA9;           //设置定时初值
+  53   1        TF0 = 0;              //清除TF0标志
+  54   1        TR0 = 1;              //定时器0开始计时
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 17:41:32 PAGE 2   
+
+  55   1        ET0=1;
+  56   1        EA=1;
+  57   1      }
+  58          
+  59          void Timer1Init(void)   //5毫秒@11.0592MHz
+  60          {
+  61   1        AUXR |= 0x40;         //定时器时钟1T模式
+  62   1        TMOD &= 0x0F;         //设置定时器模式
+  63   1        TL1 = 0x00;           //设置定时初值
+  64   1        TH1 = 0x28;           //设置定时初值
+  65   1        TF1 = 0;              //清除TF1标志
+  66   1        TR1 = 1;              //定时器1开始计时
+  67   1        EA=1;
+  68   1        ET1=1;
+  69   1      }
+  70          
+  71          void time_chuli()
+  72          {
+  73   1        if(gongneng_flag==0)
+  74   1            {
+  75   2              dsbuff[0]=shijian[2]/10;
+  76   2              dsbuff[1]=shijian[2]%10;
+  77   2              dsbuff[2]=10;
+  78   2              dsbuff[3]=shijian[1]/10;
+  79   2              dsbuff[4]=shijian[1]%10;
+  80   2              dsbuff[5]=10;
+  81   2              dsbuff[6]=shijian[0]/10;
+  82   2              dsbuff[7]=shijian[0]%10;
+  83   2            }
+  84   1            else 
+  85   1            {
+  86   2              switch(moshi_flag)// 进入闪烁状态 不能在主函数里写数码管显示 而应都放在中断中显示 
+  87   2              {
+  88   3                case 1:hour=1;minute=0;second=0;break; 
+  89   3                case 2:minute=1;hour=0;second=0;break;
+  90   3                case 3:second=1;hour=0;minute=0;break;
+  91   3                case 4:moshi_flag=1;break;
+  92   3              }
+  93   2                if(hour==1)
+  94   2                {
+  95   3                  if(jia_flag==1)
+  96   3                  {
+  97   4                    if(shijian[2]<=23)
+  98   4                      { 
+  99   5                        shijian[2]=shijian[2]+1;
+ 100   5                      }
+ 101   4                      jia_flag=0;
+ 102   4                      dswrite();
+ 103   4                  }
+ 104   3                  if(jian_flag==1)
+ 105   3                  {
+ 106   4                    if(shijian[2]>=1)
+ 107   4                      {
+ 108   5                        shijian[2]-=1;
+ 109   5                      }
+ 110   4                      jian_flag=0;
+ 111   4                      dswrite();
+ 112   4                  } 
+ 113   3                }
+ 114   2                else if(minute==1)
+ 115   2                {
+ 116   3                  if(jia_flag==1)
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 17:41:32 PAGE 3   
+
+ 117   3                  {
+ 118   4                    if(shijian[1]<=58)
+ 119   4                    shijian[1]+=1;
+ 120   4                    jia_flag=0;
+ 121   4                    dswrite();
+ 122   4                  }
+ 123   3                  if(jian_flag==1)
+ 124   3                  {
+ 125   4                    if(shijian[1]>=1)
+ 126   4                    shijian[1]-=1;
+ 127   4                    jian_flag=0;
+ 128   4                    dswrite();
+ 129   4                  } 
+ 130   3                }
+ 131   2                else if(second==1)
+ 132   2                {
+ 133   3                  if(jia_flag==1)
+ 134   3                  {
+ 135   4                    if(shijian[0]<=58)
+ 136   4                    shijian[0]+=1;
+ 137   4                    jia_flag=0;
+ 138   4                    dswrite();
+ 139   4                  }
+ 140   3                  if(jian_flag==1)
+ 141   3                  {
+ 142   4                    if(shijian[0]>=1)
+ 143   4                    shijian[0]-=1;
+ 144   4                    jian_flag=0;
+ 145   4                    dswrite();
+ 146   4                  }
+ 147   3                }
+ 148   2            } 
+ 149   1      }
+ 150          void time_shan()
+ 151          {
+ 152   1          if(hour==1)
+ 153   1          {
+ 154   2            count_1++;
+ 155   2            if(count_1==200)
+ 156   2            {
+ 157   3              count_1=0; 
+ 158   3              if(s_liang==0)
+ 159   3              {
+ 160   4                s_liang=1;
+ 161   4                dsbuff[0]=11;
+ 162   4                dsbuff[1]=11;
+ 163   4                dsbuff[2]=10;
+ 164   4                dsbuff[3]=shijian[1]/10;
+ 165   4                dsbuff[4]=shijian[1]%10;
+ 166   4                dsbuff[5]=10;
+ 167   4                dsbuff[6]=shijian[0]/10;
+ 168   4                dsbuff[7]=shijian[0]%10;    
+ 169   4              }
+ 170   3              else 
+ 171   3              {
+ 172   4                s_liang=0; 
+ 173   4                dsbuff[0]=shijian[2]/10;
+ 174   4                dsbuff[1]=shijian[2]%10;
+ 175   4                dsbuff[2]=10;
+ 176   4                dsbuff[3]=shijian[1]/10;
+ 177   4                dsbuff[4]=shijian[1]%10;
+ 178   4                dsbuff[5]=10;
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 17:41:32 PAGE 4   
+
+ 179   4                dsbuff[6]=shijian[0]/10;
+ 180   4                dsbuff[7]=shijian[0]%10;
+ 181   4              }
+ 182   3            }
+ 183   2          }
+ 184   1          else if(minute==1)
+ 185   1          {
+ 186   2            count_2++;
+ 187   2            if(count_2==200)
+ 188   2            {
+ 189   3              count_2=0;
+ 190   3              if(f_liang==0)
+ 191   3              {
+ 192   4                f_liang=1;
+ 193   4                dsbuff[0]=shijian[2]/10;
+ 194   4                dsbuff[1]=shijian[2]%10;
+ 195   4                dsbuff[2]=10;
+ 196   4                dsbuff[3]=11;
+ 197   4                dsbuff[4]=11;
+ 198   4                dsbuff[5]=10;
+ 199   4                dsbuff[6]=shijian[0]/10;
+ 200   4                dsbuff[7]=shijian[0]%10;    
+ 201   4              }
+ 202   3              else 
+ 203   3              {
+ 204   4                f_liang=0;
+ 205   4                dsbuff[0]=shijian[2]/10;
+ 206   4                dsbuff[1]=shijian[2]%10;
+ 207   4                dsbuff[2]=10;
+ 208   4                dsbuff[3]=shijian[1]/10;
+ 209   4                dsbuff[4]=shijian[1]%10;
+ 210   4                dsbuff[5]=10;
+ 211   4                dsbuff[6]=shijian[0]/10;
+ 212   4                dsbuff[7]=shijian[0]%10;
+ 213   4              }
+ 214   3            }
+ 215   2          }
+ 216   1          else if(second==1)
+ 217   1          {
+ 218   2            count_3++;
+ 219   2            if(count_3==200)
+ 220   2            {
+ 221   3              count_3=0;
+ 222   3              if(m_liang==0)
+ 223   3              {
+ 224   4                m_liang=1;
+ 225   4                dsbuff[0]=shijian[2]/10;
+ 226   4                dsbuff[1]=shijian[2]%10;
+ 227   4                dsbuff[2]=10;
+ 228   4                dsbuff[3]=shijian[1]/10;
+ 229   4                dsbuff[4]=shijian[1]%10;
+ 230   4                dsbuff[5]=10;
+ 231   4                dsbuff[6]=11;
+ 232   4                dsbuff[7]=11;   
+ 233   4              }
+ 234   3              else 
+ 235   3              {
+ 236   4                m_liang=0;
+ 237   4                dsbuff[0]=shijian[2]/10;
+ 238   4                dsbuff[1]=shijian[2]%10;
+ 239   4                dsbuff[2]=10;
+ 240   4                dsbuff[3]=shijian[1]/10;
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 17:41:32 PAGE 5   
+
+ 241   4                dsbuff[4]=shijian[1]%10;
+ 242   4                dsbuff[5]=10;
+ 243   4                dsbuff[6]=shijian[0]/10;
+ 244   4                dsbuff[7]=shijian[0]%10;
+ 245   4              }
+ 246   3            }
+ 247   2          } 
+ 248   1      }
+ 249          
+ 250          void dianya_chuli()
+ 251          {
+ 252   1        if(gongneng_flag==0) 
+ 253   1        {
+ 254   2          dsbuff[0]=10;
+ 255   2          dsbuff[1]=1;
+ 256   2          dsbuff[2]=10;
+ 257   2          dsbuff[3]=11;
+ 258   2          dsbuff[4]=voltage/1000;
+ 259   2          dsbuff[5]=voltage%1000/100;
+ 260   2          dsbuff[6]=voltage%100/10;
+ 261   2          dsbuff[7]=voltage%10;
+ 262   2        } 
+ 263   1        else   //对于要求闪烁的直接放中断显示数码管
+ 264   1        {
+ 265   2          switch(moshi_flag)
+ 266   2          {
+ 267   3            case 1:vol_max=1; vol_min=0;break;
+ 268   3            case 2:vol_max=0; vol_min=1;break;
+ 269   3            case 3:moshi_flag=1;break;
+ 270   3          }
+ 271   2          if(jia_flag==1)
+ 272   2           {
+ 273   3              if(vol_max==1)
+ 274   3              {
+ 275   4                dianya_max+=5;
+ 276   4                jia_flag=0;
+ 277   4              }
+ 278   3              if(vol_min==1)
+ 279   3              {
+ 280   4                dianya_min+=5;
+ 281   4                jia_flag=0;
+ 282   4              } 
+ 283   3           }
+ 284   2           if(jian_flag==1)
+ 285   2           {
+ 286   3              if(vol_max==1)
+ 287   3              {
+ 288   4                dianya_max-=5;
+ 289   4                jian_flag=0;
+ 290   4              }
+ 291   3              if(vol_min==1)
+ 292   3              {
+ 293   4                dianya_min-=5;
+ 294   4                jian_flag=0;
+ 295   4              } 
+ 296   3           }
+ 297   2          
+ 298   2        } 
+ 299   1      }
+ 300          
+ 301          void dianya_shan()
+ 302          {
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 17:41:32 PAGE 6   
+
+ 303   1        if(vol_max==1)
+ 304   1        {
+ 305   2          count_4++;
+ 306   2          if(count_4==200)
+ 307   2          {
+ 308   3            count_4=0;
+ 309   3            if(dma_liang==0)
+ 310   3            {
+ 311   4              dma_liang=1;
+ 312   4              dsbuff[0]=11;
+ 313   4              dsbuff[1]=11;
+ 314   4              dsbuff[2]=0;
+ 315   4              dsbuff[3]=0;
+ 316   4              dsbuff[4]=dianya_min/10;
+ 317   4              dsbuff[5]=dianya_min%10;
+ 318   4              dsbuff[6]=0;
+ 319   4              dsbuff[7]=0;
+ 320   4            }
+ 321   3            else 
+ 322   3            {
+ 323   4              dma_liang=0;
+ 324   4              dsbuff[0]=dianya_max/10;
+ 325   4              dsbuff[1]=dianya_max%10;
+ 326   4              dsbuff[2]=0;
+ 327   4              dsbuff[3]=0;
+ 328   4              dsbuff[4]=dianya_min/10;
+ 329   4              dsbuff[5]=dianya_min%10;
+ 330   4              dsbuff[6]=0;
+ 331   4              dsbuff[7]=0;
+ 332   4            }
+ 333   3          }
+ 334   2        }
+ 335   1        if(vol_min==1)
+ 336   1        {
+ 337   2          count_5++;
+ 338   2          if(count_5==200)
+ 339   2          {
+ 340   3            count_5=0;
+ 341   3            if(dmi_liang==0)
+ 342   3            {
+ 343   4              dmi_liang=1;
+ 344   4              dsbuff[0]=dianya_max/10;
+ 345   4              dsbuff[1]=dianya_max%10;
+ 346   4              dsbuff[2]=0;
+ 347   4              dsbuff[3]=0;
+ 348   4              dsbuff[4]=11;
+ 349   4              dsbuff[5]=11;
+ 350   4              dsbuff[6]=0;
+ 351   4              dsbuff[7]=0;
+ 352   4            }
+ 353   3            else 
+ 354   3            {
+ 355   4              dmi_liang=0;
+ 356   4              dsbuff[0]=dianya_max/10;
+ 357   4              dsbuff[1]=dianya_max%10;
+ 358   4              dsbuff[2]=0;
+ 359   4              dsbuff[3]=0;
+ 360   4              dsbuff[4]=dianya_min/10;
+ 361   4              dsbuff[5]=dianya_min%10;
+ 362   4              dsbuff[6]=0;
+ 363   4              dsbuff[7]=0;
+ 364   4            }
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 17:41:32 PAGE 7   
+
+ 365   3          }
+ 366   2        }
+ 367   1      }
+ 368          
+ 369          void keyscan()
+ 370          {
+ 371   1        uchar temp;
+ 372   1        P3=0x7f;P44=0;P42=1;
+ 373   1        temp=P3;
+ 374   1        temp=P3&0x0f;
+ 375   1        if(temp!=0x0f)
+ 376   1        {
+ 377   2          Delay5ms();
+ 378   2          if(temp!=0x0f)
+ 379   2          {
+ 380   3            temp=P3;
+ 381   3            temp=P3&0x0f;
+ 382   3            switch(temp)
+ 383   3            {
+ 384   4              case 0x0e: 
+ 385   4                if(gongneng_flag==1)
+ 386   4                gongneng_flag=0;   
+ 387   4                shizhong_flag=1;
+ 388   4                moshi_flag=0;
+ 389   4                dianya_flag=0;
+ 390   4              break;
+ 391   4              
+ 392   4              case 0x0d:
+ 393   4                if(gongneng_flag==1)
+ 394   4                gongneng_flag=0;
+ 395   4                dianya_flag=1;
+ 396   4                shizhong_flag=0;
+ 397   4                moshi_flag=0;
+ 398   4              break;
+ 399   4              case 0x0b:                             break;
+ 400   4              case 0x07:gongneng_flag=1;moshi_flag++;break;
+ 401   4            } 
+ 402   3            while(P3!=0x7f);
+ 403   3          }
+ 404   2        }
+ 405   1        
+ 406   1        P3=0xbf;P44=1;P42=0;
+ 407   1        temp=P3;
+ 408   1        temp=P3&0x0f;
+ 409   1        if(temp!=0x0f)
+ 410   1        {
+ 411   2          Delay5ms();
+ 412   2          if(temp!=0x0f)
+ 413   2          {
+ 414   3            temp=P3;
+ 415   3            temp=P3&0x0f;
+ 416   3            switch(temp)
+ 417   3            {
+ 418   4              case 0x0e: jia_flag=1; break;
+ 419   4              case 0x0d: jian_flag=1;break;
+ 420   4              case 0x0b:             break;
+ 421   4              case 0x07:             break;
+ 422   4            }
+ 423   3          }
+ 424   2          while(P3!=0xbf);
+ 425   2        }
+ 426   1      }
+C51 COMPILER V9.54   MAIN                                                                  12/24/2017 17:41:32 PAGE 8   
+
+ 427          
+ 428          void main()
+ 429          {
+ 430   1        allinit();
+ 431   1        Timer0Init();
+ 432   1        Timer1Init();
+ 433   1        dswrite();
+ 434   1        while(1)
+ 435   1        {
+ 436   2          keyscan();
+ 437   2          dsread();
+ 438   2          if(shizhong_flag==1)
+ 439   2          {
+ 440   3            time_chuli(); 
+ 441   3          }
+ 442   2          if(dianya_flag==1)
+ 443   2          {
+ 444   3            kk++;
+ 445   3            if(kk==1000)   //使电位器AD不是时刻采样 抑制其跳动
+ 446   3            {
+ 447   4              kk=0;
+ 448   4              voltage=adread(0x03)*19.61;
+ 449   4            }
+ 450   3            dianya_chuli();
+ 451   3          }
+ 452   2        }
+ 453   1      }
+ 454          
+ 455          void time0() interrupt 1
+ 456          {
+ 457   1        display();
+ 458   1      }
+ 459          
+ 460          void time1() interrupt 3
+ 461          {
+ 462   1        if((shizhong_flag==1)&&(gongneng_flag==1))
+ 463   1        {
+ 464   2          time_shan();
+ 465   2        }
+ 466   1        else if((dianya_flag==1)&&(gongneng_flag==1))
+ 467   1        {
+ 468   2          dianya_shan();
+ 469   2        }
+ 470   1      }
+ 471          
+ 472          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1341    ----
+   CONSTANT SIZE    =     12    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     37       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

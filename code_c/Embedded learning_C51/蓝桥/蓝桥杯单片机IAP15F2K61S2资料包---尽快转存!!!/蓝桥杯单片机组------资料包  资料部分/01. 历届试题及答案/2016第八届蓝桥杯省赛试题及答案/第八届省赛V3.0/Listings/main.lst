@@ -1,0 +1,393 @@
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 10:35:51 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\ma
+                    -in.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <STC15F2K60S2.h>
+   2          #include <onewire.h>
+   3          
+   4          #define uchar unsigned char
+   5          #define uint unsigned int 
+   6          
+   7          uint count0,count1,count2;          //定时所需要的变量
+   8          uchar mode;                         //模式选择变量
+   9          uchar baojing;                      //闹钟报警的标志位
+  10          uchar flag=0;                       //LED灯闪烁时间隔设定的标志位
+  11          uchar flash;                        //数码管显示闪烁的标志位
+  12          uchar hour_n=0,min_n=0,sec_n=0;     //设定的闹钟
+  13          uchar hour=23,min=59,sec=50;        //设定的初始时间
+  14          uchar hour_i,min_i,sec_i;           //设定的时间
+  15          uchar temp;                         //温度存储变量
+  16          uchar discount;                     //数码管显示扫描变量
+  17          uchar code wei_xuan[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
+  18          uchar code duan_xuan[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xbf,0xff,0xc6};
+  19          
+  20          void delay(uint x)
+  21          {
+  22   1        uint i,j;
+  23   1        for(i=x;i>0;i--)
+  24   1        for(j=110;j>0;j--);
+  25   1      }
+  26          
+  27          void allinit()
+  28          {
+  29   1        P2=0XA0;P0=0X00;
+  30   1        P2=0X80;P0=0XFF;
+  31   1        P2=0XC0;P0=0XFF;
+  32   1        P2=0XE0;P0=0XFF;
+  33   1      }
+  34          
+  35          void key()
+  36          {
+  37   1        if(P30==0)
+  38   1          {
+  39   2            delay(20);
+  40   2            if(P30==0)
+  41   2              {
+  42   3                while(!P30);
+  43   3                hour_i=hour;
+  44   3                min_i=min;
+  45   3                sec_i=sec;
+  46   3                mode++;
+  47   3                if(mode>=4) mode=0;
+  48   3              }
+  49   2          }
+  50   1          
+  51   1        if(P31==0)
+  52   1          {
+  53   2            delay(20);
+  54   2            if(P31==0)
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 10:35:51 PAGE 2   
+
+  55   2              {
+  56   3                while(!P31);
+  57   3                if(mode>=4) mode++;
+  58   3                if(mode<4)  mode=4;
+  59   3                if(mode>=7) mode=0;
+  60   3              }
+  61   2          }
+  62   1          
+  63   1        if(P32==0)
+  64   1          {
+  65   2            delay(20);
+  66   2            if(P32==0)
+  67   2              {
+  68   3                while(!P32);
+  69   3                switch(mode)
+  70   3                  {
+  71   4                    case 1: hour_i++;if(hour_i>=24) hour_i=0;hour = hour_i;break;
+  72   4                    case 2: min_i++;if(min_i>=60) min_i=0;min = min_i;break;
+  73   4                    case 3: sec_i++;if(sec_i>=60) sec_i=0;sec = sec_i;break;
+  74   4                    case 4: hour_n++;if(hour_n>=24) hour_n=0;break;
+  75   4                    case 5: min_n++;if(min_n>=60) min_n=0;break;
+  76   4                    case 6: sec_n++;if(sec_n>=60) sec_n=0;break;
+  77   4                  }
+  78   3              }
+  79   2              
+  80   2          }
+  81   1          
+  82   1        if(P33==0)
+  83   1          {
+  84   2            delay(20);
+  85   2            if(P33==0)
+  86   2              {
+  87   3                if(mode==0) mode=7;
+  88   3                while(!P33);
+  89   3                if(mode==7) mode=0;
+  90   3                
+  91   3                switch(mode)
+  92   3                  {
+  93   4                    case 1: hour_i--;if(hour_i<=0) hour_i=23;hour = hour_i;break;
+  94   4                    case 2: min_i--;if(min_i<=0) min_i=59;min = min_i;break;
+  95   4                    case 3: sec_i--;if(sec_i<=0) sec_i=59;sec = sec_i;break;
+  96   4                    case 4: hour_n--;if(hour_n<=0) hour_n=23;break;
+  97   4                    case 5: min_n--;if(min_n<=0) min_n=59;break;
+  98   4                    case 6: sec_n--;if(sec_n<=0) sec_n=59;break;
+  99   4                  }
+ 100   3              }
+ 101   2              
+ 102   2          }
+ 103   1      }
+ 104          
+ 105          void xian_shi(void)
+ 106          {
+ 107   1        uchar i;
+ 108   1        switch(i)
+ 109   1        {
+ 110   2          case 0:P0 = duan_xuan[hour/10];break;
+ 111   2          case 1:P0 = duan_xuan[hour%10];break;
+ 112   2          case 2:P0 = duan_xuan[10];break;
+ 113   2          case 3:P0 = duan_xuan[min/10];break;
+ 114   2          case 4:P0 = duan_xuan[min%10];break;
+ 115   2          case 5:P0 = duan_xuan[10];break;
+ 116   2          case 6:P0 = duan_xuan[sec/10];break;
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 10:35:51 PAGE 3   
+
+ 117   2          case 7:P0 = duan_xuan[sec%10];break;
+ 118   2        }
+ 119   1        i++;
+ 120   1        if(i>=8) i=0;
+ 121   1      }
+ 122          void xian_shi1(void)
+ 123          {
+ 124   1        uchar i;
+ 125   1        switch(i)
+ 126   1        {
+ 127   2          case 0:P0 = duan_xuan[hour_i/10] | flash;break;
+ 128   2          case 1:P0 = duan_xuan[hour_i%10] | flash;break;
+ 129   2          case 2:P0 = duan_xuan[10];break;
+ 130   2          case 3:P0 = duan_xuan[min/10];break;
+ 131   2          case 4:P0 = duan_xuan[min%10];break;
+ 132   2          case 5:P0 = duan_xuan[10];break;
+ 133   2          case 6:P0 = duan_xuan[sec/10];break;
+ 134   2          case 7:P0 = duan_xuan[sec%10];break;
+ 135   2        }
+ 136   1        i++;
+ 137   1        if(i>=8) i=0;
+ 138   1      }
+ 139          void xian_shi2(void)
+ 140          {
+ 141   1        uchar i;
+ 142   1        switch(i)
+ 143   1        {
+ 144   2          case 0:P0 = duan_xuan[hour/10];break;
+ 145   2          case 1:P0 = duan_xuan[hour%10];break;
+ 146   2          case 2:P0 = duan_xuan[10];break;
+ 147   2          case 3:P0 = duan_xuan[min_i/10] | flash;break;
+ 148   2          case 4:P0 = duan_xuan[min_i%10] | flash;break;
+ 149   2          case 5:P0 = duan_xuan[10];break;
+ 150   2          case 6:P0 = duan_xuan[sec/10];break;
+ 151   2          case 7:P0 = duan_xuan[sec%10];break;
+ 152   2        }
+ 153   1        i++;
+ 154   1        if(i>=8) i=0;
+ 155   1      }
+ 156          void xian_shi3(void)
+ 157          {
+ 158   1        uchar i;
+ 159   1        switch(i)
+ 160   1        {
+ 161   2          case 0:P0 = duan_xuan[hour/10];break;
+ 162   2          case 1:P0 = duan_xuan[hour%10];break;
+ 163   2          case 2:P0 = duan_xuan[10];break;
+ 164   2          case 3:P0 = duan_xuan[min/10];break;
+ 165   2          case 4:P0 = duan_xuan[min%10];break;
+ 166   2          case 5:P0 = duan_xuan[10];break;
+ 167   2          case 6:P0 = duan_xuan[sec_i/10] | flash;break;
+ 168   2          case 7:P0 = duan_xuan[sec_i%10] | flash;break;
+ 169   2        }
+ 170   1        i++;
+ 171   1        if(i>=8) i=0;
+ 172   1      }
+ 173          void xian_shi4(void)
+ 174          {
+ 175   1        uchar i;
+ 176   1        switch(i)
+ 177   1        {
+ 178   2          case 0:P0 = duan_xuan[hour_n/10] | flash;break;
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 10:35:51 PAGE 4   
+
+ 179   2          case 1:P0 = duan_xuan[hour_n%10] | flash;break;
+ 180   2          case 2:P0 = duan_xuan[10];break;
+ 181   2          case 3:P0 = duan_xuan[min_n/10];break;
+ 182   2          case 4:P0 = duan_xuan[min_n%10];break;
+ 183   2          case 5:P0 = duan_xuan[10];break;
+ 184   2          case 6:P0 = duan_xuan[sec_n/10];break;
+ 185   2          case 7:P0 = duan_xuan[sec_n%10];break;
+ 186   2        }
+ 187   1        i++;
+ 188   1        if(i>=8) i=0;
+ 189   1      }
+ 190          void xian_shi5(void)
+ 191          {
+ 192   1        uchar i;
+ 193   1        switch(i)
+ 194   1        {
+ 195   2          case 0:P0 = duan_xuan[hour_n/10];break;
+ 196   2          case 1:P0 = duan_xuan[hour_n%10];break;
+ 197   2          case 2:P0 = duan_xuan[10];break;
+ 198   2          case 3:P0 = duan_xuan[min_n/10] | flash;break;
+ 199   2          case 4:P0 = duan_xuan[min_n%10] | flash;break;
+ 200   2          case 5:P0 = duan_xuan[10];break;
+ 201   2          case 6:P0 = duan_xuan[sec_n/10];break;
+ 202   2          case 7:P0 = duan_xuan[sec_n%10];break;
+ 203   2        }
+ 204   1        i++;
+ 205   1        if(i>=8) i=0;
+ 206   1      }
+ 207          
+ 208          void xian_shi6(void)
+ 209          {
+ 210   1        uchar i;
+ 211   1        switch(i)
+ 212   1        {
+ 213   2          case 0:P0 = duan_xuan[hour_n/10];break;
+ 214   2          case 1:P0 = duan_xuan[hour_n%10];break;
+ 215   2          case 2:P0 = duan_xuan[10];break;
+ 216   2          case 3:P0 = duan_xuan[min_n/10];break;
+ 217   2          case 4:P0 = duan_xuan[min_n%10];break;
+ 218   2          case 5:P0 = duan_xuan[10];break;
+ 219   2          case 6:P0 = duan_xuan[sec_n/10] | flash;break;
+ 220   2          case 7:P0 = duan_xuan[sec_n%10] | flash;break;
+ 221   2        }
+ 222   1        i++;
+ 223   1        if(i>=8) i=0;
+ 224   1      }
+ 225          
+ 226          void xian_shi7(void)
+ 227          {
+ 228   1        uchar i;
+ 229   1        switch(i)
+ 230   1        {
+ 231   2          case 0:P0 = duan_xuan[11];break;
+ 232   2          case 1:P0 = duan_xuan[11];break;
+ 233   2          case 2:P0 = duan_xuan[11];break;
+ 234   2          case 3:P0 = duan_xuan[11];break;
+ 235   2          case 4:P0 = duan_xuan[11];break;
+ 236   2          case 5:P0 = duan_xuan[temp/10];break;
+ 237   2          case 6:P0 = duan_xuan[temp%10];break;
+ 238   2          case 7:P0 = duan_xuan[12];break;
+ 239   2        }
+ 240   1        i++;
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 10:35:51 PAGE 5   
+
+ 241   1        if(i>=8) i=0;
+ 242   1      }
+ 243          
+ 244          void qie_huan(void)
+ 245          {
+ 246   1        switch(mode)
+ 247   1        {
+ 248   2          case 0: xian_shi();break; 
+ 249   2          case 1: xian_shi1();break;
+ 250   2          case 2: xian_shi2();break;
+ 251   2          case 3: xian_shi3();break;
+ 252   2          case 4: xian_shi4();break;
+ 253   2          case 5: xian_shi5();break;
+ 254   2          case 6: xian_shi6();break;
+ 255   2          case 7: xian_shi7();break;
+ 256   2        }
+ 257   1      }
+ 258          void display(void)
+ 259          {
+ 260   1      
+ 261   1        P2 = 0xc0;
+ 262   1        P0 = wei_xuan[discount];
+ 263   1        P2 = 0x00;
+ 264   1        P2 = 0xe0;
+ 265   1        qie_huan();
+ 266   1        P2 = 0x00;
+ 267   1      
+ 268   1        discount++;
+ 269   1        if(discount>=8) discount=0;
+ 270   1      }
+ 271          
+ 272          void Timer0Init(void)   //2毫秒@11.0592MHz
+ 273          {
+ 274   1        AUXR |= 0x80;         //定时器时钟1T模式
+ 275   1        TMOD &= 0xF0;         //设置定时器模式
+ 276   1        TL0 = 0x9A;           //设置定时初值
+ 277   1        TH0 = 0xA9;           //设置定时初值
+ 278   1        TF0 = 0;              //清除TF0标志
+ 279   1        TR0 = 1;              //定时器0开始计时
+ 280   1        EA=1;
+ 281   1        ET0=1;
+ 282   1      }
+ 283          
+ 284          void led(uchar liang)
+ 285          {
+ 286   1        P2=P2&0x1f;
+ 287   1        P2=0x80;
+ 288   1        P0=liang;
+ 289   1        P2=P2&0x1f;
+ 290   1      }
+ 291          
+ 292          void main()
+ 293          {
+ 294   1        allinit();
+ 295   1        Timer0Init();
+ 296   1        while(1)
+ 297   1        {
+ 298   2          temp=Read_Temperature();
+ 299   2          key();
+ 300   2          if((hour==hour_n)&&(min==min_n)&&(sec==sec_n)) baojing=1;
+ 301   2        } 
+ 302   1      }
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 10:35:51 PAGE 6   
+
+ 303          
+ 304          void Timer0(void) interrupt 1
+ 305          {
+ 306   1        display();
+ 307   1        count0++;
+ 308   1        if(baojing==1)          //让灯闪烁时间间隔位0.2秒
+ 309   1          {
+ 310   2            if(count0>=100) 
+ 311   2              {
+ 312   3                if(flag==0)
+ 313   3                  {
+ 314   4                    flag=1;
+ 315   4                    led(0xff);
+ 316   4                  }
+ 317   3                else 
+ 318   3                  {
+ 319   4                    flag=0;
+ 320   4                    led(0xfe);
+ 321   4                  }
+ 322   3              }
+ 323   2          }
+ 324   1        else
+ 325   1          { 
+ 326   2            P2=0x80;
+ 327   2            P0=0xff;
+ 328   2          } 
+ 329   1        if(count0>=500)
+ 330   1          {
+ 331   2            count0=0;
+ 332   2            count1++;
+ 333   2            if(count1>=2)
+ 334   2              {
+ 335   3                if(baojing==1) count2++;    //限定灯就闪烁5秒
+ 336   3                if(count2>5)
+ 337   3                  {
+ 338   4                    count2=0;
+ 339   4                    baojing=0;
+ 340   4                  } 
+ 341   3                sec++;
+ 342   3                flash=~flash;               //在设定时间的时候让设置的数字以间隔为一秒闪烁
+ 343   3                if(sec>=60)
+ 344   3                  {
+ 345   4                    sec=0;
+ 346   4                    min++;
+ 347   4                    if(min>=60)
+ 348   4                      {
+ 349   5                        min=0;
+ 350   5                        hour++;
+ 351   5                        if(hour>=24) hour=0;
+ 352   5                      }
+ 353   4                  }
+ 354   3              }
+ 355   2          }
+ 356   1      }
+ 357          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1643    ----
+   CONSTANT SIZE    =     21    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   MAIN                                                                  12/23/2017 10:35:51 PAGE 7   
+
+   DATA SIZE        =     21       8
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

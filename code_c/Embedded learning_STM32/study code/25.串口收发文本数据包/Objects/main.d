@@ -30,3 +30,7 @@
 .\objects\main.o: .\library\misc.h
 .\objects\main.o: .\System\Delay.h
 .\objects\main.o: .\Hardware\OLED.h
+.\objects\main.o: .\Hardware\Serial.h
+.\objects\main.o: E:\Applications\Keil_5\ARM\compiler V5\Bin\..\include\stdio.h
+.\objects\main.o: .\Hardware\LED.h
+.\objects\main.o: E:\Applications\Keil_5\ARM\compiler V5\Bin\..\include\string.h

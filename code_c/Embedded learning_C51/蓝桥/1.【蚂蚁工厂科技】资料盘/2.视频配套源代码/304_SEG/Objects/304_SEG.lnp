@@ -1,0 +1,9 @@
+".\Objects\main.obj",
+".\Objects\delay.obj",
+".\Objects\Int.obj",
+".\Objects\timer.obj",
+".\Objects\bsp_init.obj",
+".\Objects\bsp_led.obj",
+".\Objects\bsp_seg.obj" 
+TO ".\Objects\304_SEG" 
+PRINT(".\Listings\304_SEG.m51") RAMSIZE(256) 

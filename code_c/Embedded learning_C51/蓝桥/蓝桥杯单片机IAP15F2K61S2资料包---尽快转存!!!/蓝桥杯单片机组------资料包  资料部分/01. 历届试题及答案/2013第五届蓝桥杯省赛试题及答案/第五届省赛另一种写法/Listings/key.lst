@@ -1,0 +1,16 @@
+C51 COMPILER V9.54   KEY                                                                   12/17/2017 13:44:22 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE KEY
+OBJECT MODULE PLACED IN .\Objects\key.obj
+COMPILER INVOKED BY: C:\keil   55\C51\BIN\C51.EXE key.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\key
+                    -.lst) TABS(2) OBJECT(.\Objects\key.obj)
+
+line level    source
+
+   1          #include"stc15f2k60s2.h"
+   2          
+   3          u
+*** ERROR C129 IN LINE 3 OF key.c: missing ';' before ''
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  1 ERROR(S)
