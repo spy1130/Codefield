@@ -1,0 +1,333 @@
+C51 COMPILER V9.54   MAIN                                                                  12/17/2022 17:25:29 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件声明区 */
+   2          #include <STC15F2K60S2.H>//单片机寄存器专用头文件
+   3          #include <Init.h>//初始化底层驱动专用头文件
+   4          #include <Led.h>//Led底层驱动专用头文件
+   5          #include <Key.h>//按键底层驱动专用头文件
+   6          #include <Seg.h>//数码管底层驱动专用头文件
+   7          #include "ds1302.h"//DS1302底层驱动专用头文件
+   8          #include <string.h>//memcpy函数专用头文件
+   9          
+  10          /* 变量声明区 */
+  11          unsigned char Key_Val,Key_Down,Key_Old,Key_Up;//按键专用变量
+  12          unsigned char Key_Slow_Down;//按键减速专用变量
+  13          unsigned char Seg_Buf[8] = {10,10,10,10,10,10,10,10};//数码管显示数据存放数组
+  14          unsigned char Seg_Point[8] = {0,0,0,0,0,0,0,0};//数码管小数点数据存放数组
+  15          unsigned char Seg_Pos;//数码管扫描专用变量
+  16          unsigned int Seg_Slow_Down;//数码管减速专用变量
+  17          unsigned char ucLed[8] = {0,0,0,0,0,0,0,0};//Led显示数据存放数组
+  18          unsigned char Seg_Disp_Mode;//数码管显示模式变量 0-时钟显示 1-闹钟显示 2-日期显示 3-�
+             -��钟设置 4-闹钟设置 5-日期设置
+  19          unsigned char ucRtc[3] = {0x23,0x59,0x55};//时钟数据存放数组 上电初始化时间 23:59:55
+  20          unsigned char ucDate[3] = {0x22,0x12,0x12};//日期数据存放数组 上电初始化日期 22-12-12
+  21          unsigned char ucRtc_Set[6];//时钟数据设置数组 将时分秒的十位和个位拆分成六个数字 
+             -便于直接输入后的替换
+  22          unsigned char ucDate_Set[6];//日期数据设置数组
+  23          unsigned char Alarm_Set[3][6];//闹钟数据设置数组
+  24          unsigned char Set_Index;//设置数组指针 用于判断当前输入的位数
+  25          unsigned int Timer_500Ms;//五百毫秒计时变量
+  26          bit Seg_Star_Flag;//数码管闪烁标志位
+  27          
+  28          
+  29          /* 方法一 结构体 */
+  30          //struct Alarm//定义闹钟结构体
+  31          //{
+  32          //  unsigned char Hour;
+  33          //  unsigned char Min;
+  34          //  unsigned char Sec;
+  35          //};
+  36          //struct Alarm Alarm_Dat[3] = //定义闹钟数据
+  37          //{
+  38          //  {0x00,0x00,0x00},
+  39          //  {0x00,0x01,0x00},
+  40          //  {0xbb,0xbb,0xbb}
+  41          //};
+  42          
+  43          /* 方法二 二维数组 */
+  44          unsigned char Alarm_Dat[3][3] = 
+  45          {
+  46            {0x00,0x00,0x00},
+  47            {0x00,0x01,0x00},
+  48            {0xbb,0xbb,0xbb}
+  49          };
+  50          
+  51          unsigned char Alarm_Dat_Index;//闹钟数组指针 用于表示闹钟编号
+  52          
+C51 COMPILER V9.54   MAIN                                                                  12/17/2022 17:25:29 PAGE 2   
+
+  53          /* 数组数据读取函数 */
+  54          void Dat_To_Set(unsigned char* Dat,unsigned char* Set)
+  55          {
+  56   1        unsigned char i;//用于For循环
+  57   1        for(i=0;i<3;i++)
+  58   1        {
+  59   2          Set[2*i] = Dat[i] / 16;
+  60   2          Set[2*i+1] = Dat[i] % 16;
+  61   2        }
+  62   1      }
+  63          
+  64          /* 键盘处理函数 */
+  65          void Key_Proc()
+  66          {
+  67   1        unsigned char i,j;//用于For循环
+  68   1        if(Key_Slow_Down) return;
+  69   1        Key_Slow_Down = 1;//键盘减速程序
+  70   1      
+  71   1        Key_Val = Key_Read();//实时读取键码值
+  72   1        Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+  73   1        Key_Up = ~Key_Val & (Key_Old ^ Key_Val);//捕捉按键上降沿
+  74   1        Key_Old = Key_Val;//辅助扫描变量
+  75   1      
+  76   1        /* 键盘输入区域 */
+  77   1        if(Key_Down >= 4 && Key_Down <= 13)
+  78   1        {
+  79   2          switch(Seg_Disp_Mode)
+  80   2          {
+  81   3            case 3://时钟设置
+  82   3              ucRtc_Set[Set_Index] = Key_Down - 4;
+  83   3            break;
+  84   3            case 4://闹钟设置
+  85   3              Alarm_Set[Alarm_Dat_Index][Set_Index] = Key_Down - 4;
+  86   3            break;
+  87   3            case 5://日期设置
+  88   3              ucDate_Set[Set_Index] = Key_Down - 4;
+  89   3            break;
+  90   3          }
+  91   2          //if(++Set_Index == 6) Set_Index = 0;//循环输入
+  92   2          Set_Index = (Set_Index + 1) % 6;//循环通用表达式：（变量-循环起点+1）%（循环终点-�
+             -�环起点+1） + 循环起点
+  93   2        }
+  94   1        
+  95   1        switch(Key_Down)
+  96   1        {
+  97   2          case 14://界面切换按键
+  98   2            if(Seg_Disp_Mode < 3) //在非参数设置状态下使能
+  99   2            {
+ 100   3              if(++Seg_Disp_Mode == 3) //在0-2之间循环切换
+ 101   3                Seg_Disp_Mode = 0;
+ 102   3            }
+ 103   2          break;
+ 104   2          case 15://参数设置按键
+ 105   2            if(Seg_Disp_Mode < 3) //在非参数设置状态
+ 106   2            {
+ 107   3              Seg_Disp_Mode += 3;//切换到对应的设置界面内
+ 108   3              switch(Seg_Disp_Mode)
+ 109   3              {
+ 110   4                case 3://切换到时钟设置界面
+ 111   4      //            for(i=0;i<3;i++)//将当前时钟数据给设置数组
+ 112   4      //            {
+ 113   4      //              ucRtc_Set[2*i] = ucRtc[i] / 16;
+C51 COMPILER V9.54   MAIN                                                                  12/17/2022 17:25:29 PAGE 3   
+
+ 114   4      //              ucRtc_Set[2*i+1] = ucRtc[i] % 16;
+ 115   4      //            }
+ 116   4                  Dat_To_Set(ucRtc,ucRtc_Set);
+ 117   4                break;
+ 118   4                case 4://切换到闹钟设置界面
+ 119   4                  Alarm_Dat_Index = 0;//闹钟指针复位
+ 120   4                  for(i=0;i<3;i++)//将当前闹钟数据给设置数组
+ 121   4                  {
+ 122   5                    Dat_To_Set(Alarm_Dat[i],Alarm_Set[i]);
+ 123   5      //              for(j=0;j<3;j++)
+ 124   5      //              {
+ 125   5      //                Alarm_Set[i][2*j] = Alarm_Dat[i][j] / 16;
+ 126   5      //                Alarm_Set[i][2*j+1] = Alarm_Dat[i][j] % 16;
+ 127   5      //              }
+ 128   5                  }
+ 129   4                break;  
+ 130   4                case 5://切换到日期设置界面
+ 131   4                  Dat_To_Set(ucDate,ucDate_Set);
+ 132   4      //            for(i=0;i<3;i++)//将当前日期数据给设置数组
+ 133   4      //            {
+ 134   4      //              ucDate_Set[2*i] = ucDate[i] / 16;
+ 135   4      //              ucDate_Set[2*i+1] = ucDate[i] % 16;
+ 136   4      //            }
+ 137   4                break;            
+ 138   4              }
+ 139   3            }
+ 140   2          break;
+ 141   2          case 17://闹钟切换按键
+ 142   2            if(Seg_Disp_Mode == 1 || Seg_Disp_Mode == 4) // 处于闹钟显示界面
+ 143   2            {
+ 144   3              Set_Index = 0;//每次切换将输入标志位置0
+ 145   3              if(++Alarm_Dat_Index == 3) //在0-2之间循环切换
+ 146   3                Alarm_Dat_Index = 0;        
+ 147   3            }
+ 148   2          break;
+ 149   2        }
+ 150   1      }
+*** WARNING C280 IN LINE 67 OF main.c: 'j': unreferenced local variable
+ 151          
+ 152          /* 信息处理函数 */
+ 153          void Seg_Proc()
+ 154          {
+ 155   1        unsigned char i;//For循环专用变量
+ 156   1        if(Seg_Slow_Down) return;
+ 157   1        Seg_Slow_Down = 1;//数码管减速程序
+ 158   1        
+ 159   1        /* 信息读取区域 */
+ 160   1        Read_Rtc(ucRtc);//读取实时时钟数据
+ 161   1        Read_Date(ucDate);//读取实时日期数据
+ 162   1        
+ 163   1        /* 数据处理区域 */
+ 164   1        switch(Seg_Disp_Mode)
+ 165   1        {
+ 166   2          case 0://时钟显示
+ 167   2      //      Seg_Buf[0] = ucRtc[0] / 16;
+ 168   2      //      Seg_Buf[1] = ucRtc[0] % 16;
+ 169   2      //      Seg_Buf[3] = ucRtc[1] / 16;
+ 170   2      //      Seg_Buf[4] = ucRtc[1] % 16;
+ 171   2      //      Seg_Buf[6] = ucRtc[2] / 16;
+ 172   2      //      Seg_Buf[7] = ucRtc[2] % 16;   
+ 173   2      //      Seg_Buf[2] = Seg_Buf[5] = 11;
+ 174   2            for(i=0;i<3;i++)
+C51 COMPILER V9.54   MAIN                                                                  12/17/2022 17:25:29 PAGE 4   
+
+ 175   2            {
+ 176   3              Seg_Buf[3*i] = ucRtc[i] / 16;
+ 177   3              Seg_Buf[3*i+1] = ucRtc[i] % 16;
+ 178   3            }
+ 179   2            Seg_Buf[2] = Seg_Buf[5] = 11;
+ 180   2          break;
+ 181   2          case 1://闹钟显示
+ 182   2      //      Seg_Buf[0] = Alarm_Dat[Alarm_Dat_Index].Hour / 16;
+ 183   2      //      Seg_Buf[1] = Alarm_Dat[Alarm_Dat_Index].Hour % 16;
+ 184   2      //      Seg_Buf[3] = Alarm_Dat[Alarm_Dat_Index].Min / 16;
+ 185   2      //      Seg_Buf[4] = Alarm_Dat[Alarm_Dat_Index].Min % 16;
+ 186   2      //      Seg_Buf[6] = Alarm_Dat[Alarm_Dat_Index].Sec / 16;
+ 187   2      //      Seg_Buf[7] = Alarm_Dat[Alarm_Dat_Index].Sec % 16;   
+ 188   2      //      Seg_Buf[2] = Seg_Buf[5] = 11;
+ 189   2            for(i=0;i<3;i++)
+ 190   2            {
+ 191   3              Seg_Buf[3*i] = Alarm_Dat[Alarm_Dat_Index][i] / 16;
+ 192   3              Seg_Buf[3*i+1] = Alarm_Dat[Alarm_Dat_Index][i] % 16;
+ 193   3            }
+ 194   2            Seg_Buf[2] = Seg_Buf[5] = 11;   
+ 195   2          break;
+ 196   2          case 2://日期显示
+ 197   2            for(i=0;i<3;i++)
+ 198   2            {
+ 199   3              Seg_Buf[3*i] = ucDate[i] / 16;
+ 200   3              Seg_Buf[3*i+1] = ucDate[i] % 16;
+ 201   3            }
+ 202   2            Seg_Buf[2] = Seg_Buf[5] = 11;     
+ 203   2          break;
+ 204   2          case 3://时钟设置
+ 205   2            for(i=0;i<3;i++)
+ 206   2            {
+ 207   3              Seg_Buf[3*i] = ucRtc_Set[2*i];
+ 208   3              Seg_Buf[3*i+1] = ucRtc_Set[2*i+1];
+ 209   3            }
+ 210   2            Seg_Buf[2] = Seg_Buf[5] = 11;
+ 211   2            Seg_Buf[3*(Set_Index/2)] = Seg_Star_Flag?ucRtc_Set[2*(Set_Index/2)]:10;
+ 212   2            Seg_Buf[3*(Set_Index/2)+1] = Seg_Star_Flag?ucRtc_Set[2*(Set_Index/2)+1]:10;
+ 213   2          break;
+ 214   2          case 4://闹钟设置
+ 215   2            for(i=0;i<3;i++)
+ 216   2            {
+ 217   3              Seg_Buf[3*i] = Alarm_Set[Alarm_Dat_Index][2*i];
+ 218   3              Seg_Buf[3*i+1] = Alarm_Set[Alarm_Dat_Index][2*i+1];
+ 219   3            }
+ 220   2            Seg_Buf[2] = Seg_Buf[5] = 11;
+ 221   2            Seg_Buf[3*(Set_Index/2)] = Seg_Star_Flag?Alarm_Set[Alarm_Dat_Index][2*(Set_Index/2)]:10;
+ 222   2            Seg_Buf[3*(Set_Index/2)+1] = Seg_Star_Flag?Alarm_Set[Alarm_Dat_Index][2*(Set_Index/2)+1]:10;
+ 223   2          break;
+ 224   2          case 5://日期设置
+ 225   2            for(i=0;i<3;i++)
+ 226   2            {
+ 227   3              Seg_Buf[3*i] = ucDate_Set[2*i];
+ 228   3              Seg_Buf[3*i+1] = ucDate_Set[2*i+1];
+ 229   3            }
+ 230   2            Seg_Buf[2] = Seg_Buf[5] = 11;   
+ 231   2            Seg_Buf[3*(Set_Index/2)] = Seg_Star_Flag?ucDate_Set[2*(Set_Index/2)]:10;
+ 232   2            Seg_Buf[3*(Set_Index/2)+1] = Seg_Star_Flag?ucDate_Set[2*(Set_Index/2)+1]:10;
+ 233   2          break;
+ 234   2        }
+ 235   1        
+ 236   1      }
+C51 COMPILER V9.54   MAIN                                                                  12/17/2022 17:25:29 PAGE 5   
+
+ 237          
+ 238          
+ 239          /* 其他显示函数 */
+ 240          void Led_Proc()
+ 241          {
+ 242   1        unsigned char i;//For循环专用变量
+ 243   1        for(i=1;i<4;i++)//常用互斥点亮思路 利用位运算符 条件满足时默认返回1
+ 244   1          ucLed[i] = (i == Alarm_Dat_Index + 1) * (Seg_Disp_Mode == 1 || Seg_Disp_Mode == 4);//处于时钟界面�
+             -�� 点亮相应的Led指示灯
+ 245   1      }
+ 246          
+ 247          /* 定时器0中断初始化函数 */
+ 248          void Timer0Init(void)   //1毫秒@12.000MHz
+ 249          {
+ 250   1        AUXR &= 0x7F;   //定时器时钟12T模式
+ 251   1        TMOD &= 0xF0;   //设置定时器模式
+ 252   1        TL0 = 0x18;   //设置定时初始值
+ 253   1        TH0 = 0xFC;   //设置定时初始值
+ 254   1        TF0 = 0;    //清除TF0标志
+ 255   1        TR0 = 1;    //定时器0开始计时
+ 256   1        ET0 = 1;    //定时器中断0打开
+ 257   1        EA = 1;     //总中断打开
+ 258   1      }
+ 259          
+ 260          /* 定时器0中断服务函数 */
+ 261          void Timer0Server() interrupt 1
+ 262          {  
+ 263   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 264   1        if(++Seg_Slow_Down == 100) Seg_Slow_Down = 0;//数码管减速专用
+ 265   1        if(++Seg_Pos == 8) Seg_Pos = 0;//数码管显示专用
+ 266   1        Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 267   1        Led_Disp(Seg_Pos,ucLed[Seg_Pos]);
+ 268   1        if(++Timer_500Ms == 500)
+ 269   1        {
+ 270   2          Timer_500Ms = 0;//计时值复位
+ 271   2          Seg_Star_Flag ^= 1;//标志位取反
+ 272   2        }
+ 273   1      }
+ 274          
+ 275          /* Main */
+ 276          void main()
+ 277          {
+ 278   1        System_Init();
+ 279   1        Timer0Init();
+ 280   1        Set_Rtc(ucRtc);//设置上电初始化时间
+ 281   1        Set_Date(ucDate);//设置上电初始化日期
+ 282   1        while (1)
+ 283   1        {
+ 284   2          Key_Proc();
+ 285   2          Seg_Proc();
+ 286   2          Led_Proc();
+ 287   2        }
+ 288   1      }
+ 289          
+ 290          
+ 291          //if (input == 1)
+ 292          //    A = (Key_Down << 4) | (A & 0xF)
+ 293          //else 
+ 294          //    A = (A & 0xF0) | Key_Down
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V9.54   MAIN                                                                  12/17/2022 17:25:29 PAGE 6   
+
+   CODE SIZE        =   1261    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     82       9
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

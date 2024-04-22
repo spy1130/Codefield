@@ -1,3 +1,0 @@
-".\Objects\main.obj" 
-TO ".\Objects\INT" 
-PRINT(".\Listings\INT.m51") RAMSIZE(256) 

@@ -1,0 +1,241 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              03/31/2024 18:48:26 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: E:\Applications\Keil_5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJE
+                    -CTEXTEND PRINT(.\Listings\main.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          //先Seg减速，顺带定时器记得写ET0=1;EA=1开定时器和中断，Seg扫描，led+扫描，Key减速+三行消抖，主程序
+   2          #include <STC15F2K60S2.H>
+   3          #include <init.h>
+   4          #include <Led.h>
+   5          #include <Key.h>
+   6          #include <Seg.h>
+   7          #include "onewire.h"
+   8          #include "ds1302.h" 
+   9          
+  10          unsigned char Seg_Slow_Down;
+  11          unsigned char Seg_Buf[8]={10,10,10,10,10,10,10,10};
+  12          unsigned char Seg_Point[8]={0,0,0,0,0,0,0,0};
+  13          unsigned char Seg_Pos;
+  14          unsigned char Seg_Disp_Mode=0;//0-参数设置 1-时钟显示 2-温度采集显示
+  15          unsigned char Col_Int[]={1,5,30,60};//采集间隔数组
+  16          unsigned char Col_Index=0;//采集间隔数组索引
+  17          unsigned char Col_Save=1;//采集间隔保存函数
+  18          unsigned char Col_Disp=1;//采集间隔显示函数
+  19          unsigned char ucLed[8]={0,0,0,0,0,0,0,0};
+  20          unsigned char ucRTC[3]={0x23,0x59,0x50};
+  21          unsigned char Key_Val,Key_Old,Key_Down,Key_Up;
+  22          unsigned char Key_Slow_Down;
+  23          unsigned int Time_1000ms;//闪烁时间
+  24          bit Seg_Star_Flag;//闪烁标识位
+  25          unsigned char Temperature_Data[10];//温度数组
+  26          unsigned char Temperature_Data_Index;//温度索引
+  27          unsigned char Col_Time;//采集计时
+  28          bit Led_Enable_Flag;//LED开标志位
+  29          unsigned char Timer_200Ms;
+  30          bit Led_Star_Flag;
+  31          
+  32          void Key_Proc()
+  33          {
+  34   1              if(Key_Slow_Down)return;
+  35   1              Key_Slow_Down =1;
+  36   1              //重点记
+  37   1              Key_Val=Key_Read();
+  38   1              Key_Down=Key_Val &(Key_Old^Key_Val);
+  39   1              Key_Up=~Key_Val &(Key_Old^Key_Val);
+  40   1              Key_Old =Key_Val;
+  41   1              switch(Key_Down)
+  42   1              {
+  43   2                      case 4:
+  44   2                              if(Seg_Disp_Mode==0)
+  45   2                              {
+  46   3                              if(++Col_Index==4)
+  47   3                                      Col_Index=0;
+  48   3                                      Col_Disp=Col_Int[Col_Index];
+  49   3                              }
+  50   2                      break;
+  51   2                      case 5:
+  52   2                              if(Seg_Disp_Mode==0)
+  53   2                              {
+  54   3                                      Col_Save=Col_Disp;
+C51 COMPILER V9.60.7.0   MAIN                                                              03/31/2024 18:48:26 PAGE 2   
+
+  55   3                                      Temperature_Data[Temperature_Data_Index]=rd_temperature();
+  56   3                                      Temperature_Data_Index++;
+  57   3                                      Seg_Disp_Mode =1;
+  58   3                              }
+  59   2                      break;
+  60   2                      case 6:
+  61   2                              if(Seg_Disp_Mode == 2)
+  62   2                              {
+  63   3                                      Led_Enable_Flag = 0;
+  64   3                                      if(++Temperature_Data_Index == 10)
+  65   3                                              Temperature_Data_Index = 0;
+  66   3                              }
+  67   2                      break;
+  68   2                      case 7:
+  69   2                              if(Seg_Disp_Mode == 2)
+  70   2                              {
+  71   3                                      Temperature_Data_Index = 0;
+  72   3                                      Seg_Disp_Mode = 0;
+  73   3                              }
+  74   2                      break;
+  75   2              }
+  76   1              
+  77   1      }
+  78          
+  79          
+  80          void Seg_Proc()
+  81          {       unsigned char i;
+  82   1              //等于0时进入
+  83   1              if(Seg_Slow_Down) return;
+  84   1              Seg_Slow_Down =1;
+  85   1              Read_Rtc(ucRTC);
+  86   1              if(Col_Time==Col_Save)
+  87   1              {       Col_Time=0;
+  88   2                      Temperature_Data[Temperature_Data_Index]=rd_temperature();
+  89   2                      
+  90   2                      if(++Temperature_Data_Index==10)
+  91   2                      {       
+  92   3                              Temperature_Data_Index=0;
+  93   3                              Led_Enable_Flag=1;
+  94   3                              Seg_Disp_Mode=2;
+  95   3                              
+  96   3                      }
+  97   2              }
+  98   1              if(Seg_Disp_Mode==0)//参数设置
+  99   1              {       for(i=0;i<3;i++)
+ 100   2                              Seg_Buf[i]=10;
+ 101   2                      Seg_Buf[5]=11;
+ 102   2                      Seg_Buf[6]=Col_Disp/10;
+ 103   2                      Seg_Buf[7]=Col_Disp%10;
+ 104   2              }
+ 105   1              else if(Seg_Disp_Mode==1)//时钟显示
+ 106   1              {
+ 107   2                      for(i=0;i<3;i++)
+ 108   2                      {
+ 109   3                              Seg_Buf[3*i]=ucRTC[i]/16;
+ 110   3                              Seg_Buf[3*i+1]=ucRTC[i]%16;
+ 111   3                      }
+ 112   2      //              Seg_Star_Flag = Seg_Buf[7] % 2;
+ 113   2                      Seg_Buf[5]=Seg_Buf[2]=Seg_Star_Flag?10:11;
+ 114   2              }
+ 115   1              else if(Seg_Disp_Mode==2)
+ 116   1              {
+C51 COMPILER V9.60.7.0   MAIN                                                              03/31/2024 18:48:26 PAGE 3   
+
+ 117   2                      Seg_Buf[0]=Seg_Buf[5]=11;
+ 118   2                      Seg_Buf[1] = 0;
+ 119   2                      Seg_Buf[2] = Temperature_Data_Index;
+ 120   2                      Seg_Buf[3] = Seg_Buf[4] = 10;
+ 121   2                      Seg_Buf[6] = Temperature_Data[Temperature_Data_Index] / 10;
+ 122   2                      Seg_Buf[7] = Temperature_Data[Temperature_Data_Index] % 10;
+ 123   2                      
+ 124   2              }
+ 125   1              /* 信息显示区域 */
+ 126   1      //      switch(Seg_Disp_Mode)
+ 127   1      //      {
+ 128   1      //              case 0://参数设置界面
+ 129   1      //                      Seg_Buf[0] = Seg_Buf[1] = Seg_Buf[2] = 10;
+ 130   1      //                      Seg_Buf[5] = 11;
+ 131   1      //                      Seg_Buf[6] = Col_Disp / 10;
+ 132   1      //                      Seg_Buf[7] = Col_Disp % 10;
+ 133   1      //              break;
+ 134   1      //              case 1://时钟显示界面
+ 135   1      //                      for(i=0;i<3;i++)
+ 136   1      //                      {
+ 137   1      //                              Seg_Buf[3*i] = ucRTC[i] / 16;
+ 138   1      //                              Seg_Buf[3*i+1] = ucRTC[i] % 16;
+ 139   1      //                      }
+ 140   1      //                      Seg_Star_Flag = Seg_Buf[7] % 2;//使用时钟芯片记录闪烁时间
+ 141   1      //                      Seg_Buf[2] = Seg_Buf[5] = Seg_Star_Flag?10:11;//10：熄灭 11：-
+ 142   1      //              break;
+ 143   1      //              case 2://温度显示界面
+ 144   1      //                      Seg_Buf[0] = 11;
+ 145   1      //                      Seg_Buf[1] = 0;
+ 146   1      //                      Seg_Buf[2] = Temperature_Data_Index;
+ 147   1      //                      Seg_Buf[3] = Seg_Buf[4] = 10;
+ 148   1      //                      Seg_Buf[5] = 11;
+ 149   1      //                      Seg_Buf[6] = Temperature_Data[Temperature_Data_Index] / 10;
+ 150   1      //                      Seg_Buf[7] = Temperature_Data[Temperature_Data_Index] % 10;
+ 151   1      //              break; 
+ 152   1      //      }
+ 153   1      
+ 154   1      }
+ 155          
+ 156          void Led_Proc()
+ 157          {
+ 158   1              ucLed[0]=Led_Enable_Flag& Led_Star_Flag;
+ 159   1      }
+ 160          
+ 161          void Timer0_Init(void)          //1毫秒@12.000MHz
+ 162          {
+ 163   1              AUXR &= 0x7F;                   //定时器时钟12T模式
+ 164   1              TMOD &= 0xF0;                   //设置定时器模式
+ 165   1              TL0 = 0x18;                             //设置定时初始值
+ 166   1              TH0 = 0xFC;                             //设置定时初始值
+ 167   1              TF0 = 0;                                //清除TF0标志
+ 168   1              TR0 = 1;                                //定时器0开始计时
+ 169   1              ET0=1;
+ 170   1              EA=1;
+ 171   1      }
+ 172          /* Timer0 interrupt routine */
+ 173          void tm0_isr() interrupt 1
+ 174          {       if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 175   1          if(++Seg_Slow_Down==500) Seg_Slow_Down=0;//数码管减速专用
+ 176   1              if(++Seg_Pos==8)Seg_Pos=0;
+ 177   1              Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 178   1              Led_Disp(Seg_Pos,ucLed[Seg_Pos]);
+C51 COMPILER V9.60.7.0   MAIN                                                              03/31/2024 18:48:26 PAGE 4   
+
+ 179   1              if(Seg_Disp_Mode==1)
+ 180   1              {
+ 181   2                      if(++Time_1000ms==1000)
+ 182   2                      {
+ 183   3                              Time_1000ms=0;
+ 184   3                              Seg_Star_Flag ^=1;
+ 185   3                              Col_Time++;
+ 186   3                      }
+ 187   2              }
+ 188   1              if(++Timer_200Ms == 200)
+ 189   1              {
+ 190   2                      Timer_200Ms = 0;
+ 191   2                      Led_Star_Flag ^= 1;
+ 192   2              }
+ 193   1      }
+ 194          
+ 195          
+ 196          
+ 197          
+ 198          void main()
+ 199          {       Set_Rtc(ucRTC);
+ 200   1              rd_temperature();
+ 201   1              System_Init();
+ 202   1              Timer0_Init();
+ 203   1              while(1)
+ 204   1              {
+ 205   2                      Seg_Proc();
+ 206   2                      Key_Proc();
+ 207   2                      Led_Proc();
+ 208   2                      
+ 209   2              }
+ 210   1              
+ 211   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    565    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     57       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

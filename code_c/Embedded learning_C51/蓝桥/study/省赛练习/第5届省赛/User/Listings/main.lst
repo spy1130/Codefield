@@ -1,0 +1,180 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              04/01/2024 22:04:02 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: E:\Applications\Keil_5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJE
+                    -CTEXTEND PRINT(.\Listings\main.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          //先Seg减速，顺带定时器别忘了ET0 =1;EA=1;，，Seg扫描，led+扫描，Key减速+三行消抖，主程序
+   2          #include <STC15F2K60S2.H>
+   3          #include <init.h>
+   4          #include <Led.h>
+   5          #include <Key.h>
+   6          #include <Seg.h>
+   7          #include "ds1302.h" 
+   8          #include "iic.h"
+   9          
+  10          unsigned char Seg_Slow_Down;
+  11          unsigned char Seg_Buf[8]={10,10,10,10,10,10,10,10};
+  12          unsigned char Seg_Point[8]={0,0,0,0,0,0,0,0};
+  13          unsigned char Seg_Pos;
+  14          bit Seg_Disp_Mode;//数码管显示模式变量 0-数据显示界面 1-参数设置界面
+  15          unsigned char ucLed[8]={0,0,0,0,0,0,0,0};
+  16          
+  17          unsigned char Key_Val,Key_Old,Key_Down,Key_Up;
+  18          unsigned char Key_Slow_Down;
+  19          unsigned char ucRtc[3]={0x08,0x30,0x00};
+  20          unsigned char wet;//湿度百分比
+  21          unsigned char wetc_Disp=50;//温度阀值显示
+  22          unsigned char wetc_Save=50;//温度阀值保存
+  23          bit Work_Mode;//工作状态标志位 0-自动工作模式 1-手动工作模式
+  24          bit Beep_Enable_Flag;//闹钟使能标志位
+  25          bit Relay_Flag;//继电器工作标志位
+  26          void Key_Proc()
+  27          {
+  28   1              if(Key_Slow_Down)return;
+  29   1              Key_Slow_Down =1;
+  30   1              //重点记
+  31   1              Key_Val=Key_Read();
+  32   1              Key_Down=Key_Val &(Key_Old^Key_Val);
+  33   1              Key_Up=~Key_Val &(Key_Old^Key_Val);
+  34   1              Key_Old =Key_Val;
+  35   1              switch(Key_Down)
+  36   1              {
+  37   2                      case 7:
+  38   2                              Work_Mode ^= 1;
+  39   2                      
+  40   2                      break;
+  41   2                      case 6:
+  42   2                              if(Work_Mode == 0)//自动模式
+  43   2                              {
+  44   3                                      Seg_Disp_Mode ^= 1;
+  45   3                                      if(Seg_Disp_Mode == 0)
+  46   3                                      {
+  47   4                                              wetc_Save=wetc_Disp;
+  48   4                                              EEPROM_Write(&wetc_Save,0,1);
+  49   4                                      }
+  50   3                                      
+  51   3                              }
+  52   2                              else//手动模式
+  53   2                                      Beep_Enable_Flag ^= 1;
+  54   2                      break;
+C51 COMPILER V9.60.7.0   MAIN                                                              04/01/2024 22:04:02 PAGE 2   
+
+  55   2                      case 5:
+  56   2                              if(Work_Mode == 0)
+  57   2                              {
+  58   3                                      if(++wetc_Disp == 100)
+  59   3                                              wetc_Disp = 99;
+  60   3                              }
+  61   2                              else
+  62   2                                      Relay_Flag = 1;
+  63   2                      break;
+  64   2                      case 4:
+  65   2                              if(Work_Mode == 0)
+  66   2                              {
+  67   3                                      if(--wetc_Disp == 255)
+  68   3                                              wetc_Disp = 0;
+  69   3                              }
+  70   2                              else
+  71   2                                      Relay_Flag = 0;
+  72   2                      break;
+  73   2              }
+  74   1      }
+  75          
+  76          
+  77          void Seg_Proc()
+  78          {       //等于0时进入
+  79   1              unsigned char i;
+  80   1              Read_Rtc(ucRtc);
+  81   1              wet =Ad_Read(0x03)/2.56;//0-255一共256个数，0%-99%，对应下来是256/100=2.56
+  82   1              if(Seg_Slow_Down) return;
+  83   1              Seg_Slow_Down =1;
+  84   1              if(Seg_Disp_Mode == 0)
+  85   1              {
+  86   2                      for(i=0;i<2;i++)
+  87   2                      {
+  88   3                              Seg_Buf[i*3]=ucRtc[i]/16;
+  89   3                              Seg_Buf[i*3+1]=ucRtc[i]%16;
+  90   3                      }
+  91   2                      Seg_Buf[2] = 11;
+  92   2                      Seg_Buf[6] = wet / 10;
+  93   2                      Seg_Buf[7] = wet % 10;
+  94   2              }
+  95   1              else
+  96   1              {
+  97   2                      Seg_Buf[0] = 11;
+  98   2                      Seg_Buf[1] = 11;                
+  99   2                      Seg_Buf[2] = Seg_Buf[3] = Seg_Buf[4] = 10;
+ 100   2                      Seg_Buf[6] = wetc_Disp / 10;
+ 101   2                      Seg_Buf[7] = wetc_Disp % 10;            
+ 102   2                      
+ 103   2              }
+ 104   1      
+ 105   1      }
+ 106          
+ 107          void Led_Proc()
+ 108          {
+ 109   1              ucLed[0] = !Work_Mode;
+ 110   1              ucLed[1] = Work_Mode;
+ 111   1      }
+ 112          
+ 113          void Timer0_Init(void)          //1毫秒@12.000MHz
+ 114          {
+ 115   1              AUXR &= 0x7F;                   //定时器时钟12T模式
+ 116   1              TMOD &= 0xF0;                   //设置定时器模式
+C51 COMPILER V9.60.7.0   MAIN                                                              04/01/2024 22:04:02 PAGE 3   
+
+ 117   1              TL0 = 0x18;                             //设置定时初始值
+ 118   1              TH0 = 0xFC;                             //设置定时初始值
+ 119   1              TF0 = 0;                                //清除TF0标志
+ 120   1              TR0 = 1;                                //定时器0开始计时
+ 121   1              ET0 =1;
+ 122   1              EA=1;
+ 123   1      }
+ 124          /* Timer0 interrupt routine */
+ 125          void tm0_isr() interrupt 1
+ 126          {       if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 127   1          if(++Seg_Slow_Down==500) Seg_Slow_Down=0;//数码管减速专用
+ 128   1              if(++Seg_Pos==8)Seg_Pos=0;
+ 129   1              Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 130   1              Led_Disp(Seg_Pos,ucLed[Seg_Pos]);
+ 131   1              Relay(Relay_Flag);
+ 132   1              Beep((wetc_Save / wet) & Beep_Enable_Flag);
+ 133   1      }
+ 134          
+ 135          
+ 136          
+ 137          void main()
+ 138          {       Set_Rtc(ucRtc);
+ 139   1              wet = Ad_Read(0x03) / 2.56;//上电读取湿度 避免出现无效数据
+ 140   1              EEPROM_Read(&wetc_Save,0,1);
+ 141   1              wetc_Disp = wetc_Save;
+ 142   1              System_Init();
+ 143   1              Timer0_Init();
+ 144   1              while(1)
+ 145   1              {
+ 146   2                      Seg_Proc();
+ 147   2                      Key_Proc();
+ 148   2                      Led_Proc();
+ 149   2                      
+ 150   2              }
+ 151   1              
+ 152   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    516    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     37    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      4    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

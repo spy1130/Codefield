@@ -1,23 +1,16 @@
-//用c画一个十字架
+//6．输入一个正整数x（可以是1-9位的正整数），将其转换为逆序正整数y输出，例如输入x的值为3456，则输出y的值6543。
 #include <stdio.h>
 int main()
 {
-    int i, j;
-    for (i = 1; i <= 9; i++)
+    int x, y = 0;
+    printf("请输入一个正整数：");
+    scanf("%d", &x);
+    while (x > 0)
     {
-        for (j = 1; j <= 9; j++) //循环9次
-        {
-            if (i == 5 || j == 5) //如果i或者j等于5
-            {
-                printf(" * "); //输出*
-            }
-            else
-            {
-                printf("   "); //输出空格
-            }
-        }
-        printf("\n"); //换行
+        y = y * 10 + x % 10;
+        x = x / 10;
     }
+    printf("逆序正整数为：%d\n", y);
     return 0;
 }
 

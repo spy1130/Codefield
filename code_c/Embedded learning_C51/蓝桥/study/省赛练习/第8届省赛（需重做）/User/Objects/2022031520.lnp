@@ -1,0 +1,9 @@
+".\Objects\Key.obj",
+".\Objects\Seg.obj",
+".\Objects\Led.obj",
+".\Objects\init.obj",
+".\Objects\ds1302.obj",
+".\Objects\onewire.obj",
+".\Objects\main.obj" 
+TO ".\Objects\2022031520" 
+PRINT(".\Listings\2022031520.m51") RAMSIZE(256) 

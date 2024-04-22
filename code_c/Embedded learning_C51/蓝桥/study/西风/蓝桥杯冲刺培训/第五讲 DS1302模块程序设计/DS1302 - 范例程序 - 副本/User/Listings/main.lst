@@ -1,0 +1,416 @@
+C51 COMPILER V9.54   MAIN                                                                  03/28/2023 23:26:51 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件声明区 */
+   2          #include <STC15F2K60S2.H>//单片机寄存器专用头文件
+   3          #include <Init.h>//初始化底层驱动专用头文件
+   4          #include <Led.h>//Led底层驱动专用头文件
+   5          #include <Key.h>//按键底层驱动专用头文件
+   6          #include <Seg.h>//数码管底层驱动专用头文件
+   7          #include "ds1302.h"//DS1302底层驱动专用头文件
+   8          #include <string.h>//memcpy函数专用头文件
+   9          
+  10          
+  11          /* 变量声明区 */
+  12          unsigned char Key_Val,Key_Down,Key_Old,Key_Up;//按键专用变量
+  13          unsigned char Key_Slow_Down;//按键减速专用变量
+  14          unsigned char Seg_Buf[8] = {10,10,10,10,10,10,10,10};//数码管显示数据存放数组
+  15          unsigned char Seg_Point[8] = {0,0,0,0,0,0,0,0};//数码管小数点数据存放数组
+  16          unsigned char Seg_Pos;//数码管扫描专用变量
+  17          unsigned int Seg_Slow_Down;//数码管减速专用变量
+  18          unsigned char ucLed[8] = {0,0,0,0,0,0,0,0};//Led显示数据存放数组
+  19          unsigned char Seg_Disp_Mode;//数码管显示模式变量 0-时钟显示 1-闹钟显示 2-日期显示 3-�
+             -��钟设置 4-闹钟设置 5-日期设置
+  20          unsigned char ucRtc[3] = {0x23,0x59,0x55};//时钟数据存放数组 上电初始化时间 23:59:55
+  21          unsigned char ucDate[3] = {0x22,0x12,0x12};//日期数据存放数组 上电初始化日期 22-12-12
+  22          unsigned char ucAlarm[9] = {0x00,0x00,0x00,0x00,0x10,0x00,0xbb,0xbb,0xbb};//闹钟数据存放数组 三�
+             -�闹钟 未启用0xbb表示
+  23          unsigned char Alarm_Dat_Index;//闹钟数组指针 代表当前闹钟编号
+  24          unsigned char Set_Dat[9];//设置数据存放数组 如果三个模式定义三个不同的设置数组会
+             -大量占用资源 又因为这三个模式在设置状态下并不会互相影响（互斥存在关系） 所以只需�
+             -��定义一个设置数组 根据不同的界面将不同的数据赋值给这个数组
+  25          unsigned int Timer_500Ms;//五百毫秒计时变量
+  26          unsigned char* Set_Flag[3] = {ucRtc,ucAlarm,ucDate};//指针数组 简化数据赋值专用
+  27          unsigned char Input_Index;//输入位数变量 用于判断哪个单元格需要闪烁
+  28          unsigned char Beep_Index;//用于记录哪个闹钟使能的变量
+  29          unsigned char Timer_200Ms;//两百毫秒计时变量
+  30          bit Input_Flag;//输入标志位 用于判断输入十位还是个位
+  31          bit Seg_Star_Flag;//数码管闪烁标志位
+  32          bit Beep_Flag;//闹钟使能标志位
+  33          bit Beep_Enable_Flag = 1;//闹钟功能开启标志位
+  34          bit Led_Star_Flag;//Led闪烁标志位
+  35          
+  36          /* 数据判断函数 */
+  37          unsigned char Dat_Judgment(unsigned char* Dat,unsigned char mode)//第一个入口参数为需要判断的
+             -数组地址 第二个入口参数为需要判断的模式（年月日、时分秒）
+  38          {
+  39   1        unsigned char i;//用于For循环
+  40   1        unsigned int Dat_Array[3];//十进制数据存放数组 将BCD码转换成十进制便于比较
+  41   1        for(i=0;i<3;i++)
+  42   1        {
+  43   2          Dat_Array[i] = ((*Dat / 16) % 10 ) * 10 + ((*Dat % 16) % 10);// % 10的目的是为了让被删除的闹
+             -钟在判断时不对数据造成影响
+  44   2          Dat++;
+  45   2        }
+  46   1        if(mode == 2)//日期判断
+  47   1        {
+  48   2          Dat_Array[0] += 2000;//将年变为20XX的格式便于下面的判断
+C51 COMPILER V9.54   MAIN                                                                  03/28/2023 23:26:51 PAGE 2   
+
+  49   2          if(Dat_Array[1] < 1 || Dat_Array[1] > 12) //如果月份不在1-12之间
+  50   2            return 0;//返回错误
+  51   2          if(Dat_Array[2] < 1 || Dat_Array[2] > 31) //如果日期不在1-31之间
+  52   2            return 0;
+  53   2          if(Dat_Array[1] == 2 && Dat_Array[2] == 29)//检查2.29是否有效
+  54   2          {
+  55   3            if((Dat_Array[0] % 4 == 0 && Dat_Array[0] % 100 != 0) || Dat_Array[0] % 400) //闰年条件：能被4�
+             -�除但是不能被100整除 或者 能被400整除
+  56   3              return 1;//返回正确
+  57   3            else
+  58   3              return 0;//返回错误
+  59   3          }
+  60   2          if(Dat_Array[1] == 4 || Dat_Array[1] == 6 || Dat_Array[1] == 9 || Dat_Array[1] == 11)//检查日期是�
+             -�有效
+  61   2            return !(Dat_Array[2] / 30);//如果日期大于30 则返回0 反之返回1
+  62   2        }
+  63   1        else//时间判断
+  64   1        {
+  65   2          if(Dat_Array[0] > 23)//如果时钟不在0-23之间
+  66   2            return 0;//返回错误
+  67   2          if(Dat_Array[1] > 59 || Dat_Array[2] > 59)//如果分钟或秒钟不在0-59之间
+  68   2            return 0;//返回错误
+  69   2          return 1;//其他情况返回正确
+  70   2        }
+  71   1      }
+  72          
+  73          /* 键盘处理函数 */
+  74          void Key_Proc()
+  75          {
+  76   1        unsigned char i;//用于For循环
+  77   1        if(Key_Slow_Down) return;
+  78   1        Key_Slow_Down = 1;//键盘减速程序
+  79   1      
+  80   1        Key_Val = Key_Read();//实时读取键码值
+  81   1        Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+  82   1        Key_Up = ~Key_Val & (Key_Old ^ Key_Val);//捕捉按键上降沿
+  83   1        Key_Old = Key_Val;//辅助扫描变量
+  84   1      
+  85   1        /* 键盘输入区域 */
+  86   1        if(Key_Down >= 4 && Key_Down <= 13 && Input_Index < 3) //输入完一次后取消使能 保护数据
+  87   1        {
+  88   2          if(Seg_Disp_Mode >= 3)//处于参数设置状态
+  89   2          {
+  90   3            if(Input_Flag == 0)//输入十位
+  91   3              Set_Dat[Input_Index+3*Alarm_Dat_Index] = ((Key_Down - 4) << 4) | (Set_Dat[Input_Index+3*Alarm_Dat_Inde
+             -x] & 0x0f);//写入高位
+  92   3            else//输入个位
+  93   3              Set_Dat[Input_Index+3*Alarm_Dat_Index] = (Set_Dat[Input_Index+3*Alarm_Dat_Index] & 0xf0) | (Key_Down -
+             - 4);//写入低位
+  94   3            Input_Flag ^= 1;//标志位取反
+  95   3            if(Input_Flag == 0)//完成一个周期 代表一个单元输入完成
+  96   3              Input_Index++;
+  97   3      //        Input_Index = (Input_Index + 1) % 3;//Input_Index在0-2之间循环 通用表达式为:（变量-循
+             -环起点+1）%（循环终点-循环起点+1） + 循环起点
+  98   3          }
+  99   2        }
+ 100   1        
+ 101   1        switch(Key_Down)
+ 102   1        {
+ 103   2          case 14://界面切换按键
+ 104   2            if(Seg_Disp_Mode < 3) //在非参数设置状态下使能
+ 105   2            {
+C51 COMPILER V9.54   MAIN                                                                  03/28/2023 23:26:51 PAGE 3   
+
+ 106   3              if(++Seg_Disp_Mode == 3) //在0-2之间循环切换
+ 107   3                Seg_Disp_Mode = 0;
+ 108   3            }
+ 109   2          break;
+ 110   2          case 15://参数设置按键
+ 111   2            if(Seg_Disp_Mode < 3) //在非参数设置状态
+ 112   2            {
+ 113   3              Seg_Disp_Mode += 3;//切换到对应的设置界面内
+ 114   3              Alarm_Dat_Index = 0;//闹钟指针复位
+ 115   3              memcpy(Set_Dat,Set_Flag[Seg_Disp_Mode-3],9);//Set_Flag为指针数组 Set_Flag[0] 代表 ucRtc 数组�
+             -��地址 以此类推
+ 116   3      //        switch(Seg_Disp_Mode)
+ 117   3      //        {
+ 118   3      //          case 3://切换到时钟设置界面
+ 119   3      //            memcpy(Set_Dat,ucRtc,9);
+ 120   3      //          break;
+ 121   3      //          case 4://切换到闹钟设置界面
+ 122   3      //            memcpy(Set_Dat,ucAlarm,9);
+ 123   3      //          break;  
+ 124   3      //          case 5://切换到日期设置界面
+ 125   3      //            memcpy(Set_Dat,ucDate,9);
+ 126   3      //          break;            
+ 127   3      //        }
+ 128   3            }
+ 129   2            else//在参数设置状态下
+ 130   2            {
+ 131   3              if(Input_Index == 3)//只有输入完三次数据后才能使能保存按键
+ 132   3              {
+ 133   4                if(Dat_Judgment(&Set_Dat[0],Seg_Disp_Mode-3) && Dat_Judgment(&Set_Dat[3],Seg_Disp_Mode-3) && Dat_Judg
+             -ment(&Set_Dat[6],Seg_Disp_Mode-3))
+ 134   4                {
+ 135   5                  switch(Seg_Disp_Mode)
+ 136   5                  {
+ 137   6                    case 3:
+ 138   6                      Set_Rtc(Set_Dat);//设置新的时钟数据
+ 139   6                    break;
+ 140   6                    case 4:
+ 141   6                      memcpy(ucAlarm,Set_Dat,9);//保存闹钟数据
+ 142   6                    break;
+ 143   6                    case 5:
+ 144   6                      Set_Date(Set_Dat);//设置新的时钟数据
+ 145   6                    break;
+ 146   6                  }
+ 147   5                  Seg_Disp_Mode -= 3;//跳转回数据显示界面
+ 148   5                }
+ 149   4                else
+ 150   4                {
+ 151   5                  memcpy(Set_Dat,Set_Flag[Seg_Disp_Mode-3],9);//清除输入数据
+ 152   5                  Input_Index = Input_Flag = 0;//输入系列数据复位
+ 153   5                }
+ 154   4      //          switch(Seg_Disp_Mode)
+ 155   4      //          {
+ 156   4      //            case 3://时钟设置
+ 157   4      //              if(Dat_Judgment(Set_Dat,0))//判断时钟数据有效性
+ 158   4      //              {
+ 159   4      //                Set_Rtc(Set_Dat);//设置新的时钟数据
+ 160   4      //                Seg_Disp_Mode = 0;//跳转回时钟显示界面
+ 161   4      //              }
+ 162   4      //              else//数据不合法
+ 163   4      //              {
+ 164   4      //                memcpy(Set_Dat,ucRtc,9);//清除输入数据
+ 165   4      //                Input_Index = Input_Flag = 0;//输入系列数据复位
+C51 COMPILER V9.54   MAIN                                                                  03/28/2023 23:26:51 PAGE 4   
+
+ 166   4      //              }
+ 167   4      //            break;
+ 168   4      //            case 4://闹钟设置
+ 169   4      //              if(Dat_Judgment(&Set_Dat[0],1) && Dat_Judgment(&Set_Dat[3],1) && Dat_Judgment(&Set_Dat[6],1))//�
+             -�断三组闹钟数据有效性
+ 170   4      //              {
+ 171   4      //                memcpy(ucAlarm,Set_Dat,9);//保存闹钟数据
+ 172   4      //                Seg_Disp_Mode = 1;//跳转回闹钟显示界面
+ 173   4      //              }
+ 174   4      //              else//数据不合法
+ 175   4      //              {
+ 176   4      //                memcpy(Set_Dat,ucAlarm,9);//清除输入数据
+ 177   4      //                Input_Index = Input_Flag = 0;//输入系列数据复位
+ 178   4      //              }
+ 179   4      //            break;
+ 180   4      //            case 5://日期设置
+ 181   4      //              if(Dat_Judgment(Set_Dat,2))//判断日期数据有效性
+ 182   4      //              {
+ 183   4      //                Set_Date(Set_Dat);//设置新的时钟数据
+ 184   4      //                Seg_Disp_Mode = 2;//跳转回时钟显示界面
+ 185   4      //              }
+ 186   4      //              else//数据不合法
+ 187   4      //              {
+ 188   4      //                memcpy(Set_Dat,ucDate,9);//清除输入数据
+ 189   4      //                Input_Index = Input_Flag = 0;//输入系列数据复位
+ 190   4      //              }
+ 191   4      //            break;
+ 192   4      //          }
+ 193   4              }
+ 194   3            }
+ 195   2          break;
+ 196   2          case 17://闹钟切换按键
+ 197   2            if(Seg_Disp_Mode == 1 || Seg_Disp_Mode == 4) // 处于闹钟显示界面
+ 198   2            {
+ 199   3              if(++Alarm_Dat_Index == 3) //在0-2之间循环切换
+ 200   3                Alarm_Dat_Index = 0;        
+ 201   3            }
+ 202   2          break;
+ 203   2          case 18://闹钟功能按键
+ 204   2            if(Seg_Disp_Mode < 3)//处于非参数设置界面
+ 205   2              Beep_Enable_Flag ^= 1;
+ 206   2          break;
+ 207   2          case 19://闹钟删除按键
+ 208   2            if(Seg_Disp_Mode == 4)//处于闹钟设置界面
+ 209   2            {
+ 210   3              for(i=0;i<3;i++)
+ 211   3                Set_Dat[3*Alarm_Dat_Index + i] = 0xbb;//清空数据
+ 212   3              Input_Index = 0;
+ 213   3              Input_Flag = 0;
+ 214   3            }
+ 215   2          break;
+ 216   2        }
+ 217   1      }
+ 218          
+ 219          /* 信息处理函数 */
+ 220          void Seg_Proc()
+ 221          {
+ 222   1        unsigned char i;//For循环专用变量
+ 223   1        if(Seg_Slow_Down) return;
+ 224   1        Seg_Slow_Down = 1;//数码管减速程序
+ 225   1        
+ 226   1        /* 信息读取区域 */
+C51 COMPILER V9.54   MAIN                                                                  03/28/2023 23:26:51 PAGE 5   
+
+ 227   1        Read_Rtc(ucRtc);//读取实时时钟数据
+ 228   1        Read_Date(ucDate);//读取实时日期数据
+ 229   1        
+ 230   1        /* 数据处理区域 */
+ 231   1        Seg_Buf[2] = Seg_Buf[5] = 11; //这两个数码管不管在什么状态下都为 -  因此只需要写在
+             -switch语句外面即可
+ 232   1        
+ 233   1      //  switch(Seg_Disp_Mode)
+ 234   1      //  {
+ 235   1      //    case 0://时钟显示
+ 236   1      //      for(i=0;i<3;i++)
+ 237   1      //      {
+ 238   1      //        Seg_Buf[3*i] = ucRtc[i] / 16;
+ 239   1      //        Seg_Buf[3*i+1] = ucRtc[i] % 16;
+ 240   1      //      }
+ 241   1      //    break;
+ 242   1      //    case 1://闹钟显示
+ 243   1      //      for(i=0;i<3;i++)
+ 244   1      //      {
+ 245   1      //        Seg_Buf[3*i] = ucAlarm[i+3*Alarm_Dat_Index] / 16;
+ 246   1      //        Seg_Buf[3*i+1] = ucAlarm[i+3*Alarm_Dat_Index] % 16;
+ 247   1      //      } 
+ 248   1      //    break;
+ 249   1      //    case 2://日期显示
+ 250   1      //      for(i=0;i<3;i++)
+ 251   1      //      {
+ 252   1      //        Seg_Buf[3*i] = ucDate[i] / 16;
+ 253   1      //        Seg_Buf[3*i+1] = ucDate[i] % 16;
+ 254   1      //      } 
+ 255   1      //    break;
+ 256   1      //    default://处于参数设置状态
+ 257   1      //      for(i=0;i<3;i++)
+ 258   1      //      {
+ 259   1      //        Seg_Buf[3*i] = Set_Dat[i+3*Alarm_Dat_Index] / 16;
+ 260   1      //        Seg_Buf[3*i+1] = Set_Dat[i+3*Alarm_Dat_Index] % 16;
+ 261   1      //      }
+ 262   1      //  }
+ 263   1      
+ 264   1        if(Seg_Disp_Mode < 3)//处于参数显示界面
+ 265   1        {
+ 266   2          for(i=0;i<3;i++)
+ 267   2          {
+ 268   3            Seg_Buf[3*i] = Set_Flag[Seg_Disp_Mode][i+3*Alarm_Dat_Index] / 16;
+ 269   3            Seg_Buf[3*i+1] = Set_Flag[Seg_Disp_Mode][i+3*Alarm_Dat_Index] % 16;
+ 270   3          }     
+ 271   2        }
+ 272   1        else//处于设置参数界面
+ 273   1        {
+ 274   2          for(i=0;i<3;i++)
+ 275   2          {
+ 276   3            Seg_Buf[3*i] = Set_Dat[i+3*Alarm_Dat_Index] / 16;
+ 277   3            Seg_Buf[3*i+1] = Set_Dat[i+3*Alarm_Dat_Index] % 16;
+ 278   3          }   
+ 279   2          Seg_Buf[3*Input_Index] = Seg_Star_Flag?Set_Dat[Input_Index+3*Alarm_Dat_Index] / 16:10;
+ 280   2          Seg_Buf[3*Input_Index+1] = Seg_Star_Flag?Set_Dat[Input_Index+3*Alarm_Dat_Index] % 16:10;    
+ 281   2        }
+ 282   1      }
+ 283          
+ 284          
+ 285          /* 其他显示函数 */
+ 286          void Led_Proc()
+ 287          {
+C51 COMPILER V9.54   MAIN                                                                  03/28/2023 23:26:51 PAGE 6   
+
+ 288   1        unsigned char i;//For循环专用变量
+ 289   1        for(i=1;i<4;i++)//常用互斥点亮思路 利用位运算符 条件满足时默认返回1
+ 290   1          ucLed[i] = (i == Alarm_Dat_Index + 1) * (Seg_Disp_Mode == 1 || Seg_Disp_Mode == 4);//处于时钟界面�
+             -�� 点亮相应的Led指示灯
+ 291   1      //  if(ucAlarm[0] == ucRtc[0] && ucAlarm[1] == ucRtc[1] && ucAlarm[2] == ucRtc[2])
+ 292   1      //    Beep_Flag = 1;
+ 293   1      //  if(ucAlarm[3] == ucRtc[0] && ucAlarm[4] == ucRtc[1] && ucAlarm[5] == ucRtc[2])
+ 294   1      //    Beep_Flag = 1;
+ 295   1      //  if(ucAlarm[6] == ucRtc[0] && ucAlarm[7] == ucRtc[1] && ucAlarm[8] == ucRtc[2])
+ 296   1      //    Beep_Flag = 1;
+ 297   1        for(i=0;i<3;i++)//使用循环简化代码 当检测到一个闹钟使能时 直接退出循环 减少运
+             -行资源占用
+ 298   1        {
+ 299   2          if(ucAlarm[0+i*3] == ucRtc[0] && ucAlarm[1+i*3] == ucRtc[1] && ucAlarm[2+i*3] == ucRtc[2])
+ 300   2          {
+ 301   3            Beep_Flag = 1;
+ 302   3            Beep_Index = i;//记录闹钟编号
+ 303   3            break;
+ 304   3          }
+ 305   2        }
+ 306   1        if(Beep_Flag == 1)//闹钟处于使能状态
+ 307   1        {
+ 308   2          if((ucRtc[2] % 16) ==  ((ucAlarm[2+Beep_Index*3] % 16) + 5) % 10)//记录五秒
+ 309   2            Beep_Flag = 0;//关闭闹钟
+ 310   2        }
+ 311   1        ucLed[0] = Led_Star_Flag?(Beep_Flag&Beep_Enable_Flag):0;
+ 312   1        ucLed[7] = !(ucAlarm[3*Alarm_Dat_Index] / 0x24) * (Seg_Disp_Mode == 1 || Seg_Disp_Mode == 4);;//若时钟
+             -值比23大 则表示未启用
+ 313   1      }
+ 314          
+ 315          /* 定时器0中断初始化函数 */
+ 316          void Timer0Init(void)   //1毫秒@12.000MHz
+ 317          {
+ 318   1        AUXR &= 0x7F;   //定时器时钟12T模式
+ 319   1        TMOD &= 0xF0;   //设置定时器模式
+ 320   1        TL0 = 0x18;   //设置定时初始值
+ 321   1        TH0 = 0xFC;   //设置定时初始值
+ 322   1        TF0 = 0;    //清除TF0标志
+ 323   1        TR0 = 1;    //定时器0开始计时
+ 324   1        ET0 = 1;    //定时器中断0打开
+ 325   1        EA = 1;     //总中断打开
+ 326   1      }
+ 327          
+ 328          /* 定时器0中断服务函数 */
+ 329          void Timer0Server() interrupt 1
+ 330          {  
+ 331   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 332   1        if(++Seg_Slow_Down == 100) Seg_Slow_Down = 0;//数码管减速专用
+ 333   1        if(++Seg_Pos == 8) Seg_Pos = 0;//数码管显示专用
+ 334   1        Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 335   1        Led_Disp(Seg_Pos,ucLed[Seg_Pos]);
+ 336   1        if(++Timer_500Ms == 500)
+ 337   1        {
+ 338   2          Timer_500Ms = 0;//计时值复位
+ 339   2          Seg_Star_Flag ^= 1;//标志位取反
+ 340   2        }
+ 341   1        if(++Timer_200Ms == 200)
+ 342   1        {
+ 343   2          Timer_200Ms = 0;
+ 344   2          Led_Star_Flag ^= 1;
+ 345   2        }
+ 346   1      }
+C51 COMPILER V9.54   MAIN                                                                  03/28/2023 23:26:51 PAGE 7   
+
+ 347          
+ 348          /* Main */
+ 349          void main()
+ 350          {
+ 351   1        System_Init();
+ 352   1        Timer0Init();
+ 353   1        Set_Rtc(ucRtc);//设置上电初始化时间
+ 354   1        Set_Date(ucDate);//设置上电初始化日期
+ 355   1        while (1)
+ 356   1        {
+ 357   2          Key_Proc();
+ 358   2          Seg_Proc();
+ 359   2          Led_Proc();
+ 360   2        }
+ 361   1      }
+*** WARNING C291 IN LINE 71 OF main.c: not every exit path returns a value
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1443    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     72       9
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      5    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

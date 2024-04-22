@@ -1,0 +1,282 @@
+C51 COMPILER V9.54   MAIN                                                                  02/06/2023 20:02:56 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件声明区 */
+   2          #include <STC15F2K60S2.H>//单片机寄存器专用头文件
+   3          #include <Init.h>//初始化底层驱动专用头文件
+   4          #include <Led.h>//Led底层驱动专用头文件
+   5          #include <Key.h>//按键底层驱动专用头文件
+   6          #include <Seg.h>//数码管底层驱动专用头文件
+   7          #include "iic.h"
+   8          
+   9          
+  10          /* 变量声明区 */
+  11          unsigned char Key_Val,Key_Down,Key_Old,Key_Up;//按键专用变量
+  12          unsigned char Key_Slow_Down;//按键减速专用变量
+  13          unsigned char Seg_Buf[8] = {10,10,10,10,10,10,10,10};//数码管显示数据存放数组
+  14          unsigned char Seg_Point[8] = {0,0,0,0,0,0,0,0};//数码管小数点数据存放数组
+  15          unsigned char Seg_Pos;//数码管扫描专用变量
+  16          unsigned int Seg_Slow_Down;//数码管减速专用变量
+  17          unsigned char ucLed[8] = {0,0,0,0,0,0,0,0};//Led显示数据存放数组
+  18          unsigned int Led_Time_Disp[4] = {400,400,400,400};//流转时间间隔数据显示数组
+  19          unsigned int Led_Time_Ctrol[4] = {400,400,400,400};//流转时间间隔数据控制数组
+  20          unsigned char Led_Time_Index;//流转时间间隔指针 - 运行模式编号
+  21          unsigned int Timer_400Ms;//400毫秒计时变量
+  22          unsigned char Seg_Index;//数码管索引值 0-熄灭 1-模式编号 2-流转间隔闪
+  23          unsigned char EEPROM_Dat[4];
+  24          unsigned char Led_Mode;
+  25          unsigned int Ms_Tick;
+  26          unsigned char Led_Pos;
+  27          unsigned char Led_Level;
+  28          unsigned char Led_Count;
+  29          bit System_Flag;
+  30          bit Seg_Star_Flag;//数码管闪烁标志位
+  31          bit Seg_Disp_Mode;//数码管显示模式专用变量 0-参数界面 1-亮度等级界面
+  32          
+  33          /* 键盘处理函数 */
+  34          void Key_Proc()
+  35          {
+  36   1        unsigned char i;
+  37   1        if(Key_Slow_Down) return;
+  38   1        Key_Slow_Down = 1;//键盘减速程序
+  39   1      
+  40   1        Key_Val = Key_Read();//实时读取键码值
+  41   1        Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+  42   1        Key_Up = ~Key_Val & (Key_Old ^ Key_Val);//捕捉按键上降沿
+  43   1        Key_Old = Key_Val;//辅助扫描变量
+  44   1        
+  45   1        if(Seg_Index == 0)
+  46   1        {
+  47   2          if(Key_Old == 4)
+  48   2            Seg_Disp_Mode = 1;
+  49   2          else
+  50   2            Seg_Disp_Mode = 0;
+  51   2        }
+  52   1        
+  53   1        switch(Key_Down)
+  54   1        {
+C51 COMPILER V9.54   MAIN                                                                  02/06/2023 20:02:56 PAGE 2   
+
+  55   2          case 6:
+  56   2            if(++Seg_Index == 3) Seg_Index = 0;
+  57   2            if(Seg_Index == 0)
+  58   2            {
+  59   3              Led_Time_Index = 0;
+  60   3              for(i=0;i<4;i++)
+  61   3              {
+  62   4                Led_Time_Ctrol[i] = Led_Time_Disp[i];
+  63   4                EEPROM_Dat[i] = Led_Time_Ctrol[i] / 100;
+  64   4              }
+  65   3              EEPROM_Write(EEPROM_Dat,0,4);
+  66   3            }
+  67   2          break;
+  68   2          case 5:
+  69   2            if(Seg_Index == 1) 
+  70   2            {
+  71   3              if(++Led_Time_Index == 4) 
+  72   3                Led_Time_Index = 0;
+  73   3            }
+  74   2            else if(Seg_Index == 2)
+  75   2            {
+  76   3              Led_Time_Disp[Led_Time_Index] += 100;
+  77   3              if(Led_Time_Disp[Led_Time_Index] > 1200)
+  78   3                Led_Time_Disp[Led_Time_Index] = 1200;
+  79   3            }
+  80   2          break;
+  81   2          case 4:
+  82   2            if(Seg_Index == 1) 
+  83   2            {
+  84   3              if(--Led_Time_Index == 255) 
+  85   3                Led_Time_Index = 3;
+  86   3            }
+  87   2            else if(Seg_Index == 2)
+  88   2            {
+  89   3              Led_Time_Disp[Led_Time_Index] -= 100;
+  90   3              if(Led_Time_Disp[Led_Time_Index] < 400)
+  91   3                Led_Time_Disp[Led_Time_Index] = 400;
+  92   3            }
+  93   2          break;
+  94   2          case 7:
+  95   2            System_Flag ^= 1;
+  96   2          break;
+  97   2        }
+  98   1      }
+  99          
+ 100          /* 信息处理函数 */
+ 101          void Seg_Proc()
+ 102          {
+ 103   1        unsigned char i;
+ 104   1        if(Seg_Slow_Down) return;
+ 105   1        Seg_Slow_Down = 1;//数码管减速程序
+ 106   1      
+ 107   1        Led_Level = Ad_Read(0x03) / 64;
+ 108   1        if(Seg_Disp_Mode == 0) //处于参数界面
+ 109   1        {
+ 110   2          Seg_Buf[0] = Seg_Buf[2] = 11;//-
+ 111   2          Seg_Buf[1] = Led_Time_Index + 1;
+ 112   2          Seg_Buf[4] = Led_Time_Disp[Led_Time_Index] / 1000 % 10;
+ 113   2          Seg_Buf[5] = Led_Time_Disp[Led_Time_Index] / 100 % 10;
+ 114   2          Seg_Buf[6] = Led_Time_Disp[Led_Time_Index] / 10 % 10;
+ 115   2          Seg_Buf[7] = Led_Time_Disp[Led_Time_Index] % 10;
+ 116   2          if(Seg_Index == 1) //模式
+C51 COMPILER V9.54   MAIN                                                                  02/06/2023 20:02:56 PAGE 3   
+
+ 117   2          {
+ 118   3            Seg_Buf[0] = Seg_Buf[2] = Seg_Star_Flag?10:11;//-
+ 119   3            Seg_Buf[1] = Seg_Star_Flag?10:Led_Time_Index + 1;
+ 120   3          }
+ 121   2          else if(Seg_Index == 2) //流转时间
+ 122   2          {
+ 123   3            Seg_Buf[4] = Seg_Star_Flag?10:Led_Time_Disp[Led_Time_Index] / 1000 % 10;
+ 124   3            Seg_Buf[5] = Seg_Star_Flag?10:Led_Time_Disp[Led_Time_Index] / 100 % 10;
+ 125   3            Seg_Buf[6] = Seg_Star_Flag?10:Led_Time_Disp[Led_Time_Index] / 10 % 10;
+ 126   3            Seg_Buf[7] = Seg_Star_Flag?10:Led_Time_Disp[Led_Time_Index] % 10;     
+ 127   3          }
+ 128   2          if(Seg_Buf[4] == 0) Seg_Buf[4] = 10;
+ 129   2        }
+ 130   1        else
+ 131   1        {
+ 132   2          for(i=0;i<6;i++)
+ 133   2            Seg_Buf[i] = 10;
+ 134   2          Seg_Buf[6] = 11;
+ 135   2          Seg_Buf[7] = Led_Level+1;
+ 136   2        }
+ 137   1      }
+ 138          
+ 139          /* 其他显示函数 */
+ 140          void Led_Proc()
+ 141          {
+ 142   1        unsigned char i;
+ 143   1        if(System_Flag == 1)
+ 144   1        {
+ 145   2          if(Ms_Tick == Led_Time_Ctrol[Led_Mode])
+ 146   2          {
+ 147   3            Ms_Tick = 0;
+ 148   3            switch(Led_Mode)
+ 149   3            {
+ 150   4              case 0:
+ 151   4                if(++Led_Pos == 8)
+ 152   4                {
+ 153   5                  Led_Pos = 7;
+ 154   5                  Led_Mode = 1;
+ 155   5                }
+ 156   4              break;
+ 157   4              case 1:
+ 158   4                if(--Led_Pos == 255)
+ 159   4                {
+ 160   5                  Led_Pos = 7;
+ 161   5                  Led_Mode = 2;
+ 162   5                }
+ 163   4              break;
+ 164   4              case 2:
+ 165   4                Led_Pos += 9;
+ 166   4                if(Led_Pos > 34)
+ 167   4                {
+ 168   5                  Led_Pos = 34;
+ 169   5                  Led_Mode = 3;
+ 170   5                }
+ 171   4              break;
+ 172   4              case 3:
+ 173   4                Led_Pos -= 9;
+ 174   4                if(Led_Pos > 200)
+ 175   4                {
+ 176   5                  Led_Pos = 0;
+ 177   5                  Led_Mode = 0;
+ 178   5                }
+C51 COMPILER V9.54   MAIN                                                                  02/06/2023 20:02:56 PAGE 4   
+
+ 179   4              break;
+ 180   4            }
+ 181   3          }
+ 182   2        }
+ 183   1        
+ 184   1        if(Led_Mode < 2)
+ 185   1        {
+ 186   2          for(i=0;i<8;i++)
+ 187   2            ucLed[i] = (i == Led_Pos);
+ 188   2        }
+ 189   1        else
+ 190   1        {
+ 191   2          for(i=0;i<8;i++)
+ 192   2            ucLed[i] = (i == (Led_Pos / 10) || i == (Led_Pos % 10));
+ 193   2        }
+ 194   1      }
+ 195          
+ 196          /* 定时器0中断初始化函数 */
+ 197          void Timer0Init(void)   //1毫秒@12.000MHz
+ 198          {
+ 199   1        AUXR &= 0x7F;   //定时器时钟12T模式
+ 200   1        TMOD &= 0xF0;   //设置定时器模式
+ 201   1        TL0 = 0x18;   //设置定时初始值
+ 202   1        TH0 = 0xFC;   //设置定时初始值
+ 203   1        TF0 = 0;    //清除TF0标志
+ 204   1        TR0 = 1;    //定时器0开始计时
+ 205   1        ET0 = 1;    //定时器中断0打开
+ 206   1        EA = 1;     //总中断打开
+ 207   1      }
+ 208          
+ 209          /* 定时器0中断服务函数 */
+ 210          void Timer0Server() interrupt 1
+ 211          {  
+ 212   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 213   1        if(++Seg_Slow_Down == 10) Seg_Slow_Down = 0;//数码管减速专用
+ 214   1        if(++Seg_Pos == 8) Seg_Pos = 0;//数码管显示专用
+ 215   1        if(++Led_Count == 12) Led_Count = 0;
+ 216   1        if(Seg_Index != 0 || Seg_Disp_Mode == 1)
+ 217   1          Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 218   1        else
+ 219   1          Seg_Disp(Seg_Pos,10,0);
+ 220   1        if(Led_Count <= ((Led_Level+1) * 3))
+ 221   1          Led_Disp(Seg_Pos,ucLed[Seg_Pos]);
+ 222   1        else
+ 223   1          Led_Disp(Seg_Pos,0);
+ 224   1        
+ 225   1        if(++Timer_400Ms == 400)
+ 226   1        {
+ 227   2          Timer_400Ms = 0;
+ 228   2          Seg_Star_Flag ^= 1;
+ 229   2        }
+ 230   1        
+ 231   1        if(System_Flag == 1)
+ 232   1          Ms_Tick++;
+ 233   1      }
+ 234          
+ 235          /* Main */
+ 236          void main()
+ 237          {
+ 238   1        unsigned char i;
+ 239   1        System_Init();
+ 240   1        EEPROM_Read(EEPROM_Dat,0,4);
+C51 COMPILER V9.54   MAIN                                                                  02/06/2023 20:02:56 PAGE 5   
+
+ 241   1        for(i=0;i<4;i++)
+ 242   1          Led_Time_Disp[i] = Led_Time_Ctrol[i] = EEPROM_Dat[i] * 100;
+ 243   1        Timer0Init();
+ 244   1        while (1)
+ 245   1        {
+ 246   2          Key_Proc();
+ 247   2          Seg_Proc();
+ 248   2          Led_Proc();
+ 249   2        }
+ 250   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1134    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     62    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

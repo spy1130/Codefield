@@ -1,0 +1,32 @@
+C51 COMPILER V9.60.7.0   LDE                                                               03/06/2024 18:40:53 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE LDE
+OBJECT MODULE PLACED IN .\Objects\LDE.obj
+COMPILER INVOKED BY: E:\Applications\Keil_5\C51\BIN\C51.EXE ..\Driver\LDE.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\User;..\S
+                    -ys;..\Driver) DEBUG OBJECTEXTEND PRINT(.\Listings\LDE.lst) OBJECT(.\Objects\LDE.obj)
+
+line level    source
+
+   1          #include "LED.h"
+   2          //输入16进制，8位,1亮0灭
+   3          void LED(unsigned int num)
+   4          {
+   5   1              P0=~num;
+   6   1              P2= P2 & 0X1F | 0X80;//开启Y4
+   7   1              P2 &=0X1F;//关闭Y4~Y6
+   8   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     16    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

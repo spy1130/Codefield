@@ -1,0 +1,22 @@
+#include <Seg.h>
+
+
+code u8 Seg_dula[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xff,0xbf};//-
+u8 Seg_wela[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
+
+void Seg_Disp(u8 wela,dula,point)
+{
+	P0= 0XFF;
+	P2= P2&0X1F|0XE0;//y7
+	P2 &= 0X1F;
+	
+	P0=Seg_wela[wela];
+	P2=P2&0X1F|0Xc0;//y6
+	P2 &=0X1F;
+	
+	P0=Seg_dula[dula];
+	if(point)
+		P0 &=0x7f;
+	P2=P2&0X1F|0Xe0;//y6
+	P2 &=0X1F;
+}

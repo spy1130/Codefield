@@ -1,0 +1,306 @@
+C51 COMPILER V9.54   MAIN                                                                  03/28/2022 19:53:15 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件申明区 */
+   2          #include "key.h"
+   3          #include "init.h"
+   4          #include "seg.h"
+   5          #include "iic.h"
+   6          #include "led.h"
+   7          #include "onewire.h"
+   8          /* 变量申明区 */
+   9          unsigned long int Ms_Tick;//计时器
+  10          unsigned long int Ms_Key_Tick;//判断按键长短按
+  11          unsigned long int Ms_L8_Tick;//L8闪烁专用
+  12          unsigned int Freq;//频率测量值
+  13          unsigned int Key_Slow_Down,Seg_Slow_Down;
+  14          unsigned char Key_Val,Key_Old,Key_Down,Key_Up;
+  15          unsigned char ucLed;
+  16          unsigned char Seg_Pos;
+  17          unsigned char Seg_String[8];//数码管显示数据存放数组
+  18          unsigned char Seg_Point[8];//数码管小数点显示数组
+  19          unsigned char Seg_Disp_Mode;//数码管显示模式 0-电压 1-频率 2-温度 3-数据回显 4-阈值设�
+             -��
+  20          unsigned char EEPROM_String[5];//回显数据储存数组
+  21          unsigned int Old_Data_String[3];//回显显示数据存放数组
+  22          unsigned char EEPROM_String_Index;//回显数组指针
+  23          unsigned char Voltage_Val = 1;//系统显示阈值
+  24          unsigned char Voltage_Val_Ctrl = 1;//系统控制阈值
+  25          float Voltage;//电压测量值
+  26          float Temperature;//温度测量值
+  27          /* 键盘处理函数 */
+  28          void Key_Proc()
+  29          {
+  30   1        if(Key_Slow_Down) return;
+  31   1        Key_Slow_Down = 1;//键盘处理减速程序
+  32   1        Key_Val = Key_Read();//读取键码值
+  33   1        Key_Down = Key_Val & (Key_Val ^ Key_Old);//捕捉下降沿
+  34   1        Key_Up = ~ Key_Val & (Key_Val ^ Key_Old);//捕捉上升沿
+  35   1        Key_Old = Key_Val;
+  36   1        switch(Key_Down)
+  37   1        {
+  38   2          case 4://界面切换
+  39   2            if(Seg_Disp_Mode == 3)//处于回显状态
+  40   2            {
+  41   3              if(++EEPROM_String_Index == 3)
+  42   3                EEPROM_String_Index = 0;
+  43   3            }
+  44   2            else
+  45   2            {
+  46   3              if(++Seg_Disp_Mode == 3)
+  47   3                Seg_Disp_Mode = 0;
+  48   3            }
+  49   2          break;
+  50   2          case 5://储存数据
+  51   2            EEPROM_String[0] = (unsigned char)(Voltage * 10);
+  52   2            EEPROM_String[1] = Freq >> 8;//储存高八位
+  53   2            EEPROM_String[2] = Freq & 0x00FF;//储存低八位
+C51 COMPILER V9.54   MAIN                                                                  03/28/2022 19:53:15 PAGE 2   
+
+  54   2            EEPROM_String[3] = (unsigned int)(Temperature * 100) >> 8;//储存温度整数部分
+  55   2            EEPROM_String[4] = (unsigned int)(Temperature * 100) & 0x00FF;//储存温度小数部分
+  56   2            EEPROM_Write(EEPROM_String,0,5);//将数据写入EEPROM中
+  57   2          break;
+  58   2          case 6://回显切换
+  59   2            if(Seg_Disp_Mode != 4)//处于非阈值设置状态
+  60   2            {
+  61   3              EEPROM_Read(EEPROM_String,0,5);//将EEPROM内的数据读取出来
+  62   3              Old_Data_String[0] = EEPROM_String[0];
+  63   3              Old_Data_String[1] = EEPROM_String[1] << 8 | EEPROM_String[2];
+  64   3              Old_Data_String[2] = EEPROM_String[3] << 8 | EEPROM_String[4];
+  65   3              Seg_Disp_Mode = 3;//切换到回显显示界面
+  66   3            }
+  67   2          break;
+  68   2          case 7://阈值设置界面
+  69   2            if(Seg_Disp_Mode == 4)//处于设置界面
+  70   2            {
+  71   3              Voltage_Val_Ctrl = Voltage_Val;//将显示参数赋值给控制变量
+  72   3              Seg_Disp_Mode = 0;//切换到数据显示模式
+  73   3            }
+  74   2            else
+  75   2              Seg_Disp_Mode = 4;//进入阈值设置界面
+  76   2          break;
+  77   2        }
+  78   1        if(Seg_Disp_Mode == 4)//处于阈值设置状态
+  79   1        {
+  80   2          if(Key_Down == 6)
+  81   2            Ms_Key_Tick = Ms_Tick;//记录按下按键的时间
+  82   2        }
+  83   1        if((Ms_Tick - Ms_Key_Tick) <= 800)//按下时间小于800ms，即为短按
+  84   1        {
+  85   2          if(Key_Up == 6)//产生上升沿，表示松手
+  86   2          {
+  87   3            if(++Voltage_Val == 51)
+  88   3              Voltage_Val = 1;//设置上限
+  89   3          }
+  90   2        }
+  91   1        else//按下时间大于800ms，即为长按
+  92   1        {
+  93   2          if(Key_Old == 6)//判断是否处于按下状态
+  94   2          {
+  95   3            if(++Voltage_Val == 51)
+  96   3              Voltage_Val = 1;//设置上限      
+  97   3          }
+  98   2        }
+  99   1      }
+ 100          
+ 101          /* 信息处理函数 */
+ 102          void Seg_Proc()
+ 103          {
+ 104   1        unsigned char i;//循环专用变量
+ 105   1        unsigned char j = 3;//清空数据专用
+ 106   1        if(Seg_Slow_Down) return;
+ 107   1        Seg_Slow_Down = 1;//信息处理减速程序  
+ 108   1        Voltage = Ad_Read(0x43) / 51.0;//读取电压值
+ 109   1        Temperature = Ds18b20_Read();//读取温度值
+ 110   1        Seg_String[0] = 12 + Seg_Disp_Mode;
+ 111   1        switch(Seg_Disp_Mode)
+ 112   1        {
+ 113   2          case 0://电压显示
+ 114   2            Seg_Point[6] = 1;//第七位数码管显示小数点
+ 115   2            Seg_Point[5] = 0;//关闭第六位小数点
+C51 COMPILER V9.54   MAIN                                                                  03/28/2022 19:53:15 PAGE 3   
+
+ 116   2            for(i=1;i<6;i++)
+ 117   2              Seg_String[i] = 11;//熄灭未启用数码管
+ 118   2            Seg_String[6] = (unsigned char)Voltage;//读取电压值个位
+ 119   2            Seg_String[7] = (unsigned char)(Voltage * 10) % 10;//读取电压值十分位   
+ 120   2          break;
+ 121   2          case 1://频率显示 
+ 122   2            Seg_Point[6] = 0;//关闭小数点显示模式
+ 123   2            Seg_String[3] = Freq / 10000 % 10;//将频率值每一位提取出来
+ 124   2            Seg_String[4] = Freq / 1000 % 10;
+ 125   2            Seg_String[5] = Freq / 100 % 10;
+ 126   2            Seg_String[6] = Freq / 10 % 10;
+ 127   2            Seg_String[7] = Freq % 10;      
+ 128   2            while(Seg_String[j] == 0)//屏蔽高位为0的数据
+ 129   2            {
+ 130   3              Seg_String[j] = 11;
+ 131   3              j++;
+ 132   3            }
+ 133   2          break;
+ 134   2          case 2://温度显示
+ 135   2            Seg_Point[5] = 1;//第六位数码管显示小数点
+ 136   2            for(i=1;i<4;i++)
+ 137   2              Seg_String[i] = 11;//熄灭未启用数码管 
+ 138   2            Seg_String[4] = (unsigned char)Temperature / 10 % 10;//取出温度十位
+ 139   2            Seg_String[5] = (unsigned char)Temperature % 10;//取出温度个位
+ 140   2            Seg_String[6] = (unsigned int)(Temperature * 100) / 10 % 10;//取出温度十分位
+ 141   2            Seg_String[7] = (unsigned int)(Temperature * 100) % 10;//取出温度十分位
+ 142   2          break;
+ 143   2          case 3://回显数据显示
+ 144   2            Seg_String[1] = 12 + EEPROM_String_Index;
+ 145   2            Seg_String[2] = 11;//熄灭
+ 146   2            switch(EEPROM_String_Index)
+ 147   2            {
+ 148   3              case 0://电压回显
+ 149   3                Seg_Point[6] = 1;//第七位数码管显示小数点
+ 150   3                Seg_Point[5] = 0;//关闭第六位小数点
+ 151   3                for(i=2;i<6;i++)
+ 152   3                  Seg_String[i] = 11;//熄灭未启用数码管
+ 153   3                Seg_String[6] = Old_Data_String[EEPROM_String_Index] / 10 % 10;//读取电压值个位
+ 154   3                Seg_String[7] = Old_Data_String[EEPROM_String_Index] % 10;//读取电压值十分位              
+ 155   3              break;
+ 156   3              case 1://频率回显
+ 157   3                Seg_Point[6] = 0;//关闭小数点显示模式
+ 158   3                Seg_String[3] = Old_Data_String[EEPROM_String_Index] / 10000 % 10;//将频率值每一位提取出来
+ 159   3                Seg_String[4] = Old_Data_String[EEPROM_String_Index] / 1000 % 10;
+ 160   3                Seg_String[5] = Old_Data_String[EEPROM_String_Index] / 100 % 10;
+ 161   3                Seg_String[6] = Old_Data_String[EEPROM_String_Index] / 10 % 10;
+ 162   3                Seg_String[7] = Old_Data_String[EEPROM_String_Index] % 10;      
+ 163   3                while(Seg_String[j] == 0)//屏蔽高位为0的数据
+ 164   3                {
+ 165   4                  Seg_String[j] = 11;
+ 166   4                  j++;
+ 167   4                }         
+ 168   3              break;
+ 169   3              case 2://温度回显
+ 170   3                Seg_Point[5] = 1;//第六位数码管显示小数点
+ 171   3                for(i=2;i<4;i++)
+ 172   3                  Seg_String[i] = 11;//熄灭未启用数码管 
+ 173   3                Seg_String[4] = Old_Data_String[EEPROM_String_Index] / 1000 % 10;//取出温度十位
+ 174   3                Seg_String[5] = Old_Data_String[EEPROM_String_Index] / 100 % 10;//取出温度个位
+ 175   3                Seg_String[6] = Old_Data_String[EEPROM_String_Index] / 10 % 10;//取出温度十分位
+ 176   3                Seg_String[7] = Old_Data_String[EEPROM_String_Index] % 10;//取出温度十分位         
+ 177   3              break;
+C51 COMPILER V9.54   MAIN                                                                  03/28/2022 19:53:15 PAGE 4   
+
+ 178   3            }
+ 179   2          break;
+ 180   2          case 4://阈值设置
+ 181   2            Seg_Point[6] = 1;
+ 182   2            for(i=1;i<6;i++)
+ 183   2              Seg_String[i] = 11;//熄灭未启用数码管
+ 184   2              Seg_String[6] = Voltage_Val / 10 % 10;
+ 185   2              Seg_String[7] = Voltage_Val % 10;
+ 186   2          break;  
+ 187   2        }
+ 188   1      }
+ 189          
+ 190          /* 其他显示函数 */
+ 191          void Led_Proc()
+ 192          {
+ 193   1        if(Seg_Disp_Mode == 2)//温度测量状态
+ 194   1          ucLed |= 0x01;
+ 195   1        else
+ 196   1          ucLed &= ~0x07;
+ 197   1        if(Seg_Disp_Mode == 1)//频率测量状态
+ 198   1          ucLed |= 0x02;
+ 199   1        else
+ 200   1          ucLed &= ~0x07;
+ 201   1        if(Seg_Disp_Mode == 0)//电压测量状态
+ 202   1          ucLed |= 0x04;
+ 203   1        else
+ 204   1          ucLed |= 0x02;
+ 205   1        if(Seg_Disp_Mode >= 3)//退出数据显示界面
+ 206   1          ucLed &= ~0x07;
+ 207   1        if((Voltage*10) > Voltage_Val_Ctrl)
+ 208   1        {
+ 209   2          if((Ms_Tick - Ms_L8_Tick) >= 200)
+ 210   2          {
+ 211   3            Ms_L8_Tick = Ms_Tick;
+ 212   3            ucLed ^= 0x80;
+ 213   3          }
+ 214   2        }
+ 215   1        else
+ 216   1          ucLed &= ~0x80;
+ 217   1      }
+ 218          
+ 219          /* 定时器1初始化函数 */
+ 220          void Timer1Init(void)   //1毫秒@12.000MHz
+ 221          {
+ 222   1        AUXR &= 0xBF;   //定时器时钟12T模式
+ 223   1        TMOD &= 0x0F;   //设置定时器模式
+ 224   1        TL1 = 0x18;   //设置定时初值
+ 225   1        TH1 = 0xFC;   //设置定时初值
+ 226   1        TF1 = 0;    //清除TF1标志
+ 227   1        TR1 = 1;    //定时器1开始计时
+ 228   1        ET1 = 1;    //打开定时器1中断
+ 229   1        EA = 1;     //打开总中断
+ 230   1      }
+ 231          
+ 232          /* 定时器1中断服务函数 */
+ 233          void Timer1Server() interrupt 3
+ 234          {
+ 235   1        Ms_Tick++;
+ 236   1        if(++Seg_Pos == 8) Seg_Pos = 0;
+ 237   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;
+ 238   1        if(++Seg_Slow_Down == 300) Seg_Slow_Down = 0;
+ 239   1        if(!(Ms_Tick % 1000))//频率测量
+C51 COMPILER V9.54   MAIN                                                                  03/28/2022 19:53:15 PAGE 5   
+
+ 240   1        {
+ 241   2          Freq = TH0 << 8 | TL0;
+ 242   2          TH0 = TL0 = 0;
+ 243   2        }
+ 244   1        Seg_Disp(Seg_String[Seg_Pos],Seg_Pos,Seg_Point[Seg_Pos]);//数码管显示
+ 245   1        Led_Disp(ucLed);
+ 246   1        
+ 247   1      }
+ 248          
+ 249          /* 频率测量初始化函数 */
+ 250          void Timer0Init(void)
+ 251          {
+ 252   1        TMOD &= 0xf0;
+ 253   1        TMOD |= 0x05;
+ 254   1        TH0 = 0;
+ 255   1        TL0 = 0;
+ 256   1        TF0 = 0;
+ 257   1        TR0 = 1;
+ 258   1      }
+ 259          
+ 260          /* Main */
+ 261          void main()
+ 262          {
+ 263   1        Cls_Init();//外设初始化
+ 264   1        Ad_Read(0x43);//上电读取数据防止出现2.5V
+ 265   1        Timer0Init();//频率测量计数器初始化
+ 266   1        Timer1Init();//定时器初始化
+ 267   1        while(1)
+ 268   1        {
+ 269   2          Key_Proc();
+ 270   2          Seg_Proc();
+ 271   2          Led_Proc();
+ 272   2        }
+ 273   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1475    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     63       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

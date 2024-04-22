@@ -1,0 +1,8 @@
+".\Objects\main.obj",
+".\Objects\init.obj",
+".\Objects\key.obj",
+".\Objects\led.obj",
+".\Objects\seg.obj",
+".\Objects\iic.obj" 
+TO ".\Objects\XiFeng" 
+PRINT(".\Listings\XiFeng.m51") RAMSIZE(256) 

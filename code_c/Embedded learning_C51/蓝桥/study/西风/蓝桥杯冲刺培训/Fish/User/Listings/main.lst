@@ -1,0 +1,222 @@
+C51 COMPILER V9.54   MAIN                                                                  04/06/2023 12:22:09 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件声明区 */
+   2          #include <STC15F2K60S2.H>//单片机寄存器专用头文件
+   3          #include <Init.h>//初始化底层驱动专用头文件
+   4          #include <Led.h>//Led底层驱动专用头文件
+   5          #include <Key.h>//按键底层驱动专用头文件
+   6          #include <Seg.h>//数码管底层驱动专用头文件
+   7          #include <Uart.h>//串口底层驱动专用头文件
+   8          #include "onewire.h"//温度底层驱动专用头文件
+   9          #include "iic.h"//单总线底层驱动专用头文件
+  10          #include <stdio.h>//sprintf专用头文件
+  11          
+  12          /* 变量声明区 */
+  13          unsigned char Key_Val,Key_Down,Key_Old,Key_Up;//按键专用变量
+  14          unsigned char Key_Slow_Down;//按键减速专用变量
+  15          idata unsigned char Seg_Buf[8] = {10,10,10,10,10,10,10,10};//数码管显示数据存放数组
+  16          idata unsigned char Seg_Point[8] = {0,0,0,0,0,0,0,0};//数码管小数点数据存放数组
+  17          unsigned char Seg_Pos;//数码管扫描专用变量
+  18          unsigned int Seg_Slow_Down;//数码管减速专用变量
+  19          idata unsigned char ucLed[8] = {0,0,0,0,0,0,0,0};//Led显示数据存放数组
+  20          unsigned char Uart_Slow_Down;//串口减速专用变量
+  21          unsigned char Uart_Recv[8];//串口接收数据储存数组 默认10个字节 若接收数据较长 可更
+             -改最大字节数
+  22          unsigned char Uart_Recv_Index;//串口接收数组指针
+  23          unsigned char Uart_Send[12];//串口接收数据储存数组 默认10个字节 若发送数据较长 可�
+             -�改最大字节数
+  24          bit Seg_Disp_Mode;//数码管显示模式变量 0-温度显示 1-溶氧度显示
+  25          float Temperature;//实时温度采集变量
+  26          float Oxygen_Val;//实时溶氧度采集变量
+  27          bit System_Flag;//系统启动标志位 0-关闭 1-启动
+  28          bit Start_Flag;//自动喂食标志位 0-关闭 1-启动
+  29          unsigned int Timer_3000Ms;//三千毫秒计时变量
+  30          
+  31          /* 键盘处理函数 */
+  32          void Key_Proc()
+  33          {
+  34   1        if(Key_Slow_Down) return;
+  35   1        Key_Slow_Down = 1;//键盘减速程序
+  36   1      
+  37   1        Key_Val = Key_Read();//实时读取键码值
+  38   1        Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+  39   1        Key_Up = ~Key_Val & (Key_Old ^ Key_Val);//捕捉按键上降沿
+  40   1        Key_Old = Key_Val;//辅助扫描变量
+  41   1      
+  42   1        if(Key_Down == 4) //系统启动暂停按键
+  43   1          System_Flag ^= 1;
+  44   1        
+  45   1        if((Key_Down * System_Flag) == 5) //界面切换功能按键
+  46   1          Seg_Disp_Mode ^= 1;
+  47   1      }
+  48          
+  49          /* 信息处理函数 */
+  50          void Seg_Proc()
+  51          { 
+  52   1        /* 信息获取区域 */
+C51 COMPILER V9.54   MAIN                                                                  04/06/2023 12:22:09 PAGE 2   
+
+  53   1        switch(Seg_Slow_Down)
+  54   1        {
+  55   2          case 200://实时溶氧度读取
+  56   2            Seg_Slow_Down += 1;
+  57   2            Oxygen_Val = Ad_Read(0x43) / 51.0 * 2.0;
+  58   2          break;
+  59   2          case 400://实时温度读取
+  60   2            Seg_Slow_Down += 1;
+  61   2            Temperature = rd_temperature();
+  62   2          break;
+  63   2        }
+  64   1      
+  65   1        /* 数据显示区域 */
+  66   1        Seg_Buf[0] = 11;//标识符U
+  67   1        Seg_Buf[1] = (unsigned char)Seg_Disp_Mode + 1;
+  68   1        if(Seg_Disp_Mode == 0) //温度显示界面
+  69   1        {
+  70   2          Seg_Buf[4] = 10;
+  71   2          Seg_Buf[5] = (unsigned char)Temperature / 10 % 10;
+  72   2          Seg_Buf[6] = (unsigned char)Temperature % 10;
+  73   2          Seg_Buf[7] = (unsigned int)(Temperature * 10) % 10;
+  74   2          Seg_Point[6] = 1;
+  75   2          Seg_Point[5] = 0;
+  76   2        }
+  77   1        else //溶氧度显示界面
+  78   1        {
+  79   2          Seg_Buf[4] = (unsigned char)Oxygen_Val / 10 % 10?1:10;
+  80   2          Seg_Buf[5] = (unsigned char)Oxygen_Val % 10;
+  81   2          Seg_Buf[6] = (unsigned int)(Oxygen_Val * 100) / 10 % 10;  
+  82   2          Seg_Buf[7] = (unsigned int)(Oxygen_Val * 100) % 10;     
+  83   2          Seg_Point[6] = 0;
+  84   2          Seg_Point[5] = 1;   
+  85   2        }
+  86   1      }
+  87          
+  88          /* 其他显示函数 */
+  89          void Led_Proc()
+  90          {
+  91   1        ucLed[0] = System_Flag;//启动功能知识灯
+  92   1        ucLed[1] = !Seg_Disp_Mode;//温度显示指示灯
+  93   1        ucLed[2] = Seg_Disp_Mode;//溶氧度显示指示灯
+  94   1        ucLed[3] = Temperature > 26 || Temperature < 20;//温度指示灯
+  95   1        ucLed[7] = Start_Flag;//喂食指示灯
+  96   1        Relay(System_Flag&(Oxygen_Val<3));//供氧指示器
+  97   1      }
+  98          
+  99          /* 串口处理函数 */
+ 100          void Uart_Proc()
+ 101          {
+ 102   1        if(Uart_Slow_Down) return;
+ 103   1        Uart_Slow_Down = 1;//串口减速程序 
+ 104   1        
+ 105   1        if(Uart_Recv_Index > 0) //接收到数据
+ 106   1        {
+ 107   2          if(System_Flag == 1) //系统处于启动状态
+ 108   2          {
+ 109   3            if(Uart_Recv_Index == 6) //Open\r\n
+ 110   3            {
+ 111   4              if(Uart_Recv[0] == 'O' && Uart_Recv[1] == 'p' && Uart_Recv[2] == 'e' && Uart_Recv[3] == 'n' && Uart_Re
+             -cv[4] == '\r' && Uart_Recv[5] == '\n') //接受到Open命令
+ 112   4                Start_Flag = 1;//启动喂食
+ 113   4            }
+C51 COMPILER V9.54   MAIN                                                                  04/06/2023 12:22:09 PAGE 3   
+
+ 114   3            else if(Uart_Recv_Index == 1) // 1 或 2
+ 115   3            {
+ 116   4              if(Uart_Recv[0] == '1')
+ 117   4                sprintf(Uart_Send,"C:%.1f\r\n",Temperature);
+ 118   4              else if(Uart_Recv[0] == '2')
+ 119   4                sprintf(Uart_Send,"D:%.2fppm\r\n",Oxygen_Val);
+ 120   4              Uart_Send_String(Uart_Send);
+ 121   4            }
+ 122   3          }
+ 123   2          Uart_Recv_Index = 0; //索引值复位
+ 124   2        }
+ 125   1      }
+ 126          
+ 127          /* 定时器0中断初始化函数 */
+ 128          void Timer0Init(void)   //1毫秒@12.000MHz
+ 129          {
+ 130   1        AUXR &= 0x7F;   //定时器时钟12T模式
+ 131   1        TMOD &= 0xF0;   //设置定时器模式
+ 132   1        TL0 = 0x18;   //设置定时初始值
+ 133   1        TH0 = 0xFC;   //设置定时初始值
+ 134   1        TF0 = 0;    //清除TF0标志
+ 135   1        TR0 = 1;    //定时器0开始计时
+ 136   1        ET0 = 1;    //定时器中断0打开
+ 137   1        EA = 1;     //总中断打开
+ 138   1      }
+ 139          
+ 140          /* 定时器0中断服务函数 */
+ 141          void Timer0Server() interrupt 1
+ 142          {  
+ 143   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 144   1        if(++Seg_Slow_Down == 500) Seg_Slow_Down = 0;//数码管减速专用
+ 145   1        if(++Uart_Slow_Down == 200) Uart_Slow_Down = 0;//串口减速专用
+ 146   1        if(++Seg_Pos == 8) Seg_Pos = 0;//数码管显示专用
+ 147   1        Seg_Disp(Seg_Pos,System_Flag*Seg_Buf[Seg_Pos]+(!System_Flag)*10,Seg_Point[Seg_Pos]*System_Flag);
+ 148   1        Led_Disp(Seg_Pos,ucLed[Seg_Pos]*System_Flag);
+ 149   1        
+ 150   1        if(Start_Flag == 1) //开始喂食
+ 151   1        {
+ 152   2          if(++Timer_3000Ms == 3000) //三秒后
+ 153   2          {
+ 154   3            Timer_3000Ms = 0;
+ 155   3            Start_Flag = 0;//停止喂食
+ 156   3            Uart_Send_String("Over!\r\n");//发送串口指令
+ 157   3          }
+ 158   2        }
+ 159   1      }
+ 160          
+ 161          /* 串口1中断服务函数 */
+ 162          void Uart1Server() interrupt 4
+ 163          {
+ 164   1        if(RI == 1 && Uart_Recv_Index < 9) //串口接收数据
+ 165   1        {
+ 166   2          Uart_Recv[Uart_Recv_Index] = SBUF;
+ 167   2          Uart_Recv_Index++;
+ 168   2          RI = 0;
+ 169   2        }
+ 170   1        
+ 171   1        //if(Uart_Recv_Index > 7) Uart_Recv_Index = 0;//清除读取指针
+ 172   1      }
+ 173          
+ 174          /* Main */
+ 175          void main()
+C51 COMPILER V9.54   MAIN                                                                  04/06/2023 12:22:09 PAGE 4   
+
+ 176          {
+ 177   1        System_Init();
+ 178   1        while(rd_temperature() == 85);//避免上电错误数据85.0
+ 179   1        Temperature = rd_temperature();//避免上电错误数据00.0
+ 180   1        Timer0Init();
+ 181   1        UartInit();
+ 182   1        while (1)
+ 183   1        {
+ 184   2          Key_Proc();
+ 185   2          Seg_Proc();
+ 186   2          Led_Proc();
+ 187   2          Uart_Proc();
+ 188   2        }
+ 189   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    981    ----
+   CONSTANT SIZE    =     29    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     40    ----
+   IDATA SIZE       =     24    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

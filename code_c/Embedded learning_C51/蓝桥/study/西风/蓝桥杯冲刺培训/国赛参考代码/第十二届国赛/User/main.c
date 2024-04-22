@@ -1,0 +1,126 @@
+/* 头文件声明区 */
+#include <STC15F2K60S2.H>//单片机寄存器专用头文件
+#include <Init.h>//初始化底层驱动专用头文件
+#include <Led.h>//Led底层驱动专用头文件
+#include <Key.h>//按键底层驱动专用头文件
+#include <Seg.h>//数码管底层驱动专用头文件
+#include "ds1302.h"//时钟底层驱动专用头文件
+
+/* 变量声明区 */
+unsigned char Key_Val,Key_Down,Key_Old,Key_Up;//按键专用变量
+unsigned char Key_Slow_Down;//按键减速专用变量
+unsigned char Seg_Buf[8] = {10,10,10,10,10,10,10,10};//数码管显示数据存放数组
+unsigned char Seg_Point[8] = {0,0,0,0,0,0,0,0};//数码管小数点数据存放数组
+unsigned char Seg_Pos;//数码管扫描专用变量
+unsigned int Seg_Slow_Down;//数码管减速专用变量
+unsigned char Read_Index = 1;//信息读取标志  0-空闲状态 1-读取时钟 2-读取超声波 上电默认立刻读取一次时钟数据
+unsigned char ucLed[8] = {0,0,0,0,0,0,0,0};//Led显示数据存放数组
+unsigned char Seg_Disp_Mode;//数码管显示模式变量 0-时钟显示 1-距离显示 2-数据记录 3-参数设置
+unsigned char ucRtc[3] = {20,20,01};//时钟数据存放数组
+unsigned char Ultra_Dat;//超声波测量数据
+bit Ultra_Trigger_Mode = 1;//超声波触发模式 0-定时模式 1-触发模式  上电默认触发模式
+unsigned char Param_Dat[2] = {02,20};//设置参数存放数组 0-采集时间 1-距离参数
+unsigned char Param_Dat_Ctrl[2] = {02,20};//设置参数生效数组
+bit Param_Dat_Index;//设置参数数组指针
+
+/* 键盘处理函数 */
+void Key_Proc()
+{
+	if(Key_Slow_Down) return;
+	Key_Slow_Down = 1;//键盘减速程序
+
+	Key_Val = Key_Read();//实时读取键码值
+	Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+	Key_Up = ~Key_Val & (Key_Old ^ Key_Val);//捕捉按键上降沿
+	Key_Old = Key_Val;//辅助扫描变量
+
+}
+
+/* 信息处理函数 */
+void Seg_Proc()
+{
+	/* 数据读取区域 */
+	switch(Read_Index)
+	{
+		case 1:Read_Rtc(ucRtc);break;//实时读取时钟数据
+		case 2:
+			if(Ultra_Trigger_Mode == 0)//处于定时模式
+			{
+				
+			}
+		break;
+	}
+	Read_Index = 0;//读取完后切换到空闲状态
+
+	/* 信息显示区域 */
+	switch(Seg_Disp_Mode)
+	{
+		case 0://时钟显示界面
+			Seg_Buf[0] = ucRtc[0] / 10;
+			Seg_Buf[1] = ucRtc[0] % 10;
+			Seg_Buf[2] = 11;
+			Seg_Buf[3] = ucRtc[1] / 10;
+			Seg_Buf[4] = ucRtc[1] % 10;
+			Seg_Buf[5] = 11;
+			Seg_Buf[6] = ucRtc[2] / 10;
+			Seg_Buf[7] = ucRtc[2] % 10;			
+		break;
+		case 1://距离显示界面
+			Seg_Buf[0] = 12;//L
+			Seg_Buf[1] = 13 + (unsigned char)Ultra_Trigger_Mode;//触发模式相应标识符 0-F 1-C
+			Seg_Buf[2] = Seg_Buf[3] = Seg_Buf[4] = 10;//熄灭
+			Seg_Buf[5] = Ultra_Dat / 100 % 10?Ultra_Dat / 100 % 10:10;
+			Seg_Buf[6] = Ultra_Dat / 10 % 10?Ultra_Dat / 10 % 10:10;
+			Seg_Buf[7] = Ultra_Dat % 10?Ultra_Dat % 10:10;			
+		break;
+	}
+}
+
+/* 其他显示函数 */
+void Led_Proc()
+{
+	
+}
+
+/* 定时器0中断初始化函数 */
+void Timer0Init(void)		//1毫秒@12.000MHz
+{
+	AUXR &= 0x7F;		//定时器时钟12T模式
+	TMOD &= 0xF0;		//设置定时器模式
+	TL0 = 0x18;		//设置定时初始值
+	TH0 = 0xFC;		//设置定时初始值
+	TF0 = 0;		//清除TF0标志
+	TR0 = 1;		//定时器0开始计时
+	ET0 = 1;    //定时器中断0打开
+	EA = 1;     //总中断打开
+}
+
+/* 定时器0中断服务函数 */
+void Timer0Server() interrupt 1
+{  
+	if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+	if(++Seg_Slow_Down == 500) Seg_Slow_Down = 0;//数码管减速专用
+	switch(Seg_Slow_Down)//信息轮询专用
+	{
+		case 100:Read_Index = 1;break;
+		case 200:Read_Index = 2;break;
+	}
+	if(++Seg_Pos == 8) Seg_Pos = 0;//数码管显示专用
+	Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+	Led_Disp(Seg_Pos,ucLed[Seg_Pos]);
+}
+
+
+/* Main */
+void main()
+{
+	System_Init();//系统初始化
+	Set_Rtc(ucRtc);//设置时钟数据
+	Timer0Init();
+	while (1)
+	{
+		Key_Proc();
+		Seg_Proc();
+		Led_Proc();
+	}
+}

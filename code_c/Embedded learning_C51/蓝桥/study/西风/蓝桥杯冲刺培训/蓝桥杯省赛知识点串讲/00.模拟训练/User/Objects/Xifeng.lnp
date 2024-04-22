@@ -1,0 +1,6 @@
+".\Objects\main.obj",
+".\Objects\Key.obj",
+".\Objects\Seg.obj",
+".\Objects\Led.obj" 
+TO ".\Objects\Xifeng" 
+PRINT(".\Listings\Xifeng.m51") RAMSIZE(256) 

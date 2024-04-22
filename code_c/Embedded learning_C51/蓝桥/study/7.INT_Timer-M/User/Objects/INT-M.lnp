@@ -1,0 +1,9 @@
+".\Objects\main.obj",
+".\Objects\Delay.obj",
+".\Objects\INT.obj",
+".\Objects\init.obj",
+".\Objects\LDE.obj",
+".\Objects\key.obj",
+".\Objects\timer.obj" 
+TO ".\Objects\INT-M" 
+PRINT(".\Listings\INT-M.m51") RAMSIZE(256) 

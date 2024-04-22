@@ -1,0 +1,215 @@
+C51 COMPILER V9.54   MAIN                                                                  01/28/2023 13:26:01 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件声明区 */
+   2          #include <STC15F2K60S2.H>//单片机寄存器专用头文件
+   3          #include <Init.h>//初始化底层驱动专用头文件
+   4          #include <Led.h>//Led底层驱动专用头文件
+   5          #include <Key.h>//按键底层驱动专用头文件
+   6          #include <Seg.h>//数码管底层驱动专用头文件
+   7          #include "onewire.h"//温度底层驱动专用头文件
+   8          #include "iic.h"//DAC底层驱动专用头文件
+   9          
+  10          /* 变量声明区 */
+  11          unsigned char Key_Val,Key_Down,Key_Old,Key_Up;//按键专用变量
+  12          unsigned char Key_Slow_Down;//按键减速专用变量
+  13          unsigned char Seg_Buf[8] = {10,10,10,10,10,10,10,10};//数码管显示数据存放数组
+  14          unsigned char Seg_Point[8] = {0,0,0,0,0,0,0,0};//数码管小数点数据存放数组
+  15          unsigned char Seg_Pos;//数码管扫描专用变量
+  16          unsigned int Seg_Slow_Down;//数码管减速专用变量
+  17          unsigned char ucLed[8] = {0,0,0,0,0,0,0,0};//Led显示数据存放数组
+  18          unsigned char Temperature_Params_Disp[2];//温度参数显示数组
+  19          unsigned char Temperature_Params_Ctrol[2] = {30,20};//温度参数控制数组
+  20          bit Temperature_Params_Index;//温度参数数组指针
+  21          bit Seg_Disp_Mode;//数码管显示模式变量 0-数据界面 1-参数界面
+  22          float Temperature;//实时温度变量
+  23          bit Error_Flag;//错误设置标志位
+  24          
+  25          /* 键盘处理函数 */
+  26          void Key_Proc()
+  27          {
+  28   1        if(Key_Slow_Down) return;
+  29   1        Key_Slow_Down = 1;//键盘减速程序
+  30   1      
+  31   1        Key_Val = Key_Read();//实时读取键码值
+  32   1        Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+  33   1        Key_Up = ~Key_Val & (Key_Old ^ Key_Val);//捕捉按键上降沿
+  34   1        Key_Old = Key_Val;//辅助扫描变量
+  35   1      
+  36   1        switch(Key_Down)
+  37   1        {
+  38   2          case 4://界面切换
+  39   2            Seg_Disp_Mode ^= 1;//循环切换数据界面和参数界面
+  40   2            if(Seg_Disp_Mode == 1) //切换到参数界面
+  41   2            {
+  42   3              //将控制值赋值给显示数组 便于修改数据
+  43   3              Temperature_Params_Disp[0] = Temperature_Params_Ctrol[0];
+  44   3              Temperature_Params_Disp[1] = Temperature_Params_Ctrol[1];
+  45   3              //上下限指针复位
+  46   3              Temperature_Params_Index = 0;
+  47   3            }
+  48   2            else //切换到数据界面
+  49   2            {
+  50   3              if(Temperature_Params_Disp[0] > Temperature_Params_Disp[1]) //设置参数合理
+  51   3              {
+  52   4                //将显示值赋值给控制数组 用于保存数据
+  53   4                Temperature_Params_Ctrol[0] = Temperature_Params_Disp[0];
+  54   4                Temperature_Params_Ctrol[1] = Temperature_Params_Disp[1];
+C51 COMPILER V9.54   MAIN                                                                  01/28/2023 13:26:01 PAGE 2   
+
+  55   4                Error_Flag = 0;//标志位拉低 表示设置正确
+  56   4              }
+  57   3              else
+  58   3                Error_Flag = 1;//标志位拉高 表示设置错误
+  59   3            }
+  60   2          break;
+  61   2          case 5://参数切换
+  62   2            if(Seg_Disp_Mode == 1) //处于参数界面
+  63   2              Temperature_Params_Index ^= 1;//切换参数选中上下限
+  64   2          break;
+  65   2          case 6://参数自加
+  66   2            if(Seg_Disp_Mode == 1) //处于参数界面
+  67   2            {
+  68   3              if(++Temperature_Params_Disp[Temperature_Params_Index] == 100)
+  69   3                Temperature_Params_Disp[Temperature_Params_Index] = 99;//限制上限到99
+  70   3            }
+  71   2          break;
+  72   2          case 7://参数自减
+  73   2            if(Seg_Disp_Mode == 1) //处于参数界面
+  74   2            {
+  75   3              if(--Temperature_Params_Disp[Temperature_Params_Index] == 255)
+  76   3                Temperature_Params_Disp[Temperature_Params_Index] = 0;//限制下限到0
+  77   3            }
+  78   2          break;
+  79   2        }
+  80   1      
+  81   1      }
+  82          
+  83          /* 信息处理函数 */
+  84          void Seg_Proc()
+  85          {
+  86   1        if(Seg_Slow_Down) return;
+  87   1        Seg_Slow_Down = 1;//数码管减速程序
+  88   1      
+  89   1        /* 信息获取区域 */
+  90   1        Temperature = rd_temperature();//实时读取温度值
+  91   1        
+  92   1        /* 数据显示区域 */
+  93   1        if(Seg_Disp_Mode == 0) //处于数据界面
+  94   1        {
+  95   2          Seg_Buf[0] = 11;//标识符C
+  96   2          Seg_Buf[3] = 10;
+  97   2          Seg_Buf[4] = 10;
+  98   2          Seg_Buf[6] = (unsigned char)Temperature / 10 % 10;
+  99   2          Seg_Buf[7] = (unsigned char)Temperature % 10;
+ 100   2        }
+ 101   1        else //处于参数界面
+ 102   1        {
+ 103   2          Seg_Buf[0] = 12;//标识符P
+ 104   2          Seg_Buf[3] = Temperature_Params_Disp[0] / 10 % 10;
+ 105   2          Seg_Buf[4] = Temperature_Params_Disp[0] % 10;
+ 106   2          Seg_Buf[6] = Temperature_Params_Disp[1] / 10 % 10;
+ 107   2          Seg_Buf[7] = Temperature_Params_Disp[1] % 10;
+ 108   2        }
+ 109   1      }
+ 110          
+ 111          /* 其他显示函数 */
+ 112          void Led_Proc()
+ 113          {
+ 114   1        unsigned char i;//For循环专用变量
+ 115   1      
+ 116   1        /* Led相关 */
+C51 COMPILER V9.54   MAIN                                                                  01/28/2023 13:26:01 PAGE 3   
+
+ 117   1        ucLed[0] = (Temperature > Temperature_Params_Ctrol[0]);
+ 118   1        ucLed[1] = (Temperature <= Temperature_Params_Ctrol[0] && Temperature >= Temperature_Params_Ctrol[1]);
+ 119   1        ucLed[2] = (Temperature < Temperature_Params_Ctrol[1]);
+ 120   1        ucLed[3] = Error_Flag;
+ 121   1        
+ 122   1        /* DAC相关 */
+ 123   1        for(i=0;i<3;i++)
+ 124   1        {
+ 125   2          if(ucLed[i] == 1)
+ 126   2          {
+ 127   3            Da_Write(51*(4-i));
+ 128   3            break;
+ 129   3          }
+ 130   2        }
+ 131   1      }
+ 132          
+ 133          /* 定时器0中断初始化函数 */
+ 134          void Timer0Init(void)   //1毫秒@12.000MHz
+ 135          {
+ 136   1        AUXR &= 0x7F;   //定时器时钟12T模式
+ 137   1        TMOD &= 0xF0;   //设置定时器模式
+ 138   1        TL0 = 0x18;   //设置定时初始值
+ 139   1        TH0 = 0xFC;   //设置定时初始值
+ 140   1        TF0 = 0;    //清除TF0标志
+ 141   1        TR0 = 1;    //定时器0开始计时
+ 142   1        ET0 = 1;    //定时器中断0打开
+ 143   1        EA = 1;     //总中断打开
+ 144   1      }
+ 145          
+ 146          /* 定时器0中断服务函数 */
+ 147          void Timer0Server() interrupt 1
+ 148          {  
+ 149   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 150   1        if(++Seg_Slow_Down == 500) Seg_Slow_Down = 0;//数码管减速专用
+ 151   1        if(++Seg_Pos == 8) Seg_Pos = 0;//数码管显示专用
+ 152   1        Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 153   1        Led_Disp(Seg_Pos,ucLed[Seg_Pos]);
+ 154   1      }
+ 155          
+ 156          /* 延时函数 */
+ 157          void Delay750ms()   //@12.000MHz
+ 158          {
+ 159   1        unsigned char i, j, k;
+ 160   1        i = 35;
+ 161   1        j = 51;
+ 162   1        k = 182;
+ 163   1        do
+ 164   1        {
+ 165   2          do
+ 166   2          {
+ 167   3            while (--k);
+ 168   3          } while (--j);
+ 169   2        } while (--i);
+ 170   1      }
+ 171          
+ 172          /* Main */
+ 173          void main()
+ 174          {
+ 175   1        rd_temperature();//上电读取一次温度并且延时750MS避免数据出现85
+ 176   1        Delay750ms();
+ 177   1        System_Init();
+ 178   1        Timer0Init();
+C51 COMPILER V9.54   MAIN                                                                  01/28/2023 13:26:01 PAGE 4   
+
+ 179   1        while (1)
+ 180   1        {
+ 181   2          Key_Proc();
+ 182   2          Seg_Proc();
+ 183   2          Led_Proc();
+ 184   2        }
+ 185   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    579    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     40       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

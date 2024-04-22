@@ -1,0 +1,38 @@
+{
+    "configurations": [
+        {
+            "name": "Xifeng",
+            "includePath": [
+                "f:\\蓝桥杯冲刺培训\\第五讲 DS1302模块程序\\DS1302 - 范例程序 - 副本\\Driver",
+                "C:\\Keil_v5\\C51\\INC",
+                "f:\\蓝桥杯冲刺培训\\第五讲 DS1302模块程序\\DS1302 - 范例程序 - 副本\\User"
+            ],
+            "defines": [
+                "__C51__",
+                "__VSCODE_C51__",
+                "reentrant=",
+                "compact=",
+                "small=",
+                "large=",
+                "data=",
+                "idata=",
+                "pdata=",
+                "bdata=",
+                "xdata=",
+                "code=",
+                "bit=char",
+                "sbit=char",
+                "sfr=char",
+                "sfr16=int",
+                "sfr32=int",
+                "interrupt=",
+                "using=",
+                "_at_=",
+                "_priority_=",
+                "_task_="
+            ],
+            "intelliSenseMode": "${default}"
+        }
+    ],
+    "version": 4
+}

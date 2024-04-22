@@ -1,0 +1,42 @@
+	进阶版矩阵键盘底层v2.0
+	
+	更新内容：
+		1.修复行列相反的bug
+		2.将检测的宏定义写入key.h
+		
+	注意：
+		！这个按键底层当且仅当不同行不同列的多按键使用，正常题目无需更改底层！
+		！使用时一定也要将key.h替换！
+		
+	调用举例：
+		void Key_Proc()
+		{
+			if(Key_Slow_Down) return;
+			Key_Slow_Down = 1;
+
+			Key_Val = Key_Read();
+			Key_Down = Key_Val & (Key_Old ^ Key_Val);
+			Key_Up = ~Key_Val & (Key_Old ^ Key_Val);
+			Key_Old = Key_Val;
+			
+			if(KeyDown_Num(4))
+			{
+				if(!KeyDown_Num(9)) //排除组合按键
+				{
+					//S4单按键功能区
+				}
+			}
+
+			if(KeyDown_Num(9)) //按键S9产生下降沿
+			{
+				if(!KeyDown_Num(4)) //排除组合按键
+				{
+					//S9单按键功能区
+				}
+			}
+
+			if((KeyDown_Num(4)) && (KeyDown_Num(9))) 
+			{
+				//S4+S9组合按键功能区
+			}
+		}

@@ -1,0 +1,1 @@
+void Beer(unsigned char DelayNum);

@@ -1,0 +1,7 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\Delay.obj",
+".\Objects\LDE.obj",
+".\Objects\init.obj" 
+TO ".\Objects\LED-M" 
+PRINT(".\Listings\LED-M.m51") RAMSIZE(256) 

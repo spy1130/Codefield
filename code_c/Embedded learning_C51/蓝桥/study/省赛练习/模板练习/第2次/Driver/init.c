@@ -1,0 +1,12 @@
+#include <init.h>
+
+void System_init()
+{
+	P0=0xff;
+	P2=P2 &0x1f |0x80;//Y4
+	P2&=0x1f;
+	
+	P0=0X00;
+	P2=P2 &0x1f |0xa0;//Y5
+	P2&=0x1f;
+}

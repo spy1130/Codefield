@@ -1,0 +1,35 @@
+C51 COMPILER V9.60.7.0   BEER                                                              03/12/2024 18:49:05 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE BEER
+OBJECT MODULE PLACED IN .\Objects\Beer.obj
+COMPILER INVOKED BY: E:\Applications\Keil_5\C51\BIN\C51.EXE ..\Driver\Beer.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver;.
+                    -.\Sys;..\User) DEBUG OBJECTEXTEND PRINT(.\Listings\Beer.lst) OBJECT(.\Objects\Beer.obj)
+
+line level    source
+
+   1          #include "Beer.h"
+   2          #include "STC15F2K60S2.h"
+   3          #include "Delay.h"
+   4          //输入为延时多少毫秒
+   5          void Beer(unsigned char DelayNum)
+   6          {       P0 = 0x40;//P06
+   7   1              P2=P2 & 0X1F | 0xA0;//y5
+   8   1              Delay(DelayNum);
+   9   1              P0=0X00;
+  10   1              P2 &=0x1f;
+  11   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     21    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

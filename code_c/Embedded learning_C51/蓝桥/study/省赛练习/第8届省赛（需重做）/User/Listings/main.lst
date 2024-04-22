@@ -1,0 +1,283 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              03/29/2024 21:34:31 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: E:\Applications\Keil_5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJE
+                    -CTEXTEND PRINT(.\Listings\main.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件声明区 */
+   2          #include <STC15F2K60S2.H>//单片机寄存器专用头文件
+   3          #include <Init.h>//初始化底层驱动专用头文件
+   4          #include <Led.h>//Led底层驱动专用头文件
+   5          #include <Key.h>//按键底层驱动专用头文件
+   6          #include <Seg.h>//数码管底层驱动专用头文件
+   7          #include "ds1302.h" 
+   8          #include "onewire.h"
+   9          
+  10          /* 变量声明区 */
+  11          unsigned char Key_Val,Key_Down,Key_Old,Key_Up;//按键专用变量
+  12          unsigned char Key_Slow_Down;//按键减速专用变量
+  13          unsigned char Seg_Buf[8] = {10,10,10,10,10,10,10,10};//数码管显示数据存放数组
+  14          unsigned char Seg_Point[8] = {0,0,0,0,0,0,0,0};//数码管小数点数据存放数组
+  15          unsigned char Seg_Pos;//数码管扫描专用变量
+  16          unsigned int Seg_Slow_Down;//数码管减速专用变量
+  17          unsigned char ucLed[8] = {0,0,0,0,0,0,0,0};//Led显示数据存放数组
+  18          bit Seg_Disp_Mode;//数码管显示模式变量 0-时间相关 1-温度相关
+  19          unsigned char ucRtc[3] = {0x23,0x59,0x50};
+  20          unsigned char ucRtc_Set[3] = {0x23,0x59,0x50};
+  21          unsigned char Alarm[3] = {0x00,0x00,0x00};
+  22          unsigned char Alarm_Set[3] = {0x00,0x00,0x00};
+  23          unsigned char ucRtc_Index;
+  24          unsigned int Timer_500Ms;
+  25          bit Seg_Star_Flag;
+  26          bit Beep_Flag;
+  27          unsigned char Timer_100Ms;
+  28          unsigned char Temperature;
+  29          bit Led_Star_Flag;
+  30          unsigned char* Data_Flag[3] = {ucRtc,ucRtc_Set,Alarm_Set};
+  31          unsigned char Seg_Index;//时间相关显示内容 0-时钟显示 1-时钟设置 2-闹钟设置
+  32          
+  33          /* 键盘处理函数 */
+  34          void Key_Proc()
+  35          {
+  36   1              unsigned char i;
+  37   1              if(Key_Slow_Down) return;
+  38   1              Key_Slow_Down = 1;//键盘减速程序
+  39   1      
+  40   1              Key_Val = Key_Read();//实时读取键码值
+  41   1              Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+  42   1              Key_Up = ~Key_Val & (Key_Old ^ Key_Val);//捕捉按键上降沿
+  43   1              Key_Old = Key_Val;//辅助扫描变量
+  44   1      
+  45   1              if(Beep_Flag == 1)
+  46   1              {
+  47   2                      if(Key_Down != 0)
+  48   2                              Beep_Flag = 0;
+  49   2                      return;//避免也使用了功能
+  50   2              }
+  51   1              
+  52   1              if(Seg_Index == 0)
+  53   1              {
+  54   2                      if(Key_Old == 4)
+C51 COMPILER V9.60.7.0   MAIN                                                              03/29/2024 21:34:31 PAGE 2   
+
+  55   2                              Seg_Disp_Mode = 1;
+  56   2                      else
+  57   2                              Seg_Disp_Mode = 0;
+  58   2              }
+  59   1              switch(Key_Down)
+  60   1              {
+  61   2                      case 7:
+  62   2                              if(Seg_Disp_Mode == 0) //时钟相关
+  63   2                              {
+  64   3                                      if(Seg_Index == 0)
+  65   3                                      {
+  66   4                                              for(i=0;i<3;i++)
+  67   4                                                      ucRtc_Set[i] = ucRtc[i];
+  68   4                                              Seg_Index = 1;
+  69   4                                      }
+  70   3                                      else if(Seg_Index == 1)
+  71   3                                      {
+  72   4                                              if(++ucRtc_Index == 3)
+  73   4                                              {
+  74   5                                                      Set_Rtc(ucRtc_Set);
+  75   5                                                      ucRtc_Index = 0;
+  76   5                                                      Seg_Index = 0;
+  77   5                                              }
+  78   4                                      }
+  79   3                              }
+  80   2                      break;
+  81   2                      case 5:
+  82   2                              if(Seg_Disp_Mode == 0) //时钟相关
+  83   2                              {
+  84   3      //                              if(Seg_Index == 1) //设置时钟
+  85   3      //                              {
+  86   3      //                                      ucRtc_Set[ucRtc_Index]++;
+  87   3      //                                      if(ucRtc_Set[ucRtc_Index] % 16 == 0x0a)
+  88   3      //                                              ucRtc_Set[ucRtc_Index] += 6;
+  89   3      //                                      if(ucRtc_Set[ucRtc_Index] == (ucRtc_Index?0x60:0x24))
+  90   3      //                                              ucRtc_Set[ucRtc_Index] = (ucRtc_Index?0x59:0x23);
+  91   3      //                              }
+  92   3                                      Data_Flag[Seg_Index][ucRtc_Index]++;
+  93   3                                      if(Data_Flag[Seg_Index][ucRtc_Index] % 16 == 0x0a)//遇到16加1
+  94   3                                              Data_Flag[Seg_Index][ucRtc_Index] += 6;
+  95   3                                      if(Data_Flag[Seg_Index][ucRtc_Index] == (ucRtc_Index?0x60:0x24))//设置上下限
+  96   3                                              Data_Flag[Seg_Index][ucRtc_Index] = (ucRtc_Index?0x59:0x23);    
+  97   3                              }
+  98   2                      break;
+  99   2                      case 4:
+ 100   2                              if(Seg_Disp_Mode == 0) //时钟相关
+ 101   2                              {
+ 102   3      //                              if(Seg_Index == 1) //设置时钟
+ 103   3      //                              {
+ 104   3      //                                      ucRtc_Set[ucRtc_Index]--;
+ 105   3      //                                      if(ucRtc_Set[ucRtc_Index] % 16 == 0x0f)
+ 106   3      //                                              ucRtc_Set[ucRtc_Index] -= 6;
+ 107   3      //                                      if(ucRtc_Set[ucRtc_Index] == 0xf9)
+ 108   3      //                                              ucRtc_Set[ucRtc_Index] = 0;
+ 109   3      //                              }
+ 110   3                                      Data_Flag[Seg_Index][ucRtc_Index]--;
+ 111   3                                      if(Data_Flag[Seg_Index][ucRtc_Index] % 16 == 0x0f)//16里面遇到f转换成BCD码
+ 112   3                                              Data_Flag[Seg_Index][ucRtc_Index] -= 6;
+ 113   3                                      if(Data_Flag[Seg_Index][ucRtc_Index] == 0xf9)//下限设置（0H-7H  ）
+ 114   3                                              Data_Flag[Seg_Index][ucRtc_Index] = 0;                          
+ 115   3                              }                       
+ 116   2                      break;
+C51 COMPILER V9.60.7.0   MAIN                                                              03/29/2024 21:34:31 PAGE 3   
+
+ 117   2                      case 6:
+ 118   2                              if(Seg_Disp_Mode == 0) //时钟相关
+ 119   2                              {
+ 120   3                                      if(Seg_Index == 0)
+ 121   3                                              Seg_Index = 2;
+ 122   3                                      else if(Seg_Index == 2)
+ 123   3                                      {
+ 124   4                                              if(++ucRtc_Index == 3)
+ 125   4                                              {
+ 126   5                                                      for(i=0;i<3;i++)
+ 127   5                                                              Alarm[i] = Alarm_Set[i];
+ 128   5                                                      ucRtc_Index = 0;
+ 129   5                                                      Seg_Index = 0;
+ 130   5                                              }
+ 131   4                                      }
+ 132   3                              }
+ 133   2                      break;
+ 134   2              }
+ 135   1      }
+ 136          
+ 137          /* 信息处理函数 */
+ 138          void Seg_Proc()
+ 139          {
+ 140   1              unsigned char i;
+ 141   1              if(Seg_Slow_Down) return;
+ 142   1              Seg_Slow_Down = 1;//数码管减速程序
+ 143   1      
+ 144   1              
+ 145   1              /* 信息读取区域 */
+ 146   1              Read_Rtc(ucRtc);
+ 147   1              Temperature = rd_temperature();
+ 148   1              
+ 149   1              /* 数据显示区域 */
+ 150   1              if(Seg_Disp_Mode == 0) //时钟
+ 151   1              {
+ 152   2      //              switch(Seg_Index)
+ 153   2      //              {
+ 154   2      //                      case 0://时钟显示
+ 155   2      //                              Seg_Buf[2] = Seg_Buf[5] = 11;
+ 156   2      //                              for(i=0;i<3;i++)
+ 157   2      //                              {
+ 158   2      //                                      Seg_Buf[3*i] = ucRtc[i] / 16;
+ 159   2      //                                      Seg_Buf[3*i+1] = ucRtc[i] % 16;
+ 160   2      //                              }
+ 161   2      //                      break;
+ 162   2      //                      case 1://时钟设置
+ 163   2      //                              Seg_Buf[2] = Seg_Buf[5] = 11;
+ 164   2      //                              for(i=0;i<3;i++)
+ 165   2      //                              {
+ 166   2      //                                      Seg_Buf[3*i] = ucRtc_Set[i] / 16;
+ 167   2      //                                      Seg_Buf[3*i+1] = ucRtc_Set[i] % 16;
+ 168   2      //                              }
+ 169   2      //                              Seg_Buf[3*ucRtc_Index] = Seg_Star_Flag?10:ucRtc_Set[ucRtc_Index] / 16;
+ 170   2      //                              Seg_Buf[3*ucRtc_Index+1] = Seg_Star_Flag?10:ucRtc_Set[ucRtc_Index] % 16;
+ 171   2      //                      break;
+ 172   2                                      Seg_Buf[2] = Seg_Buf[5] = 11;
+ 173   2                                      for(i=0;i<3;i++)
+ 174   2                                      {
+ 175   3                                              Seg_Buf[3*i] = Data_Flag[Seg_Index][i] / 16;
+ 176   3                                              Seg_Buf[3*i+1] = Data_Flag[Seg_Index][i] % 16;
+ 177   3                                      }               
+ 178   2                                      if(Seg_Index > 0)
+C51 COMPILER V9.60.7.0   MAIN                                                              03/29/2024 21:34:31 PAGE 4   
+
+ 179   2                                      {
+ 180   3                                              Seg_Buf[3*ucRtc_Index] = Seg_Star_Flag?10:Data_Flag[Seg_Index][ucRtc_Index] / 16;
+ 181   3                                              Seg_Buf[3*ucRtc_Index+1] = Seg_Star_Flag?10:Data_Flag[Seg_Index][ucRtc_Index] % 16;
+ 182   3                                      }
+ 183   2                      }
+ 184   1              else
+ 185   1              {
+ 186   2                      for(i=0;i<5;i++)
+ 187   2                              Seg_Buf[i] = 10;
+ 188   2                      Seg_Buf[5] = Temperature / 10;
+ 189   2                      Seg_Buf[6] = Temperature % 10;
+ 190   2                      Seg_Buf[7] = 12;
+ 191   2              }
+ 192   1      }
+ 193          
+ 194          /* 其他显示函数 */
+ 195          void Led_Proc()
+ 196          {
+ 197   1              if(Alarm[0] == ucRtc[0] && Alarm[1] == ucRtc[1] && Alarm[2] == ucRtc[2])
+ 198   1                      Beep_Flag = 1;
+ 199   1              if((ucRtc[2] % 16) == (Alarm[2] % 16 + 5))
+ 200   1                      Beep_Flag = 0;
+ 201   1              ucLed[0] = Led_Star_Flag & Beep_Flag;//需要同时成立
+ 202   1      }
+ 203          
+ 204          /* 定时器0中断初始化函数 */
+ 205          void Timer0Init(void)           //1毫秒@12.000MHz
+ 206          {
+ 207   1              AUXR &= 0x7F;           //定时器时钟12T模式
+ 208   1              TMOD &= 0xF0;           //设置定时器模式
+ 209   1              TL0 = 0x18;             //设置定时初始值
+ 210   1              TH0 = 0xFC;             //设置定时初始值
+ 211   1              TF0 = 0;                //清除TF0标志
+ 212   1              TR0 = 1;                //定时器0开始计时
+ 213   1              ET0 = 1;    //定时器中断0打开
+ 214   1              EA = 1;     //总中断打开
+ 215   1      }
+ 216          
+ 217          /* 定时器0中断服务函数 */
+ 218          void Timer0Server() interrupt 1
+ 219          {  
+ 220   1              if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 221   1              if(++Seg_Slow_Down == 200) Seg_Slow_Down = 0;//数码管减速专用
+ 222   1              if(++Seg_Pos == 8) Seg_Pos = 0;//数码管显示专用
+ 223   1              Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 224   1              Led_Disp(Seg_Pos,ucLed[Seg_Pos]);
+ 225   1              
+ 226   1              if(++Timer_500Ms == 500)
+ 227   1              {
+ 228   2                      Timer_500Ms = 0;
+ 229   2                      Seg_Star_Flag ^= 1;
+ 230   2              }
+ 231   1              
+ 232   1              if(++Timer_100Ms == 100)
+ 233   1              {
+ 234   2                      Timer_100Ms = 0;
+ 235   2                      Led_Star_Flag ^= 1;
+ 236   2              }
+ 237   1      }
+ 238          
+ 239          /* Main */
+ 240          void main()
+C51 COMPILER V9.60.7.0   MAIN                                                              03/29/2024 21:34:31 PAGE 5   
+
+ 241          {
+ 242   1              Set_Rtc(ucRtc);
+ 243   1              System_Init();
+ 244   1              Timer0Init();
+ 245   1              while (1)
+ 246   1              {
+ 247   2                      Key_Proc();
+ 248   2                      Seg_Proc();
+ 249   2                      Led_Proc();
+ 250   2              }
+ 251   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1082    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     59       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      4    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

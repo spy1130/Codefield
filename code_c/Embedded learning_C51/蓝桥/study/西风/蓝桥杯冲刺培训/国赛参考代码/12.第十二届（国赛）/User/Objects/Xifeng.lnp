@@ -1,0 +1,10 @@
+".\Objects\main.obj",
+".\Objects\init.obj",
+".\Objects\key.obj",
+".\Objects\led.obj",
+".\Objects\ds1302.obj",
+".\Objects\iic.obj",
+".\Objects\ultrasound.obj",
+".\Objects\seg.obj" 
+TO ".\Objects\Xifeng" 
+PRINT(".\Listings\Xifeng.m51") RAMSIZE(256) 

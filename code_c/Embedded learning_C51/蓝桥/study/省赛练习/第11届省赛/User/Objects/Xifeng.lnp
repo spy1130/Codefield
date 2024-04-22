@@ -1,0 +1,9 @@
+".\Objects\main.obj",
+".\Objects\Led.obj",
+".\Objects\Seg.obj",
+".\Objects\Key.obj",
+".\Objects\Init.obj",
+".\Objects\onewire.obj",
+".\Objects\iic.obj" 
+TO ".\Objects\Xifeng" 
+PRINT(".\Listings\Xifeng.m51") RAMSIZE(256) 

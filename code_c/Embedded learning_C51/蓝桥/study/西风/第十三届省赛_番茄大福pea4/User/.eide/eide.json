@@ -1,0 +1,78 @@
+{
+  "name": "Xifeng",
+  "type": "C51",
+  "dependenceList": [],
+  "srcDirs": [],
+  "virtualFolder": {
+    "name": "<virtual_root>",
+    "files": [],
+    "folders": [
+      {
+        "name": "Driver",
+        "files": [
+          {
+            "path": "../Driver/ds1302.c"
+          },
+          {
+            "path": "../Driver/Init.c"
+          },
+          {
+            "path": "../Driver/Key.c"
+          },
+          {
+            "path": "../Driver/Led.c"
+          },
+          {
+            "path": "../Driver/onewire.c"
+          },
+          {
+            "path": "../Driver/Seg.c"
+          }
+        ],
+        "folders": []
+      },
+      {
+        "name": "User",
+        "files": [
+          {
+            "path": "main.c"
+          }
+        ],
+        "folders": []
+      }
+    ]
+  },
+  "outDir": "build",
+  "deviceName": null,
+  "packDir": null,
+  "miscInfo": {
+    "uid": "23d423b051bbec816b6ad487b3d3ba9b"
+  },
+  "targets": {
+    "Xifeng": {
+      "excludeList": [],
+      "toolchain": "Keil_C51",
+      "compileConfig": {
+        "options": "null"
+      },
+      "uploader": "Custom",
+      "uploadConfig": {
+        "bin": "",
+        "commandLine": "",
+        "eraseChipCommand": ""
+      },
+      "uploadConfigMap": {},
+      "custom_dep": {
+        "name": "default",
+        "incList": [
+          "C:/Keil_v5/C51/INC/STC",
+          "../Driver"
+        ],
+        "libList": [],
+        "sourceDirList": [],
+        "defineList": []
+      }
+    }
+  },
+  "version": "3.3"
+}

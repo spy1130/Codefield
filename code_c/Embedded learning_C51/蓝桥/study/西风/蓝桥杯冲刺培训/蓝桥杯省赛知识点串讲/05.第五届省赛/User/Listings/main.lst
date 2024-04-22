@@ -1,0 +1,194 @@
+C51 COMPILER V9.54   MAIN                                                                  02/14/2023 22:42:55 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件声明区 */
+   2          #include <STC15F2K60S2.H>//单片机寄存器专用头文件
+   3          #include <Init.h>//初始化底层驱动专用头文件
+   4          #include <Led.h>//Led底层驱动专用头文件
+   5          #include <Key.h>//按键底层驱动专用头文件
+   6          #include <Seg.h>//数码管底层驱动专用头文件
+   7          #include "ds1302.h"//时钟底层驱动专用头文件
+   8          #include "iic.h"//单总线底层驱动专用头文件
+   9          
+  10          /* 变量声明区 */
+  11          unsigned char Key_Val,Key_Down,Key_Old,Key_Up;//按键专用变量
+  12          unsigned char Key_Slow_Down;//按键减速专用变量
+  13          unsigned char Seg_Buf[8] = {10,10,10,10,10,10,10,10};//数码管显示数据存放数组
+  14          unsigned char Seg_Point[8] = {0,0,0,0,0,0,0,0};//数码管小数点数据存放数组
+  15          unsigned char Seg_Pos;//数码管扫描专用变量
+  16          unsigned int Seg_Slow_Down;//数码管减速专用变量
+  17          unsigned char ucLed[8] = {0,0,0,0,0,0,0,0};//Led显示数据存放数组
+  18          bit Seg_Disp_Mode;//数码管显示模式变量 0-数据显示 1-参数设置
+  19          unsigned char ucRtc[3] = {0x08,0x30,0x00};//实时时钟数据存放数组 上电默认时间08:30:00
+  20          unsigned char Humidity;//实时湿度变量
+  21          unsigned char Hum_Disp = 50;//湿度阈值显示变量
+  22          unsigned char Hum_Ctrol = 50;//湿度阈值控制变量
+  23          bit Work_Mode;//系统工作模式变量 0-自动工作状态 1-手动工作状态
+  24          bit Relay_Flag;//继电器使能标志位
+  25          bit Beep_Enable_Flag;//闹钟功能使能标志位
+  26          
+  27          /* 键盘处理函数 */
+  28          void Key_Proc()
+  29          {
+  30   1        if(Key_Slow_Down) return;
+  31   1        Key_Slow_Down = 1;//键盘减速程序
+  32   1      
+  33   1        Key_Val = Key_Read();//实时读取键码值
+  34   1        Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+  35   1        Key_Up = ~Key_Val & (Key_Old ^ Key_Val);//捕捉按键上降沿
+  36   1        Key_Old = Key_Val;//辅助扫描变量
+  37   1      
+  38   1        switch(Key_Down)
+  39   1        {
+  40   2          case 7://工作模式按键
+  41   2            if(Seg_Disp_Mode == 0) //处于数据显示界面 避免出现程序BUG
+  42   2            {
+  43   3              Relay_Flag = 0;//切换模式后将浇灌系统关闭
+  44   3              Work_Mode ^= 1;
+  45   3            }
+  46   2          break;
+  47   2          case 6://阈值调整按键（自动）- 闹钟功能按键（手动）
+  48   2            if(Work_Mode == 0) //处于自动工作状态
+  49   2            {
+  50   3              Seg_Disp_Mode ^= 1;
+  51   3              if(Seg_Disp_Mode == 0) //从阈值设置界面退出
+  52   3              {
+  53   4                Hum_Ctrol = Hum_Disp;//阈值参数生效
+  54   4                EEPROM_Write(&Hum_Ctrol,0,1);//保存阈值参数
+C51 COMPILER V9.54   MAIN                                                                  02/14/2023 22:42:55 PAGE 2   
+
+  55   4              }
+  56   3            }
+  57   2            else
+  58   2              Beep_Enable_Flag ^= 1;
+  59   2          break;
+  60   2          case 5://阈值自加按键（自动） - 系统开启按键（手动）
+  61   2            if(Work_Mode == 0) //处于自动工作状态
+  62   2            {
+  63   3              if(Seg_Disp_Mode == 1) //处于阈值设置界面
+  64   3              {
+  65   4                if(++Hum_Disp == 100)
+  66   4                  Hum_Disp = 99;
+  67   4              }
+  68   3            }
+  69   2            else
+  70   2              Relay_Flag = 0;
+  71   2          break;
+  72   2          case 4://阈值自减按键（自动） - 系统关闭按键（手动）
+  73   2            if(Work_Mode == 0) //处于自动工作状态
+  74   2            {
+  75   3              if(Seg_Disp_Mode == 1) //处于阈值设置界面
+  76   3              {
+  77   4                if(--Hum_Disp == 255)
+  78   4                  Hum_Disp = 0;
+  79   4              }
+  80   3            }
+  81   2            else
+  82   2              Relay_Flag = 1;
+  83   2          break;
+  84   2        }
+  85   1      }
+  86          
+  87          /* 信息处理函数 */
+  88          void Seg_Proc()
+  89          {
+  90   1        if(Seg_Slow_Down) return;
+  91   1        Seg_Slow_Down = 1;//数码管减速程序
+  92   1        
+  93   1        /* 信息获取区域 */
+  94   1        Read_Rtc(ucRtc);//实时读取时钟数据
+  95   1        Humidity = Ad_Read(0x03) / 2.56;//实时读取湿度数据
+  96   1        if(Work_Mode == 0) //处于自动模式
+  97   1          Relay_Flag = Hum_Ctrol / Humidity;
+  98   1        
+  99   1        /* 数据显示区域 */
+ 100   1        if(Seg_Disp_Mode == 0) //处于数据显示界面
+ 101   1        {
+ 102   2          Seg_Buf[0] = ucRtc[0] / 16;
+ 103   2          Seg_Buf[1] = ucRtc[0] % 16;
+ 104   2          Seg_Buf[3] = ucRtc[1] / 16;
+ 105   2          Seg_Buf[4] = ucRtc[1] % 16;
+ 106   2          Seg_Buf[2] = 11;
+ 107   2          Seg_Buf[6] = Humidity / 10;
+ 108   2          Seg_Buf[7] = Humidity % 10;
+ 109   2        }
+ 110   1        else //处于参数设置界面
+ 111   1        {
+ 112   2          Seg_Buf[0] = Seg_Buf[1] = 11;
+ 113   2          Seg_Buf[2] = Seg_Buf[3] = Seg_Buf[4] = 10;
+ 114   2          Seg_Buf[6] = Hum_Disp / 10;
+ 115   2          Seg_Buf[7] = Hum_Disp % 10;
+ 116   2        }
+C51 COMPILER V9.54   MAIN                                                                  02/14/2023 22:42:55 PAGE 3   
+
+ 117   1      }
+ 118          
+ 119          /* 其他显示函数 */
+ 120          void Led_Proc()
+ 121          {
+ 122   1        ucLed[0] = !Work_Mode;//自动模式指示灯
+ 123   1        ucLed[1] = Work_Mode;//手动模式指示灯
+ 124   1      }
+ 125          
+ 126          /* 定时器0中断初始化函数 */
+ 127          void Timer0Init(void)   //1毫秒@12.000MHz
+ 128          {
+ 129   1        AUXR &= 0x7F;   //定时器时钟12T模式
+ 130   1        TMOD &= 0xF0;   //设置定时器模式
+ 131   1        TL0 = 0x18;   //设置定时初始值
+ 132   1        TH0 = 0xFC;   //设置定时初始值
+ 133   1        TF0 = 0;    //清除TF0标志
+ 134   1        TR0 = 1;    //定时器0开始计时
+ 135   1        ET0 = 1;    //定时器中断0打开
+ 136   1        EA = 1;     //总中断打开
+ 137   1      }
+ 138          
+ 139          /* 定时器0中断服务函数 */
+ 140          void Timer0Server() interrupt 1
+ 141          {  
+ 142   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 143   1        if(++Seg_Slow_Down == 500) Seg_Slow_Down = 0;//数码管减速专用
+ 144   1        if(++Seg_Pos == 8) Seg_Pos = 0;//数码管显示专用
+ 145   1        Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 146   1        Led_Disp(Seg_Pos,ucLed[Seg_Pos]);
+ 147   1        Relay(Relay_Flag);
+ 148   1        Beep(Relay_Flag & Beep_Enable_Flag);  
+ 149   1      }
+ 150          
+ 151          /* Main */
+ 152          void main()
+ 153          {
+ 154   1        Set_Rtc(ucRtc);//上电设置时钟值为08:30:00
+ 155   1        Humidity = Ad_Read(0x03) / 2.56;//上电读取一次湿度 避免数据错误
+ 156   1        EEPROM_Read(&Hum_Ctrol,0,1);//读取阈值参数
+ 157   1        Hum_Disp = Hum_Ctrol;//便于设置阈值
+ 158   1        System_Init();
+ 159   1        Timer0Init();
+ 160   1        while (1)
+ 161   1        {
+ 162   2          Key_Proc();
+ 163   2          Seg_Proc();
+ 164   2          Led_Proc();
+ 165   2        }
+ 166   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    538    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     38    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      4    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

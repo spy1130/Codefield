@@ -1,0 +1,186 @@
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                    03/03/2024  17:14:39  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22.4.0, INVOKED BY:
+E:\APPLICATIONS\KEIL_5\C51\BIN\BL51.EXE .\Objects\main.obj, .\Objects\delay.obj, .\Objects\bsp_led.obj, .\Objects\bsp_in
+>> it.obj TO .\Objects\301_LED PRINT (.\Listings\301_LED.m51) RAMSIZE (256)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  .\Objects\main.obj (MAIN)
+  .\Objects\delay.obj (DELAY)
+  .\Objects\bsp_led.obj (BSP_LED)
+  .\Objects\bsp_init.obj (BSP_INIT)
+  E:\APPLICATIONS\KEIL_5\C51\LIB\C51S.LIB (?C_STARTUP)
+
+
+LINK MAP OF MODULE:  .\Objects\301_LED (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0002H     UNIT         _DATA_GROUP_
+            IDATA   000AH     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     003FH     UNIT         ?PR?MAIN?MAIN
+            CODE    0042H     001EH     UNIT         ?PR?_DELAY?DELAY
+            CODE    0060H     001DH     UNIT         ?PR?CLS_PERIPHERAL?BSP_INIT
+            CODE    007DH     0010H     UNIT         ?PR?_LED_DISP?BSP_LED
+            CODE    008DH     000CH     UNIT         ?C_C51STARTUP
+
+
+
+OVERLAY MAP OF MODULE:   .\Objects\301_LED (MAIN)
+
+
+SEGMENT                               DATA_GROUP 
+  +--> CALLED SEGMENT               START    LENGTH
+---------------------------------------------------
+?C_C51STARTUP                       -----    -----
+  +--> ?PR?MAIN?MAIN
+
+?PR?MAIN?MAIN                       0008H    0002H
+  +--> ?PR?CLS_PERIPHERAL?BSP_INIT
+  +--> ?PR?_LED_DISP?BSP_LED
+  +--> ?PR?_DELAY?DELAY
+
+
+
+SYMBOL TABLE OF MODULE:  .\Objects\301_LED (MAIN)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  03/03/2024  17:14:39  PAGE 2
+
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00C0H         PUBLIC        P4
+  D:00C8H         PUBLIC        P5
+  D:00E8H         PUBLIC        P6
+  D:00F8H         PUBLIC        P7
+  D:00A8H         PUBLIC        IE
+  D:00B8H         PUBLIC        IP
+  D:00D8H         PUBLIC        CCON
+  C:0003H         PUBLIC        main
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          MAIN
+  -------         DO            
+  D:0008H         SYMBOL        i
+  D:0009H         SYMBOL        j
+  -------         ENDDO         
+  C:0003H         LINE#         5
+  C:0003H         LINE#         6
+  C:0003H         LINE#         9
+  C:0006H         LINE#         11
+  C:0006H         LINE#         12
+  C:0006H         LINE#         13
+  C:0009H         LINE#         14
+  C:0009H         LINE#         15
+  C:000CH         LINE#         16
+  C:000CH         LINE#         17
+  C:0011H         LINE#         18
+  C:001CH         LINE#         19
+  C:0021H         LINE#         20
+  C:002EH         LINE#         21
+  C:0037H         LINE#         22
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        MAIN
+
+  -------         MODULE        DELAY
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  C:0042H         PUBLIC        _Delay
+  -------         PROC          _DELAY
+  D:0006H         SYMBOL        num
+  -------         DO            
+  D:0004H         SYMBOL        i
+  -------         ENDDO         
+  C:0042H         LINE#         8
+  C:0042H         LINE#         9
+  C:0042H         LINE#         11
+  C:004CH         LINE#         12
+  C:005FH         LINE#         13
+  -------         ENDPROC       _DELAY
+  -------         ENDMOD        DELAY
+
+  -------         MODULE        BSP_LED
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  03/03/2024  17:14:39  PAGE 3
+
+
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00C0H         PUBLIC        P4
+  D:00C8H         PUBLIC        P5
+  D:00E8H         PUBLIC        P6
+  D:00F8H         PUBLIC        P7
+  C:007DH         PUBLIC        _Led_Disp
+  D:00A8H         PUBLIC        IE
+  D:00B8H         PUBLIC        IP
+  D:00D8H         PUBLIC        CCON
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          _LED_DISP
+  D:0007H         SYMBOL        ucLed
+  C:007DH         LINE#         11
+  C:007DH         LINE#         12
+  C:007DH         LINE#         14
+  C:0081H         LINE#         15
+  C:0089H         LINE#         16
+  C:008CH         LINE#         18
+  -------         ENDPROC       _LED_DISP
+  -------         ENDMOD        BSP_LED
+
+  -------         MODULE        BSP_INIT
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00C0H         PUBLIC        P4
+  D:00C8H         PUBLIC        P5
+  D:00E8H         PUBLIC        P6
+  D:00F8H         PUBLIC        P7
+  D:00A8H         PUBLIC        IE
+  C:0060H         PUBLIC        Cls_Peripheral
+  D:00B8H         PUBLIC        IP
+  D:00D8H         PUBLIC        CCON
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          CLS_PERIPHERAL
+  C:0060H         LINE#         8
+  C:0060H         LINE#         9
+  C:0060H         LINE#         18
+  C:0068H         LINE#         19
+  C:006BH         LINE#         20
+  C:006EH         LINE#         23
+  C:0076H         LINE#         24
+  C:0079H         LINE#         25
+  C:007CH         LINE#         27
+  -------         ENDPROC       CLS_PERIPHERAL
+  -------         ENDMOD        BSP_INIT
+
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  03/03/2024  17:14:39  PAGE 4
+
+
+Program Size: data=11.0 xdata=0 code=153
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

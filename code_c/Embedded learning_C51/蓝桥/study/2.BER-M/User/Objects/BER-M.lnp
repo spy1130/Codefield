@@ -1,0 +1,9 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\init.obj",
+".\Objects\LDE.obj",
+".\Objects\Beer.obj",
+".\Objects\Relay.obj",
+".\Objects\Delay.obj" 
+TO ".\Objects\BER-M" 
+PRINT(".\Listings\BER-M.m51") RAMSIZE(256) 

@@ -1,0 +1,81 @@
+C51 COMPILER V9.54   FILTERING                                                             06/01/2023 22:14:52 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE FILTERING
+OBJECT MODULE PLACED IN .\Objects\Filtering.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\Driver\Filtering.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG O
+                    -BJECTEXTEND PRINT(.\Listings\Filtering.lst) TABS(2) OBJECT(.\Objects\Filtering.obj)
+
+line level    source
+
+   1          #include <Filtering.h>
+   2          #include <string.h>
+   3          
+   4          #define N 10 // 滤波窗口大小
+   5          
+   6          int data_array[2][N]; // 存储窗口内的数据
+   7          int sum[2]; // 存储窗口内数据的和
+   8          int index[2]; // 当前数据的索引
+   9          
+  10          // 滑动平均滤波器函数
+  11          // 参数：new_data - 新的输入数据
+  12          // 返回值：滤波后的数据
+  13          int Moving_Average_Filter(int ch,int new_data) 
+  14          {
+  15   1          sum[ch] -= data_array[ch][index[ch]]; // 减去窗口中被替换的数据
+  16   1          data_array[ch][index[ch]] = new_data; // 存储新数据
+  17   1          sum[ch] += new_data; // 计算新的和
+  18   1          index[ch] = (index[ch] + 1) % N; // 更新索引
+  19   1          return sum[ch] / N; // 返回平均值
+  20   1      }
+  21          
+  22          // 中值滤波器函数
+  23          // 参数：new_data - 新的输入数据
+  24          // 返回值：滤波后的数据
+  25          int Median_Filter(int new_data) 
+  26          {
+  27   1      //    int sorted_data[N];
+  28   1      //    int i, j, temp;
+  29   1      
+  30   1      //    // 复制数据到临时数组
+  31   1      //    for (i = 0; i < N; i++) {
+  32   1      //        sorted_data[i] = data_array[i];
+  33   1      //    }
+  34   1      
+  35   1      //    // 冒泡排序
+  36   1      //    for (i = 0; i < N - 1; i++) 
+  37   1      //    {
+  38   1      //      for (j = 0; j < N - i - 1; j++) 
+  39   1      //      {
+  40   1      //            if (sorted_data[j] > sorted_data[j + 1]) 
+  41   1      //            {
+  42   1      //                // 交换元素位置
+  43   1      //                temp = sorted_data[j];
+  44   1      //                sorted_data[j] = sorted_data[j + 1];
+  45   1      //                sorted_data[j + 1] = temp;
+  46   1      //            }
+  47   1      //      }
+  48   1      //    }
+  49   1      
+  50   1      //    data_array[index] = new_data; // 存储新数据
+  51   1      //    index = (index + 1) % N; // 更新索引
+  52   1      //    return sorted_data[N / 2]; // 返回中值
+  53   1      }
+*** WARNING C280 IN LINE 25 OF ..\Driver\Filtering.c: 'new_data': unreferenced local variable
+C51 COMPILER V9.54   FILTERING                                                             06/01/2023 22:14:52 PAGE 2   
+
+*** WARNING C290 IN LINE 53 OF ..\Driver\Filtering.c: missing return value
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    163    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     48       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)

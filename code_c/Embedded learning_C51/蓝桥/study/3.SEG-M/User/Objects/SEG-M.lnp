@@ -1,0 +1,10 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\Beer.obj",
+".\Objects\init.obj",
+".\Objects\LDE.obj",
+".\Objects\Relay.obj",
+".\Objects\SEG.obj",
+".\Objects\Delay.obj" 
+TO ".\Objects\SEG-M" 
+PRINT(".\Listings\SEG-M.m51") RAMSIZE(256) 

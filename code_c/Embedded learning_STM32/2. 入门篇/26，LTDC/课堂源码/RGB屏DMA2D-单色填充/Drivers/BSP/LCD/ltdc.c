@@ -1,0 +1,279 @@
+#include "./BSP/LCD/ltdc.h"
+#include "./BSP/LCD/lcd.h"
+
+LTDC_HandleTypeDef  g_ltdc_handle;  /* LTDC句柄 */
+_ltdc_dev lcdltdc;                  /* 管理LCD LTDC的重要参数 */
+
+uint16_t framebuf[1280][800] __attribute__((at (0xC0000000)));
+
+void dma2d_fill(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t color)
+{
+    uint32_t addr;
+    uint32_t offline = 0;
+
+    uint32_t psx, psy, pex, pey;   /* 以LCD面板为基准的坐标系,不随横竖屏变化而变化 */
+
+    /* 坐标系转换 */
+    if (lcdltdc.dir)               /* 横屏 */
+    {
+        psx = sx;
+        psy = sy;
+        pex = ex;
+        pey = ey;
+    }
+    else                          /* 竖屏 */
+    {
+        psx = sy;
+        psy = lcdltdc.pheight - ex - 1;
+        pex = ey;
+        pey = lcdltdc.pheight - sx - 1;
+    }
+    
+    /* 横屏 */
+    addr = (uint32_t)framebuf + lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx);
+    offline = lcdltdc.pwidth - (pex - psx + 1);
+    
+    /* 使能DMA2D时钟并停止DMA2D */
+    __HAL_RCC_DMA2D_CLK_ENABLE();
+    DMA2D->CR &= ~DMA2D_CR_START;
+    
+    /* 设置DMA2D工作模式 */
+    DMA2D->CR = DMA2D_R2M;  /* 寄存器到存储器 */
+    
+    /* 设置DMA2D的相关参数 */
+    /* 颜色格式设置(OPFCCR) */
+    DMA2D->OPFCCR = LTDC_PIXEL_FORMAT_RGB565;
+    
+    /* 输出存储器地址(OMAR) */
+    DMA2D->OMAR = addr;
+    
+    /* 输出窗口(OOR NLR) */
+    DMA2D->OOR = offline;
+    DMA2D->NLR = ((pex - psx + 1) << 16) | (pey - psy + 1); /* 像素数 */
+    
+    /* 颜色寄存器(仅R2M时设置) OCOLR */
+    DMA2D->OCOLR = color;
+    
+    /* 启动DMA2D传输 */
+    DMA2D->CR |= DMA2D_CR_START;    /* 启动DMA2D */
+
+    /* 等待DMA2D传输完成，清除相关标志 */
+    while((DMA2D->ISR & DMA2D_FLAG_TC) == 0);
+    DMA2D->IFCR |= DMA2D_FLAG_TC;
+}
+
+void dma2d_fill_color(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint32_t *color)
+{
+    uint32_t addr;
+    uint32_t offline = 0;
+
+    uint32_t psx, psy, pex, pey;   /* 以LCD面板为基准的坐标系,不随横竖屏变化而变化 */
+
+    /* 坐标系转换 */
+    if (lcdltdc.dir)               /* 横屏 */
+    {
+        psx = sx;
+        psy = sy;
+        pex = ex;
+        pey = ey;
+    }
+    else                          /* 竖屏 */
+    {
+        psx = sy;
+        psy = lcdltdc.pheight - ex - 1;
+        pex = ey;
+        pey = lcdltdc.pheight - sx - 1;
+    }
+    
+    /* 横屏 */
+    addr = (uint32_t)framebuf + lcdltdc.pixsize * (lcdltdc.pwidth * psy + psx);
+    offline = lcdltdc.pwidth - (pex - psx + 1);
+    
+    /* 使能DMA2D时钟并停止DMA2D */
+    __HAL_RCC_DMA2D_CLK_ENABLE();
+    DMA2D->CR &= ~DMA2D_CR_START;
+    
+    /* 设置DMA2D工作模式 */
+    DMA2D->CR = DMA2D_M2M;  /* 存储器到存储器 */
+    
+    /* 设置DMA2D的相关参数 */
+    /* 颜色格式设置(FGPFCCR) */
+    DMA2D->FGPFCCR = LTDC_PIXEL_FORMAT_RGB565;
+    
+    /* 输入 & 输出存储器地址(FGMAR & OMAR) */
+    DMA2D->FGMAR = (uint32_t)color;
+    DMA2D->OMAR = addr;
+    
+    /* 输出窗口(FGOR OOR NLR) */
+    DMA2D->FGOR = 0;
+    DMA2D->OOR = offline;
+    DMA2D->NLR = ((pex - psx + 1) << 16) | (pey - psy + 1); /* 像素数 */
+    
+    /* 启动DMA2D传输 */
+    DMA2D->CR |= DMA2D_CR_START;    /* 启动DMA2D */
+
+    /* 等待DMA2D传输完成，清除相关标志 */
+    while((DMA2D->ISR & DMA2D_FLAG_TC) == 0);
+    DMA2D->IFCR |= DMA2D_FLAG_TC;
+}
+
+
+
+void ltdc_draw_point (uint16_t x, uint16_t y, uint32_t color) 
+{
+    if (lcdltdc.dir) 
+    {   /* 横屏 */
+        *(uint16_t *)((uint32_t)framebuf + lcdltdc.pixsize * (lcdltdc.pwidth * y + x)) = color;
+    }
+    else 
+    {   /* 竖屏 */
+        *(uint16_t *)((uint32_t)framebuf + lcdltdc.pixsize * (lcdltdc.pwidth * (lcdltdc.pheight - x - 1) + y)) = color; 
+    }
+}
+
+uint32_t ltdc_read_point (uint16_t x, uint16_t y) 
+{
+    if (lcdltdc.dir) 
+    {   /* 横屏 */
+        return *(uint16_t *)((uint32_t)framebuf + lcdltdc.pixsize * (lcdltdc.pwidth * y + x)) ;
+    }
+    else 
+    {  /* 竖屏 */
+        return *(uint16_t *)((uint32_t)framebuf + lcdltdc.pixsize * (lcdltdc.pwidth * (lcdltdc.pheight - x - 1) + y)); 
+    }
+}
+
+
+void ltdc_layer1_config(void)
+{
+    LTDC_LayerCfgTypeDef ltdc_layer_cfg;
+    
+    /* 层显示区域位置设置 */
+    ltdc_layer_cfg.WindowX0 = 0;                /* 配置窗口的行起始位置 */ 
+    ltdc_layer_cfg.WindowX1 = lcdltdc.pwidth;   /* 配置窗口的行结束位置 */
+    ltdc_layer_cfg.WindowY0 = 0;                /* 配置窗口的垂直起始位置 */
+    ltdc_layer_cfg.WindowY1 = lcdltdc.pheight;  /* 配置窗口的垂直结束位置*/
+    
+    /* 层像素格式设置 */
+    ltdc_layer_cfg.PixelFormat = LTDC_PIXEL_FORMAT_RGB565; /* 配置当前层的像素格式 */
+    
+    /* 层混合因数设置 */
+    ltdc_layer_cfg.Alpha = 255;     /* 255完全不透明 配置当前层的恒定Alpha值(透明度) */
+    ltdc_layer_cfg.BlendingFactor1 = LTDC_BLENDING_FACTOR1_CA;  /* 配置混合因子 */
+    ltdc_layer_cfg.BlendingFactor2 = LTDC_BLENDING_FACTOR2_CA;  /* 配置混合因子 */
+    
+    /* 层帧缓冲器设置 */
+    ltdc_layer_cfg.FBStartAdress = (uint32_t)framebuf;  /* 配置当前层的显存起始位置 */
+    ltdc_layer_cfg.ImageWidth = lcdltdc.pwidth;         /* 配置当前层的图像宽度 */
+    ltdc_layer_cfg.ImageHeight = lcdltdc.pheight;       /* 配置当前层的图像高度 */
+    
+    /* 层背景层颜色设置 */
+    ltdc_layer_cfg.Alpha0 = 0;          /* 配置当前层的默认透明值 */
+    ltdc_layer_cfg.Backcolor.Red = 0;
+    ltdc_layer_cfg.Backcolor.Blue = 0;
+    ltdc_layer_cfg.Backcolor.Green = 0;
+
+    HAL_LTDC_ConfigLayer(&g_ltdc_handle, &ltdc_layer_cfg, LTDC_LAYER_1);
+}
+
+/* 4.3 800480 RGB屏 */
+void ltdc_init(void)
+{
+    RCC_PeriphCLKInitTypeDef periphclk_init_struct;
+    
+    /* 裸屏数据写入到lcdltdc */
+    lcdltdc.pwidth = 800;   /* LCD面板的宽度 */
+    lcdltdc.pheight = 480;  /* LCD面板的高度 */
+    lcdltdc.hsw = 48;       /* 水平同步宽度 */
+    lcdltdc.vsw = 3;        /* 垂直同步宽度 */
+    lcdltdc.hbp = 88;       /* 水平后廊 */
+    lcdltdc.vbp = 32;       /* 垂直后廊 */
+    lcdltdc.hfp = 40;       /* 水平前廊 */
+    lcdltdc.vfp = 13;       /* 垂直前廊  */
+    
+    lcdltdc.dir = 1;
+    lcdltdc.pixsize = 2;
+    
+    lcddev.width = lcdltdc.pwidth;
+    lcddev.height = lcdltdc.pheight;
+    
+    /* 设置LCD CLK ，获得33MHz*/
+    periphclk_init_struct.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
+    periphclk_init_struct.PLLSAI.PLLSAIN = 396;
+    periphclk_init_struct.PLLSAI.PLLSAIR = 3;
+    periphclk_init_struct.PLLSAIDivR = RCC_PLLSAIDIVR_4;
+    HAL_RCCEx_PeriphCLKConfig(&periphclk_init_struct);
+    
+    /* LTDC配置 */
+    g_ltdc_handle.Instance = LTDC;
+    /* 信号极性设置 */
+    g_ltdc_handle.Init.HSPolarity = LTDC_HSPOLARITY_AL;     /* 水平同步极性 */
+    g_ltdc_handle.Init.VSPolarity = LTDC_VSPOLARITY_AL;     /* 垂直同步极性 */
+    g_ltdc_handle.Init.DEPolarity = LTDC_DEPOLARITY_AL;     /* 数据使能极性 */
+    g_ltdc_handle.Init.PCPolarity = LTDC_PCPOLARITY_IPC;    /* 像素时钟极性 */
+    
+    /* 时序参数设置 */
+    g_ltdc_handle.Init.HorizontalSync       = lcdltdc.hsw - 1;  /* 水平同步宽度 */
+    g_ltdc_handle.Init.VerticalSync         = lcdltdc.vsw - 1;    /* 垂直同步高度 */
+    g_ltdc_handle.Init.AccumulatedHBP       = lcdltdc.hsw + lcdltdc.hbp - 1;  /* 水平同步后沿宽度 */
+    g_ltdc_handle.Init.AccumulatedVBP       = lcdltdc.vsw + lcdltdc.vbp - 1;  /* 垂直同步后沿高度 */
+    g_ltdc_handle.Init.AccumulatedActiveW   = lcdltdc.hsw + lcdltdc.hbp + lcdltdc.pwidth - 1;  /* 累加有效宽度 */
+    g_ltdc_handle.Init.AccumulatedActiveH   = lcdltdc.vsw + lcdltdc.vbp + lcdltdc.pheight  - 1;  /* 累加有效高度 */
+    g_ltdc_handle.Init.TotalWidth           = lcdltdc.hsw + lcdltdc.hbp + lcdltdc.pwidth + lcdltdc.hfp - 1;      /* 总宽度 */
+    g_ltdc_handle.Init.TotalHeigh           = lcdltdc.vsw + lcdltdc.vbp + lcdltdc.pheight + lcdltdc.vfp - 1;      /* 总高度 */
+    
+    /* 背景层颜色设置 RGB888*/
+    g_ltdc_handle.Init.Backcolor.Red = 0;
+    g_ltdc_handle.Init.Backcolor.Green = 0xFF;
+    g_ltdc_handle.Init.Backcolor.Blue = 0;
+
+    HAL_LTDC_Init(&g_ltdc_handle);  /* 初始化LTDC */
+
+    ltdc_layer1_config();
+    
+    LCD_BL(1);  /* 点亮背光 */
+}
+
+/* 底层初始化工作 */
+void HAL_LTDC_MspInit(LTDC_HandleTypeDef *hltdc)
+{
+    GPIO_InitTypeDef gpio_init_struct;
+    
+    __HAL_RCC_LTDC_CLK_ENABLE();                /* 使能LTDC时钟 */
+    __HAL_RCC_GPIOB_CLK_ENABLE();               /* 使能GPIOB时钟 */
+    __HAL_RCC_GPIOF_CLK_ENABLE();               /* 使能GPIOF时钟 */
+    __HAL_RCC_GPIOG_CLK_ENABLE();               /* 使能GPIOG时钟 */
+    __HAL_RCC_GPIOH_CLK_ENABLE();               /* 使能GPIOH时钟 */
+    __HAL_RCC_GPIOI_CLK_ENABLE();               /* 使能GPIOI时钟 */
+    
+    /* 初始化PB5，背光引脚 */
+    gpio_init_struct.Pin = GPIO_PIN_5;                /* PB5推挽输出，控制背光 */
+    gpio_init_struct.Mode = GPIO_MODE_OUTPUT_PP;      /* 推挽输出 */
+    gpio_init_struct.Pull = GPIO_PULLUP;              /* 上拉 */
+    gpio_init_struct.Speed = GPIO_SPEED_HIGH;         /* 高速 */
+    HAL_GPIO_Init(GPIOB, &gpio_init_struct);
+    
+    /* 初始化PF10 */
+    gpio_init_struct.Pin = GPIO_PIN_10; 
+    gpio_init_struct.Mode = GPIO_MODE_AF_PP;          /* 复用 */
+    gpio_init_struct.Pull = GPIO_NOPULL;              
+    gpio_init_struct.Speed = GPIO_SPEED_HIGH;         /* 高速 */
+    gpio_init_struct.Alternate = GPIO_AF14_LTDC;      /* 复用为LTDC */
+    HAL_GPIO_Init(GPIOF, &gpio_init_struct);
+    
+    /* 初始化PG6,7,11 */
+    gpio_init_struct.Pin = GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_11;
+    HAL_GPIO_Init(GPIOG, &gpio_init_struct);
+    
+    /* 初始化PH9,10,11,12,13,14,15 */
+    gpio_init_struct.Pin = GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 | \
+                     GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
+    HAL_GPIO_Init(GPIOH, &gpio_init_struct);
+    
+    /* 初始化PI0,1,2,4,5,6,7,9,10 */
+    gpio_init_struct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5 | \
+                     GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_9 | GPIO_PIN_10;
+    HAL_GPIO_Init(GPIOI, &gpio_init_struct); 
+}
+
+

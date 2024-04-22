@@ -1,0 +1,296 @@
+C51 COMPILER V9.54   MAIN                                                                  11/20/2022 17:24:35 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 第二届 创意智造·奠基未来 单片机设计与开发大赛 专用模板 */
+   2           
+   3          /* 头文件声明区 */
+   4          #include <REGX52.H>//单片机寄存器专用头文件
+   5          #include <Key.h>//按键底层驱动专用头文件
+   6          #include <Seg.h>//数码管底层驱动专用头文件
+   7          #include <intrins.h>//Led位移头文件
+   8          
+   9          /* 变量声明区 */
+  10          unsigned char Key_Val,Key_Down,Key_Old;//按键专用变量
+  11          unsigned char Key_Slow_Down;//按键减速专用变量
+  12          unsigned char Seg_Buf[6] = {10,10,10,10,10,10};//数码管显示数据存放数组
+  13          unsigned char Seg_Point[] = {0,0,0,0,0,0};//数码管小数点数据存放数组
+  14          unsigned char Seg_Pos;//数码管扫描专用变量
+  15          unsigned int Seg_Slow_Down;//数码管减速专用变量
+  16          
+  17          unsigned char Mode_Disp;//模式判断专用变量“0“为运行状态界面，”1“为流转状态界
+             -面。
+  18          unsigned char Mode_Count;//设置模式专用;
+  19          bit System_Flag = 1;//运行模式暂停标志位,"1"运行，“0”暂停
+  20          bit Run_Flag = 0;//显示界面标志位;"1"为进入显示界面
+  21          unsigned char Seg_Mode1[] = {11,1,10,10,10,10};//运行界面显示专用
+  22          unsigned char Led[8] = {0xFE,0xFD,0xFB,0xF7,0xEF,0xDF,0xBF,0x7F};
+  23          unsigned char Led_Index;
+  24          unsigned int Time[9] = {400,500,600,700,800,900,1000,1100,1200};//Led流转时间：400ms-1200ms;
+  25          unsigned char Time_Index = 0;//Led加减时间标志位;
+  26          unsigned int Time_400ms;//Led流转间隔时长专用
+  27          unsigned char Mode_Index = 0;//Led模式专用指针
+  28          bit Mode2_Flag = 1;//“1”为Led模式+
+  29          unsigned int Time_800ms;//设置模式专用
+  30          bit Seg_Flag;//闪烁标志位
+  31          unsigned char Led_r = 0;//右移指针Led2
+  32          unsigned char Led_l = 7;//左移指针Led2
+  33          unsigned char Led3_r = 4;//右移指针Led3
+  34          unsigned char Led3_l = 3;//左移指针Led3
+  35          /* 键盘处理函数 */
+  36          void Key_Proc()
+  37          {
+  38   1        if(Key_Slow_Down) return;
+  39   1        Key_Slow_Down = 1;//键盘减速程序
+  40   1      
+  41   1        Key_Val = Key_Read();//实时读取键码值
+  42   1        Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+  43   1        Key_Old = Key_Val;//辅助扫描变量
+  44   1        
+  45   1        switch(Key_Down)
+  46   1        {
+  47   2          case 4://参数-
+  48   2            if(Mode_Disp == 1&&Mode2_Flag==0)
+  49   2            {
+  50   3              if(--Mode_Index == 255)Mode_Index = 3;
+  51   3            }else if(Mode_Disp == 1&&Mode2_Flag==1)
+  52   2            {
+  53   3              Time_400ms = Time[Time_Index];
+C51 COMPILER V9.54   MAIN                                                                  11/20/2022 17:24:35 PAGE 2   
+
+  54   3              if(--Time_Index == 255)Time_Index = 8;
+  55   3            }
+  56   2            if(System_Flag == 0)
+  57   2            {
+  58   3              if(Key_Down == 4)
+  59   3              {
+  60   4              Run_Flag = 1;
+  61   4              }else {
+  62   4              System_Flag = 1;
+  63   4              Mode_Disp = 0;
+  64   4              Run_Flag = 0;
+  65   4              }
+  66   3            }
+  67   2          break;
+  68   2          case 5://参数+
+  69   2            if(Mode_Disp == 1 && Mode2_Flag==0)
+  70   2            {
+  71   3              if(++Mode_Index == 4)Mode_Index = 0;
+  72   3            }else if(Mode_Disp == 1 && Mode2_Flag==1)
+  73   2            {
+  74   3              Time_400ms = Time[Time_Index];
+  75   3              if(++Time_Index == 9)Time_Index = 0;
+  76   3            }
+  77   2          break;
+  78   2          case 6://设置
+  79   2            Mode2_Flag ^=1;
+  80   2            Mode_Disp = 1;
+  81   2          if(++Mode_Count == 3)
+  82   2          {
+  83   3            Mode_Count = 0;
+  84   3            Mode_Disp = 0;
+  85   3            System_Flag = 1;
+  86   3          }
+  87   2          break;
+  88   2          case 7://暂停
+  89   2            System_Flag ^= 1;
+  90   2          break;
+  91   2        }
+  92   1      }
+  93          
+  94          /* 信息处理函数 */
+  95          void Seg_Proc()
+  96          {
+  97   1        if(Seg_Slow_Down) return;
+  98   1        Seg_Slow_Down = 1;//数码管减速程序
+  99   1        
+ 100   1        switch(Mode_Disp)
+ 101   1        {
+ 102   2          case 0://运行状态
+ 103   2            if(System_Flag == 1)
+ 104   2            {
+ 105   3          Seg_Buf[0] = 11;
+ 106   3          Seg_Buf[1] = Mode_Index + 1;
+ 107   3          if(Time[Time_Index]/1000%10 != 0)
+ 108   3          Seg_Buf[2] = Time[Time_Index]/1000%10;
+ 109   3              else
+ 110   3          Seg_Buf[2] = 10;
+ 111   3          Seg_Buf[3] = Time[Time_Index] /100%10;
+ 112   3          Seg_Buf[4] = Time[Time_Index] /10%10;
+ 113   3          Seg_Buf[5] = Time[Time_Index] %10;
+ 114   3            }else{//暂停
+ 115   3          Seg_Buf[0] = 5;
+C51 COMPILER V9.54   MAIN                                                                  11/20/2022 17:24:35 PAGE 3   
+
+ 116   3          Seg_Buf[1] = Mode_Index + 1;
+ 117   3              if(Time[Time_Index]/1000%10 != 0)
+ 118   3          Seg_Buf[2] = Time[Time_Index]/1000%10;
+ 119   3              else
+ 120   3          Seg_Buf[2] = 10;
+ 121   3          Seg_Buf[3] = Time[Time_Index] /100%10;
+ 122   3          Seg_Buf[4] = Time[Time_Index] /10%10;
+ 123   3          Seg_Buf[5] = Time[Time_Index] %10;
+ 124   3              if(Run_Flag == 1)
+ 125   3              {
+ 126   4                Seg_Point[0] = 1;
+ 127   4                Seg_Point[1] = 1;
+ 128   4                Seg_Buf[0] = 0;
+ 129   4                Seg_Buf[1] = 11;
+ 130   4                Seg_Buf[2] = 12;
+ 131   4                Seg_Buf[3] = Mode_Index+1;
+ 132   4                if(Mode_Index == 0)
+ 133   4                 Seg_Buf[4] = 0;
+ 134   4                else if(Mode_Index == 1)
+ 135   4                  Seg_Buf[4] = 0;
+ 136   4                else
+ 137   4                  Seg_Buf[4] = Led_Index + 1;
+ 138   4                Seg_Buf[5] = Led_Index + 1;
+ 139   4              }
+ 140   3            }
+ 141   2          break;
+ 142   2            case 1://流转设置界面
+ 143   2              if(Mode2_Flag == 0)
+ 144   2              {
+ 145   3            Seg_Buf[0] = Seg_Flag?12:10;
+ 146   3            Seg_Buf[1] = Seg_Flag?Mode_Index + 1:10;
+ 147   3              }else{
+ 148   3          if(Time[Time_Index]/1000%10 != 0)
+ 149   3            Seg_Buf[2] = Seg_Flag?Time[Time_Index]/1000%10:10;
+ 150   3          else
+ 151   3          Seg_Buf[2] = 10;
+ 152   3          Seg_Buf[3] = Seg_Flag?Time[Time_Index] /100%10:10;
+ 153   3          Seg_Buf[4] = Seg_Flag?Time[Time_Index] /10%10:10;
+ 154   3          Seg_Buf[5] = Seg_Flag?Time[Time_Index] %10:10;
+ 155   3        }
+ 156   2            break;
+ 157   2        }
+ 158   1      }
+ 159          
+ 160          /* 其他显示函数 */
+ 161          void Led_Proc()
+ 162          {
+ 163   1        if(Mode_Disp == 0)
+ 164   1        {
+ 165   2          switch(Mode_Index)
+ 166   2          {
+ 167   3            case 0:
+ 168   3              P1=Led[Led_Index];
+ 169   3            break;
+ 170   3            case 1:
+ 171   3              P1=Led[Led_Index];
+ 172   3            break;
+ 173   3            case 2://18-27-36-45-18
+ 174   3              P1 = Led[Led_r]&Led[Led_l];
+ 175   3            break;
+ 176   3            case 3:
+ 177   3              P1 = Led[Led3_r]&Led[Led3_l];
+C51 COMPILER V9.54   MAIN                                                                  11/20/2022 17:24:35 PAGE 4   
+
+ 178   3            break;
+ 179   3          }
+ 180   2        }
+ 181   1      }
+ 182          
+ 183          /* 定时器0中断初始化函数 */
+ 184          void Timer0Init(void)   //1毫秒@12.000MHz
+ 185          {
+ 186   1        TMOD &= 0xF0;   //设置定时器模式
+ 187   1        TMOD |= 0x01;   //设置定时器模式
+ 188   1        TL0 = 0x18;   //设置定时初始值
+ 189   1        TH0 = 0xFC;   //设置定时初始值
+ 190   1        TF0 = 0;    //清除TF0标志
+ 191   1        TR0 = 1;    //定时器0开始计时
+ 192   1        ET0 = 1;        //定时器0中断打开
+ 193   1        EA = 1;         //总中断打开
+ 194   1      }
+ 195          
+ 196          /* 定时器0中断服务函数 */
+ 197          void Timer0Server() interrupt 1
+ 198          {
+ 199   1        TL0 = 0x18;   //设置定时初始值
+ 200   1        TH0 = 0xFC;   //设置定时初始值   
+ 201   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 202   1        if(++Seg_Slow_Down == 500) Seg_Slow_Down = 0;//数码管减速专用
+ 203   1        if(++Seg_Pos == 6) Seg_Pos = 0;//数码管显示专用
+ 204   1        Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 205   1        if(System_Flag == 1)
+ 206   1        {
+ 207   2          switch(Mode_Index)
+ 208   2          {
+ 209   3            case 0:
+ 210   3            if(++Time_400ms == Time[Time_Index])
+ 211   3            {
+ 212   4            Time_400ms = 0;
+ 213   4            if(++Led_Index == 8)Led_Index=0;
+ 214   4            }
+ 215   3            break;
+ 216   3            case 1:
+ 217   3            if(++Time_400ms == Time[Time_Index])
+ 218   3            {
+ 219   4            Time_400ms = 0;
+ 220   4            if(--Led_Index == 255)Led_Index=7;
+ 221   4            }
+ 222   3            break;
+ 223   3            case 2:
+ 224   3              if(++Time_400ms == Time[Time_Index])
+ 225   3            {
+ 226   4            Time_400ms = 0;
+ 227   4              if(++Led_r == 4)
+ 228   4                Led_r = 0;
+ 229   4              if(--Led_l == 3)
+ 230   4                Led_l = 7;
+ 231   4            }
+ 232   3            break;
+ 233   3            case 3:
+ 234   3              if(++Time_400ms == Time[Time_Index])
+ 235   3              {
+ 236   4                Time_400ms = 0;
+ 237   4                if(++Led3_r == 8)Led3_r = 4;
+ 238   4                if(--Led3_l == 255)Led3_l = 3;
+ 239   4              }
+C51 COMPILER V9.54   MAIN                                                                  11/20/2022 17:24:35 PAGE 5   
+
+ 240   3            break;
+ 241   3         }
+ 242   2        }
+ 243   1        if(Mode_Disp == 1)
+ 244   1        {
+ 245   2          if(++Time_800ms == 800)
+ 246   2          {
+ 247   3          Time_800ms = 0;
+ 248   3          Seg_Flag ^=1;
+ 249   3          }
+ 250   2        }
+ 251   1      }
+ 252          
+ 253          /* Main */
+ 254          void main()
+ 255          {
+ 256   1        Timer0Init();
+ 257   1        while (1)
+ 258   1        {
+ 259   2          Key_Proc();
+ 260   2          Seg_Proc();
+ 261   2          Led_Proc();
+ 262   2        }
+ 263   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1191    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     64    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      4    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

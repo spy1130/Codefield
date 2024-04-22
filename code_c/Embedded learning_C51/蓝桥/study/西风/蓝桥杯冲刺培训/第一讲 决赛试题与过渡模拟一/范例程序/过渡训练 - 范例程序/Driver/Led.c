@@ -1,0 +1,16 @@
+#include <Led.h>
+
+void Led_Disp(unsigned char addr,enable)
+{
+	static unsigned char temp = 0x00;
+	static unsigned char temp_old = 0xff;
+	if(enable)
+		temp |= 0x01 << addr;
+	else
+		temp &= ~(0x01 << addr);
+	if(temp != temp_old)
+	{
+		P1 = ~temp;
+		temp_old = temp;
+	}
+}

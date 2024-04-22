@@ -1,0 +1,11 @@
+".\Objects\main.obj",
+".\Objects\Delay.obj",
+".\Objects\Beer.obj",
+".\Objects\init.obj",
+".\Objects\key.obj",
+".\Objects\LDE.obj",
+".\Objects\Relay.obj",
+".\Objects\SEG.obj",
+".\Objects\timer.obj" 
+TO ".\Objects\KEYS-M" 
+PRINT(".\Listings\KEYS-M.m51") RAMSIZE(256) 

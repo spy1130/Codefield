@@ -1,0 +1,278 @@
+C51 COMPILER V9.54   MAIN                                                                  02/10/2022 16:35:26 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件声明区开始 */
+   2          #include "init.h"//系统初始化
+   3          
+   4          /* 三大金刚 */
+   5          #include "key.h"//键盘扫描
+   6          #include "seg.h"//数码管显示
+   7          #include "led.h"//Led显示
+   8          
+   9          /* 其他外设 */
+  10          #include "iic.h"
+  11          
+  12          /* 头文件声明区结束 */
+  13          
+  14          /* 变量声明区开始 */
+  15          unsigned long int ms_tick;//滴答定时器专用
+  16          unsigned int Key_Slow_Down,Seg_Slow_Down,Led_Slow_Down;//三大金刚扫描减速专用
+  17          unsigned char Key_Old,Key_Val,Key_Up,Key_Down;//矩阵扫描专用
+  18          unsigned char Seg_Pos;//数码管显示专用
+  19          unsigned char Seg_String[8];//数码管数据存放专用
+  20          unsigned char ucLed;//LED显示专用
+  21          
+  22          //用户自定义声明区
+  23          unsigned char Seg_Disp_Mode;//数码管显示模式 0-熄灭 1-运行模式闪烁 2-流转间隔闪烁
+  24          unsigned char Running_Mode = 1;//运行模式 1-4循环运行
+  25          unsigned int Circulation_Tm_Invl[4] = {400,400,400,400};//时间流转间隔数据存放数组
+  26          unsigned char Star[2] = {0x02,0xf0};//数码管闪烁模式数据存放数组
+  27          unsigned char EEPROM_String[4] = {4,4,4,4};//EEPROM数据存放数组
+  28          unsigned char Right_Level;//亮度等级
+  29          unsigned char Led_Disp_Flag;//LED显示标志位
+  30          unsigned char Led_Disp_Mode[4][8] = 
+  31          {
+  32            0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,//第一种模式，从左到右
+  33            0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01,//第二种模式，从右到左
+  34            0x81,0x42,0x24,0x18,0x81,0x42,0x24,0x18,//第三种模式，从两边到中间
+  35            0x18,0x24,0x42,0x81,0x18,0x24,0x42,0x81 //第四种模式，从中间到两边
+  36          };
+  37          unsigned long int ms_tick_point;//打点计数专用
+  38          unsigned char Led_Pwm;//LED亮度等级控制专用
+  39          unsigned char Led_Num;//LED显示计数专用
+  40          bit Right_Level_Flag;//亮度等级显示标志位 0-不显示 1-显示
+  41          bit Star_Flag;//数码管闪烁时间标志位
+  42          bit Led_Start_Stop_Flag;//LED闪烁启动停止标志位 0-停止 1-启动
+  43          /* 变量声明区结束 */
+  44          
+  45          /* 矩阵信息处理函数 */
+  46          void Key_Proc()
+  47          {
+  48   1        if(Key_Slow_Down) return;
+  49   1        Key_Slow_Down = 1;//减速专用
+  50   1        
+  51   1        Key_Val = Key_Read();
+  52   1        Key_Down = Key_Val & (Key_Val ^ Key_Old);//通过下降沿检测按键
+  53   1        Key_Up = ~ Key_Val & (Key_Val ^ Key_Old);//通过上升沿检测按键
+  54   1        Key_Old = Key_Val;
+C51 COMPILER V9.54   MAIN                                                                  02/10/2022 16:35:26 PAGE 2   
+
+  55   1        
+  56   1        //用户自定义代码区
+  57   1        if(Seg_Disp_Mode == 0)
+  58   1        {
+  59   2          if(Key_Old == 4)
+  60   2            Right_Level_Flag = 1;
+  61   2          else
+  62   2            Right_Level_Flag = 0;
+  63   2        }
+  64   1        
+  65   1        switch(Key_Down)
+  66   1        {
+  67   2          case 6://显示模式设置按键
+  68   2            if(++Seg_Disp_Mode == 3)//显示模式在0-2之间循环切换.
+  69   2            {
+  70   3              EEPROM_String[0] = Circulation_Tm_Invl[0] / 100;
+  71   3              EEPROM_String[1] = Circulation_Tm_Invl[1] / 100;
+  72   3              EEPROM_String[2] = Circulation_Tm_Invl[2] / 100;
+  73   3              EEPROM_String[3] = Circulation_Tm_Invl[3] / 100;//数据处理之后将流转时间存入EEPROM专用数组
+  74   3              EEPROM_Write(EEPROM_String,16,4);
+  75   3              Seg_Disp_Mode = 0;
+  76   3            }
+  77   2            break;
+  78   2          case 5://数据+
+  79   2            switch(Seg_Disp_Mode)
+  80   2            {
+  81   3              case 1://显示模式
+  82   3                if(++Running_Mode == 5)
+  83   3                  Running_Mode = 4;//设置上限为4
+  84   3                break;
+  85   3              case 2://流转时间
+  86   3                Circulation_Tm_Invl[Running_Mode - 1] += 100;
+  87   3                if(Circulation_Tm_Invl[Running_Mode - 1] == 1300)
+  88   3                  Circulation_Tm_Invl[Running_Mode - 1] = 1200;//设置上限为1200
+  89   3                break;
+  90   3            }
+  91   2            break;
+  92   2          case 4://数据-
+  93   2            switch(Seg_Disp_Mode)
+  94   2            {
+  95   3              case 1:
+  96   3                if(--Running_Mode == 0)
+  97   3                  Running_Mode = 1;//设置下限为1
+  98   3                break;
+  99   3              case 2:
+ 100   3                Circulation_Tm_Invl[Running_Mode - 1] -= 100;
+ 101   3                if(Circulation_Tm_Invl[Running_Mode - 1] == 300)
+ 102   3                  Circulation_Tm_Invl[Running_Mode - 1] = 400;//设置下限为400
+ 103   3                break;
+ 104   3            }
+ 105   2            break;
+ 106   2          case 7://启动停止
+ 107   2            if(Led_Start_Stop_Flag)
+ 108   2              ucLed = 0;
+ 109   2            else
+ 110   2              Running_Mode = 1;
+ 111   2            Led_Start_Stop_Flag ^= 1;
+ 112   2            break;
+ 113   2        }
+ 114   1      }
+ 115          
+ 116          /* 数码管数据处理函数 */
+C51 COMPILER V9.54   MAIN                                                                  02/10/2022 16:35:26 PAGE 3   
+
+ 117          void Seg_Proc()
+ 118          {
+ 119   1        unsigned char i = 4;//清空数据专用
+ 120   1        if(Seg_Slow_Down) return;
+ 121   1        Seg_Slow_Down = 1;//减速专用
+ 122   1      
+ 123   1        //用户自定义代码区
+ 124   1        Right_Level = (Ad_Read(0x43) / 64) + 1;//检测亮度等级
+ 125   1        
+ 126   1        if(Seg_Disp_Mode)//显示数据
+ 127   1        {
+ 128   2          Seg_String[0] = Seg_String[2] = 10;//显示 ——
+ 129   2          Seg_String[1] = Running_Mode;//显示运行模式
+ 130   2          Seg_String[3] = 11;//熄灭
+ 131   2          Seg_String[4] = Circulation_Tm_Invl[Running_Mode - 1] / 1000 % 10;//显示流转时间间隔
+ 132   2          Seg_String[5] = Circulation_Tm_Invl[Running_Mode - 1] / 100 % 10;
+ 133   2          Seg_String[6] = Circulation_Tm_Invl[Running_Mode - 1] / 10 % 10;
+ 134   2          Seg_String[7] = Circulation_Tm_Invl[Running_Mode - 1] % 10;
+ 135   2          while(Seg_String[i] == 0)//若流转时间为三位数 则最高位不显示
+ 136   2          {
+ 137   3            Seg_String[i] = 11;
+ 138   3            i--;
+ 139   3          }
+ 140   2        }
+ 141   1        else//不显示数据
+ 142   1        {
+ 143   2          Seg_String[0] = Seg_String[1] = Seg_String[2] = Seg_String[3] = Seg_String[4] = Seg_String[5] = 11;
+ 144   2          if(Right_Level_Flag)//显示亮度等级
+ 145   2          {
+ 146   3            Seg_String[6] = 10;
+ 147   3            Seg_String[7] = Right_Level;
+ 148   3          }
+ 149   2          else
+ 150   2            Seg_String[6] = Seg_String[7] = 11;
+ 151   2        }
+ 152   1      }
+ 153          
+ 154          /* Led显示函数 */
+ 155          void Led_Proc()
+ 156          {
+ 157   1      //  if(Led_Slow_Down) return;
+ 158   1      //  Led_Slow_Down = 1;//减速专用
+ 159   1        
+ 160   1        //用户自定义代码区
+ 161   1        if(Led_Start_Stop_Flag)
+ 162   1        {
+ 163   2          if((ms_tick - ms_tick_point) >= Circulation_Tm_Invl[Running_Mode - 1])
+ 164   2          {
+ 165   3            ms_tick_point = ms_tick;
+ 166   3            ucLed = Led_Disp_Mode[Running_Mode - 1][Led_Disp_Flag];
+ 167   3            if(++Led_Disp_Flag == 8)
+ 168   3            {
+ 169   4              Led_Disp_Flag = 0;
+ 170   4              if(++Running_Mode == 5)
+ 171   4                Running_Mode = 1;
+ 172   4            }
+ 173   3          }
+ 174   2        }
+ 175   1      }
+ 176          
+ 177          /* 定时器中断初始化函数 */
+ 178          void Timer0Init(void)   //1毫秒@12.000MHz
+C51 COMPILER V9.54   MAIN                                                                  02/10/2022 16:35:26 PAGE 4   
+
+ 179          {
+ 180   1        AUXR &= 0x7F;   //定时器时钟12T模式
+ 181   1        TMOD &= 0xF0;   //设置定时器模式
+ 182   1        TL0 = 0x18;   //设置定时初始值
+ 183   1        TH0 = 0xFC;   //设置定时初始值
+ 184   1        TF0 = 0;    //清除TF0标志
+ 185   1        TR0 = 1;    //定时器0开始计时
+ 186   1        ET0 = 1;    //打开定时器0中断
+ 187   1        EA = 1;    //打开总中断
+ 188   1      }
+ 189          
+ 190          /* 定时器中断服务函数 */
+ 191          void Timer0Sever() interrupt 1
+ 192          {
+ 193   1        ms_tick++;//滴答定时器
+ 194   1        
+ 195   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//10ms扫描一次
+ 196   1        if(++Seg_Slow_Down == 100) Seg_Slow_Down = 0;//200ms扫描一次
+ 197   1      //  if(++Led_Slow_Down == 300) Led_Slow_Down = 0;//300ms扫描一次
+ 198   1        if(++Seg_Pos == 8) Seg_Pos = 0;//数码管显示专用
+ 199   1        
+ 200   1        if(!(ms_tick % 800))//800ms触发一次
+ 201   1        {
+ 202   2          Star_Flag ^= 1;
+ 203   2        }
+ 204   1        
+ 205   1      //  Seg_Disp(Seg_String[Seg_Pos],Seg_Pos,0,0,0);//数码管显示
+ 206   1      //  Led_Disp(ucLed);//LED显示
+ 207   1        
+ 208   1        //用户自定义代码区
+ 209   1        if(Seg_Disp_Mode)//显示数据
+ 210   1          Seg_Disp(Seg_String[Seg_Pos],Seg_Pos,0,Star[Seg_Disp_Mode - 1],Star_Flag);
+ 211   1        else//不显示数据
+ 212   1          Seg_Disp(Seg_String[Seg_Pos],Seg_Pos,0,0,0);
+ 213   1        
+ 214   1        switch(Right_Level)
+ 215   1        {
+ 216   2          case 1:Led_Pwm = 0;break;
+ 217   2          case 2:Led_Pwm = 3;break;
+ 218   2          case 3:Led_Pwm = 8;break;
+ 219   2          case 4:Led_Pwm = 11;break;
+ 220   2        }
+ 221   1        
+ 222   1        if(++Led_Num == 13) Led_Num = 0;//计数在0-12之间循环
+ 223   1        
+ 224   1        if(Led_Num <= Led_Pwm)
+ 225   1          Led_Disp(ucLed);
+ 226   1        else
+ 227   1          Led_Disp(0);
+ 228   1      }
+ 229          
+ 230          /* Main */
+ 231          void main()
+ 232          {
+ 233   1        Cls_Init();//关闭外设
+ 234   1        EEPROM_Read(EEPROM_String,16,4);//上电时读取数据
+ 235   1        Circulation_Tm_Invl[0] = EEPROM_String[0] * 100;
+ 236   1        Circulation_Tm_Invl[1] = EEPROM_String[1] * 100;
+ 237   1        Circulation_Tm_Invl[2] = EEPROM_String[2] * 100;
+ 238   1        Circulation_Tm_Invl[3] = EEPROM_String[3] * 100;  
+ 239   1        Timer0Init();//定时器0初始化
+ 240   1        while(1)
+C51 COMPILER V9.54   MAIN                                                                  02/10/2022 16:35:26 PAGE 5   
+
+ 241   1        {
+ 242   2          Key_Proc();//三大金刚循环扫描
+ 243   2          Seg_Proc();
+ 244   2          Led_Proc();
+ 245   2        }
+ 246   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1004    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     80       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

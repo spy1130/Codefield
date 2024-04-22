@@ -1,0 +1,203 @@
+C51 COMPILER V9.54   MAIN                                                                  02/01/2023 15:59:21 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件声明区 */
+   2          #include <STC15F2K60S2.H>//单片机寄存器专用头文件
+   3          #include <Init.h>//初始化底层驱动专用头文件
+   4          #include <Led.h>//Led底层驱动专用头文件
+   5          #include <Key.h>//按键底层驱动专用头文件
+   6          #include <Seg.h>//数码管底层驱动专用头文件
+   7          #include "iic.h"//数模转换底层驱动专用头文件
+   8          
+   9          /* 变量声明区 */
+  10          unsigned char Key_Val,Key_Down,Key_Old,Key_Up;//按键专用变量
+  11          unsigned char Key_Slow_Down;//按键减速专用变量
+  12          unsigned char Seg_Buf[8] = {10,10,10,10,10,10,10,10};//数码管显示数据存放数组
+  13          unsigned char Seg_Point[8] = {0,0,0,0,0,0,0,0};//数码管小数点数据存放数组
+  14          unsigned char Seg_Pos;//数码管扫描专用变量
+  15          unsigned int Seg_Slow_Down;//数码管减速专用变量
+  16          unsigned char ucLed[8] = {0,0,0,0,0,0,0,0};//Led显示数据存放数组
+  17          unsigned int Timer_1000Ms;//1000毫秒计时变量
+  18          unsigned int Freq;//实时频率值
+  19          float Voltage;//实时电压值
+  20          float Voltage_Output;//实时输出电压
+  21          bit Seg_Disp_Mode;//数码管显示模式变量 0-频率显示界面 1-电压显示界面
+  22          bit Output_Mode;//DAC输出模式标志位 0-固定2V 1-随AD变化
+  23          bit Led_Enable_Flag = 1;//Led使能标志位 默认开启
+  24          bit Seg_Enable_Flag = 1;//数码管使能标志位 默认开启
+  25          
+  26          /* 键盘处理函数 */
+  27          void Key_Proc()
+  28          {
+  29   1        if(Key_Slow_Down) return;
+  30   1        Key_Slow_Down = 1;//键盘减速程序
+  31   1      
+  32   1        Key_Val = Key_Read();//实时读取键码值
+  33   1        Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+  34   1        Key_Up = ~Key_Val & (Key_Old ^ Key_Val);//捕捉按键上降沿
+  35   1        Key_Old = Key_Val;//辅助扫描变量
+  36   1      
+  37   1        switch(Key_Down)
+  38   1        {
+  39   2          case 4://显示界面切换
+  40   2            Seg_Disp_Mode ^= 1;
+  41   2          break;
+  42   2          case 5://输出模式切换
+  43   2            Output_Mode ^= 1;
+  44   2          break;
+  45   2          case 6://LED 指示灯功能控制
+  46   2            Led_Enable_Flag ^= 1;
+  47   2          break;
+  48   2          case 7://数码管显示功能控制
+  49   2            Seg_Enable_Flag ^= 1;
+  50   2          break;
+  51   2        }
+  52   1      }
+  53          
+  54          /* 信息处理函数 */
+C51 COMPILER V9.54   MAIN                                                                  02/01/2023 15:59:21 PAGE 2   
+
+  55          void Seg_Proc()
+  56          {
+  57   1        unsigned char i = 3;//高位熄灭专用变量
+  58   1        if(Seg_Slow_Down) return;
+  59   1        Seg_Slow_Down = 1;//数码管减速程序
+  60   1      
+  61   1        /* 信息读取区域 */
+  62   1        Voltage = Ad_Read(0x03) / 51.0;//实时获取电压值
+  63   1        if(Output_Mode == 0) //处于固定输出模式
+  64   1          Voltage_Output = 2;
+  65   1        else //处于随AD输出模式
+  66   1          Voltage_Output = Voltage;
+  67   1        
+  68   1        //Voltage_Output = 2*(!Output_Mode) + Voltage*(Output_Mode);
+  69   1        
+  70   1        /* 数据显示区域 */
+  71   1        Seg_Point[5] = Seg_Disp_Mode;//小数点使能
+  72   1        if(Seg_Disp_Mode == 0) //处于频率显示界面
+  73   1        {
+  74   2          Seg_Buf[0] = 11;//标识符F
+  75   2          Seg_Buf[3] = Freq / 10000 % 10;
+  76   2          Seg_Buf[4] = Freq / 1000 % 10;
+  77   2          Seg_Buf[5] = Freq / 100 % 10;
+  78   2          Seg_Buf[6] = Freq / 10 % 10;
+  79   2          Seg_Buf[7] = Freq % 10;
+  80   2          while(Seg_Buf[i] == 0) //数码管高位熄灭
+  81   2          {
+  82   3            Seg_Buf[i] = 10;
+  83   3            if(++i == 7) break; //保证最低位不熄灭 避免程序卡死
+  84   3          }
+  85   2        }
+  86   1        else //处于电压显示界面
+  87   1        {
+  88   2          Seg_Buf[0] = 12;//标识符U
+  89   2          Seg_Buf[3] = Seg_Buf[4] = 10;
+  90   2          Seg_Buf[5] = (unsigned char)Voltage;
+  91   2          Seg_Buf[6] = (unsigned int)(Voltage * 100) / 10 % 10;
+  92   2          Seg_Buf[7] = (unsigned int)(Voltage * 100) % 10;
+  93   2        }
+  94   1      }
+  95          
+  96          /* 其他显示函数 */
+  97          void Led_Proc()
+  98          {
+  99   1        unsigned char i;//For循环专用变量
+ 100   1        /* DAC相关 */
+ 101   1        Da_Write(Voltage_Output*51);//实时输出电压值
+ 102   1        
+ 103   1        /* Led相关 */
+ 104   1        for(i=0;i<2;i++) //互斥点亮
+ 105   1          ucLed[i] = (i == Seg_Disp_Mode);
+ 106   1        ucLed[2] = ((Voltage >= 1.5 && Voltage < 2.5) || (Voltage >= 3.5));
+ 107   1        ucLed[3] = ((Freq >= 1000 && Freq < 5000) || (Freq >= 10000));
+ 108   1        ucLed[4] = Output_Mode;
+ 109   1      }
+ 110          
+ 111          /* 定时器0中断初始化函数 */
+ 112          void Timer0Init(void)   //1毫秒@12.000MHz
+ 113          {
+ 114   1        AUXR &= 0x7F;   //定时器时钟12T模式
+ 115   1        TMOD &= 0xF0;   //设置定时器模式
+ 116   1        TMOD |= 0x05;   //设置计数模式
+C51 COMPILER V9.54   MAIN                                                                  02/01/2023 15:59:21 PAGE 3   
+
+ 117   1        TL0 = 0;    //设置定时初始值
+ 118   1        TH0 = 0;    //设置定时初始值
+ 119   1        TF0 = 0;    //清除TF0标志
+ 120   1        TR0 = 1;    //定时器0开始计时
+ 121   1      }
+ 122          
+ 123          /* 定时器1中断初始化函数 */
+ 124          void Timer1Init(void)   //1毫秒@12.000MHz
+ 125          {
+ 126   1        AUXR &= 0xBF;   //定时器时钟12T模式
+ 127   1        TMOD &= 0x0F;   //设置定时器模式
+ 128   1        TL1 = 0x18;   //设置定时初始值
+ 129   1        TH1 = 0xFC;   //设置定时初始值
+ 130   1        TF1 = 0;    //清除TF1标志
+ 131   1        TR1 = 1;    //定时器1开始计时
+ 132   1        ET1 = 1;    //定时器中断1打开
+ 133   1        EA = 1;     //总中断打开
+ 134   1      }
+ 135          
+ 136          
+ 137          
+ 138          /* 定时器1中断服务函数 */
+ 139          void Timer1Server() interrupt 3
+ 140          {  
+ 141   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 142   1        if(++Seg_Slow_Down == 500) Seg_Slow_Down = 0;//数码管减速专用
+ 143   1        if(++Seg_Pos == 8) Seg_Pos = 0;//数码管显示专用
+ 144   1        if(Seg_Enable_Flag == 1) //数码管使能
+ 145   1          Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 146   1        else
+ 147   1          Seg_Disp(Seg_Pos,10,0); //熄灭所有数码管
+ 148   1        if(Led_Enable_Flag == 1) //Led使能
+ 149   1          Led_Disp(Seg_Pos,ucLed[Seg_Pos]);
+ 150   1        else
+ 151   1          Led_Disp(Seg_Pos,0); //熄灭所有Led
+ 152   1        
+ 153   1        if(++Timer_1000Ms == 1000) //实时读取频率值
+ 154   1        {
+ 155   2          Timer_1000Ms = 0;
+ 156   2          Freq = TH0 << 8 | TL0;
+ 157   2          TH0 = TL0 = 0;
+ 158   2        }
+ 159   1      }
+ 160          
+ 161          /* Main */
+ 162          void main()
+ 163          {
+ 164   1        System_Init();
+ 165   1        Timer0Init();
+ 166   1        Timer1Init();
+ 167   1        while (1)
+ 168   1        {
+ 169   2          Key_Proc();
+ 170   2          Seg_Proc();
+ 171   2          Led_Proc();
+ 172   2        }
+ 173   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    762    ----
+   CONSTANT SIZE    =   ----    ----
+C51 COMPILER V9.54   MAIN                                                                  02/01/2023 15:59:21 PAGE 4   
+
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     44       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      4    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

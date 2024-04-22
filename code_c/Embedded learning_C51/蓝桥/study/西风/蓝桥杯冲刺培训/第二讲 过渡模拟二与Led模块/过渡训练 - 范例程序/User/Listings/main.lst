@@ -1,0 +1,342 @@
+C51 COMPILER V9.54   MAIN                                                                  12/01/2022 16:20:11 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Driver) DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /* 头文件声明区 */
+   2          #include <REGX52.H>//单片机寄存器专用头文件
+   3          #include <Key.h>//按键底层驱动专用头文件
+   4          #include <Seg.h>//数码管底层驱动专用头文件
+   5          #include <Led.h>//Led底层驱动专用头文件
+   6          
+   7          /* 变量声明区 */
+   8          unsigned char Key_Val,Key_Down,Key_Old,Key_Up;//按键专用变量
+   9          unsigned char Key_Slow_Down;//按键减速专用变量
+  10          unsigned char Seg_Buf[6] = {10,10,10,10,10,10};//数码管显示数据存放数组
+  11          unsigned char Seg_Pos;//数码管扫描专用变量
+  12          unsigned char Seg_Point[6] = {0,0,0,0,0,0};//数码管小数点存放数组
+  13          unsigned int Seg_Slow_Down;//数码管减速专用变量
+  14          unsigned char Led_Pos;//Led扫描专用变量
+  15          unsigned char ucLed[8] = {0,0,0,0,0,0,0,0};//Led显示数据存放数组
+  16          unsigned char Seg_Disp_Mode;//数码管显示模式 0-温度采集界面 1-数据显示界面 2-参数设�
+             -��界面
+  17          unsigned char Seg_Input[3] = {11,11,11};//数码管输入数据存放数组
+  18          unsigned char Seg_Input_Index;//数码管输入数组指针
+  19          unsigned int Timer_500Ms;//五百毫秒计时变量
+  20          unsigned char Point_Wela;//小数点输入位数记录变量
+  21          unsigned char Parameter[2] = {30,20};//参数设置数组
+  22          unsigned char Parameter_Ctrol[2] = {30,20};//实际参数控制数组
+  23          unsigned int Count_500Ms;//五百毫秒计数变量
+  24          unsigned char Led_Num;//Led亮度等级计数变量
+  25          unsigned char Led_Pwm;//Led亮度等级
+  26          float Temperature;//实际温度变量
+  27          bit Seg_Star_Flag;//数码管闪烁标志位
+  28          bit Point_Flag;//小数点使能标志位
+  29          bit Parameter_Index;//参数设置数组指针
+  30          bit Time_Flag;//计时启动标志位
+  31          bit Error_Flag;//错误数据标志位
+  32          
+  33          /* 键盘处理函数 */
+  34          void Key_Proc()
+  35          {
+  36   1        unsigned char i;//For循环专用变量
+  37   1        if(Key_Slow_Down) return;
+  38   1        Key_Slow_Down = 1;//键盘减速程序
+  39   1      
+  40   1        Key_Val = Key_Read();//实时读取键码值
+  41   1        Key_Down = Key_Val & (Key_Old ^ Key_Val);//捕捉按键下降沿
+  42   1        Key_Up = ~Key_Val & (Key_Old ^ Key_Val);//捕捉按键上升沿
+  43   1        Key_Old = Key_Val;//辅助扫描变量
+  44   1        
+  45   1        if(Key_Down >= 1 && Key_Down <= 10 && Seg_Input_Index <= 2)//矩阵输入键盘使能
+  46   1        {
+  47   2          Seg_Input[Seg_Input_Index] = Key_Down - 1;//将输入数值给输入数组
+  48   2          Seg_Input_Index++;//数组指针加一
+  49   2        }
+  50   1        
+  51   1        if(Seg_Disp_Mode == 2)//处于参数设置界面
+  52   1        {
+  53   2          if(Key_Down == 14)//S14按下
+C51 COMPILER V9.54   MAIN                                                                  12/01/2022 16:20:11 PAGE 2   
+
+  54   2            Time_Flag = 1;//计时开始
+  55   2        }
+  56   1        if(Count_500Ms < 500)//短按
+  57   1        {
+  58   2          if(Key_Up == 14)//S14抬起
+  59   2          {
+  60   3            Time_Flag = Count_500Ms = 0;//状态复位
+  61   3            if(++Parameter[Parameter_Index] > 70)//超过上限值
+  62   3              Parameter[Parameter_Index] = 10;
+  63   3          }
+  64   2        }
+  65   1        else//长按
+  66   1        {
+  67   2          if(Key_Old == 14)//S14长按
+  68   2          {
+  69   3            if(++Parameter[Parameter_Index] > 70)//超过上限值
+  70   3              Parameter[Parameter_Index] = 10;
+  71   3          }
+  72   2          if(Key_Up == 14)//S14抬起
+  73   2            Time_Flag = Count_500Ms = 0;//状态复位
+  74   2        }
+  75   1        
+  76   1        
+  77   1        if(Seg_Disp_Mode == 2)//处于参数设置界面
+  78   1        {
+  79   2          if(Key_Down == 15)//S15按下
+  80   2            Time_Flag = 1;//计时开始
+  81   2        }
+  82   1        if(Count_500Ms < 500)//短按
+  83   1        {
+  84   2          if(Key_Up == 15)//S15抬起
+  85   2          {
+  86   3            Time_Flag = Count_500Ms = 0;//状态复位
+  87   3            if(--Parameter[Parameter_Index] == 255)//超过下限值
+  88   3              Parameter[Parameter_Index] = 70;
+  89   3          }
+  90   2        }
+  91   1        else//长按
+  92   1        {
+  93   2          if(Key_Old == 15)//S15长按
+  94   2          {
+  95   3            if(--Parameter[Parameter_Index] == 255)//超过下限值
+  96   3              Parameter[Parameter_Index] = 70;
+  97   3          }
+  98   2          if(Key_Up == 15)//S15抬起
+  99   2            Time_Flag = Count_500Ms = 0;//状态复位
+ 100   2        }
+ 101   1        
+ 102   1        switch(Key_Down)
+ 103   1        {
+ 104   2          case 11://小数点输入
+ 105   2            if(Seg_Disp_Mode == 0 && Point_Flag == 0 && Seg_Input[0] != 11)//处于温度采集界面、标志位�
+             -�0、输入数组第一位有数据
+ 106   2            {
+ 107   3              Seg_Point[2+Seg_Input_Index] = 1;
+ 108   3              Point_Wela = Seg_Input_Index;//记录此时指针状态 便于后期数据处理
+ 109   3              Point_Flag = 1;//拉高标志位 保证一次输入周期小数点只能使能一次
+ 110   3            }
+ 111   2          break;
+ 112   2          case 16://温度采集
+ 113   2            if(Seg_Disp_Mode != 0)//处于非温度采集界面
+ 114   2            {
+C51 COMPILER V9.54   MAIN                                                                  12/01/2022 16:20:11 PAGE 3   
+
+ 115   3              Seg_Input_Index = 0;//指针复位
+ 116   3              Point_Flag = 0;//小数点输入标志位复位
+ 117   3              for(i = 0;i < 3;i++)//数组复位
+ 118   3                Seg_Input[i] = 11;
+ 119   3              Seg_Disp_Mode = 0;
+ 120   3            }
+ 121   2            else//处于温度采集界面
+ 122   2            {
+ 123   3              if(Point_Flag == 0 || Seg_Input_Index < 3)//若小数点没有使能 或者指针不为3 则一定为�
+             -��效数据
+ 124   3              {
+ 125   4                Seg_Input_Index = 0;//指针复位
+ 126   4                Seg_Point[3] = Seg_Point[4] = 0;//小数点复位
+ 127   4                Point_Flag = 0;//小数点输入标志位复位
+ 128   4                for(i = 0;i < 3;i++)//数组复位
+ 129   4                  Seg_Input[i] = 11;
+ 130   4              }
+ 131   3              else//小数点使能 进行范围判断
+ 132   3              {
+ 133   4                Temperature = Seg_Input[0] * 100 + Seg_Input[1] * 10 + Seg_Input[2] + 5;
+ 134   4                while(3 - Point_Wela)
+ 135   4                {
+ 136   5                  Temperature /= 10.0;
+ 137   5                  Point_Wela++;
+ 138   5                }
+ 139   4                if((unsigned char)Temperature > 85)//超出采集上限值
+ 140   4                {
+ 141   5                  Seg_Input_Index = 0;//指针复位
+ 142   5                  Seg_Point[3] = Seg_Point[4] = 0;//小数点复位
+ 143   5                  Point_Flag = 0;//小数点输入标志位复位
+ 144   5                  for(i = 0;i < 3;i++)//数组复位
+ 145   5                    Seg_Input[i] = 11;            
+ 146   5                }
+ 147   4                else//数据合理
+ 148   4                {
+ 149   5                  Seg_Input_Index = 0;//指针复位
+ 150   5                  Seg_Point[3] = Seg_Point[4] = 0;//小数点复位
+ 151   5                  Point_Flag = 0;//小数点输入标志位复位
+ 152   5                  Seg_Disp_Mode = 1;//跳转到数据显示界面
+ 153   5                }
+ 154   4              }
+ 155   3            }
+ 156   2          break;
+ 157   2          case 12://界面切换
+ 158   2            if(Seg_Disp_Mode != 0)//处于非温度采集界面
+ 159   2              Seg_Disp_Mode = Seg_Disp_Mode==1?2:1;
+ 160   2            if(Seg_Disp_Mode == 2)//切换到参数设置界面时
+ 161   2            {
+ 162   3              Parameter_Index = 0;//指针复位
+ 163   3              Parameter[0] = Parameter_Ctrol[0];//数据复位
+ 164   3              Parameter[1] = Parameter_Ctrol[1];
+ 165   3            }
+ 166   2            else//切换到数据显示界面
+ 167   2            {
+ 168   3              if(Parameter[0] >= Parameter[1] && Parameter[0] <= 70 && Parameter[1] >= 10)//合理设置参数
+ 169   3              {
+ 170   4                Error_Flag = 0;
+ 171   4                Parameter_Ctrol[0] = Parameter[0];//设置生效
+ 172   4                Parameter_Ctrol[1] = Parameter[1];
+ 173   4              }
+ 174   3              else
+ 175   3                Error_Flag = 1;
+C51 COMPILER V9.54   MAIN                                                                  12/01/2022 16:20:11 PAGE 4   
+
+ 176   3            }
+ 177   2          break;
+ 178   2          case 13://参数切换
+ 179   2            if(Seg_Disp_Mode == 2)//处于参数设置界面
+ 180   2              Parameter_Index ^= 1;//指针取反
+ 181   2          break;
+ 182   2      //    case 14://参数+1
+ 183   2      //      if(Seg_Disp_Mode == 2)//处于参数设置界面
+ 184   2      //      {
+ 185   2      //        if(++Parameter[Parameter_Index] > 70)//超过上限值
+ 186   2      //          Parameter[Parameter_Index] = 10;
+ 187   2      //      }
+ 188   2      //    break;
+ 189   2      //    case 15://参数-1
+ 190   2      //      if(Seg_Disp_Mode == 2)//处于参数设置界面
+ 191   2      //      {
+ 192   2      //        if(--Parameter[Parameter_Index] == 255)//超过下限值
+ 193   2      //          Parameter[Parameter_Index] = 70;
+ 194   2      //      }     
+ 195   2      //    break;
+ 196   2        }
+ 197   1      }
+ 198          
+ 199          /* 信息处理函数 */
+ 200          void Seg_Proc()
+ 201          {
+ 202   1        unsigned char i;//For循环专用变量
+ 203   1        if(Seg_Slow_Down) return;
+ 204   1        Seg_Slow_Down = 1;//数码管减速程序
+ 205   1      
+ 206   1        switch(Seg_Disp_Mode)
+ 207   1        {
+ 208   2          case 0://温度采集界面
+ 209   2            Seg_Buf[0] = 12;//A
+ 210   2            Seg_Buf[1] = Seg_Buf[2] = 10;//熄灭
+ 211   2            for(i = 0;i < 3;i++)//输入数据
+ 212   2              Seg_Buf[3+i] = Seg_Input[i];
+ 213   2            if(Seg_Input[2] == 11)//当最后一位数码管未输入数据时
+ 214   2              Seg_Buf[3+Seg_Input_Index] = Seg_Star_Flag?Seg_Input[Seg_Input_Index]:10;//当前输入数码管闪烁
+ 215   2          break;
+ 216   2          case 1://数据显示界面
+ 217   2            Seg_Buf[0] = 13;//C
+ 218   2            for(i = 0;i < 3;i++)//熄灭
+ 219   2              Seg_Buf[1+i] = 10;
+ 220   2            Seg_Buf[4] = (unsigned char)Temperature / 10;
+ 221   2            Seg_Buf[5] = (unsigned char)Temperature % 10;
+ 222   2          break;
+ 223   2          case 2://参数设置界面
+ 224   2            Seg_Buf[0] = 14;//P
+ 225   2            Seg_Buf[1] = 10;//熄灭
+ 226   2            Seg_Buf[2] = Parameter[0] / 10;
+ 227   2            Seg_Buf[3] = Parameter[0] % 10;
+ 228   2            Seg_Buf[4] = Parameter[1] / 10;
+ 229   2            Seg_Buf[5] = Parameter[1] % 10;
+ 230   2            Seg_Buf[2+2*Parameter_Index] = Seg_Star_Flag?Parameter[Parameter_Index] / 10:10;//当前选中数码管
+             -闪烁
+ 231   2            Seg_Buf[3+2*Parameter_Index] = Seg_Star_Flag?Parameter[Parameter_Index] % 10:10;
+ 232   2          break;
+ 233   2        }
+ 234   1      }
+ 235          
+ 236          /* 其他显示函数 */
+C51 COMPILER V9.54   MAIN                                                                  12/01/2022 16:20:11 PAGE 5   
+
+ 237          void Led_Proc()
+ 238          {
+ 239   1      //  Led_Pwm = 3 * (1 * ((int)Temperature / Parameter_Ctrol[0]) + 2 * ((!((int)Temperature / Parameter_Ctrol
+             -[0])) & ((int)Temperature / Parameter_Ctrol[1])) + 3 *(!((int)Temperature / Parameter_Ctrol[1])));
+ 240   1        if(Temperature > Parameter_Ctrol[0])
+ 241   1          Led_Pwm = 3;
+ 242   1        else if(Temperature < Parameter_Ctrol[0] && Temperature > Parameter_Ctrol[1])
+ 243   1          Led_Pwm = 6;
+ 244   1        else
+ 245   1          Led_Pwm = 9;
+ 246   1        ucLed[0] = (int)Temperature / Parameter_Ctrol[0];
+ 247   1        ucLed[1] = (!((int)Temperature / Parameter_Ctrol[0])) & ((int)Temperature / Parameter_Ctrol[1]);
+ 248   1        ucLed[2] = !((int)Temperature / Parameter_Ctrol[1]);
+ 249   1        ucLed[3] = Error_Flag;
+ 250   1      }
+ 251          
+ 252          /* 定时器0中断初始化函数 */
+ 253          void Timer0Init(void)   //1毫秒@12.000MHz
+ 254          {
+ 255   1        TMOD &= 0xF0;   //设置定时器模式
+ 256   1        TMOD |= 0x01;   //设置定时器模式
+ 257   1        TL0 = 0x18;   //设置定时初始值
+ 258   1        TH0 = 0xFC;   //设置定时初始值
+ 259   1        TF0 = 0;    //清除TF0标志
+ 260   1        TR0 = 1;    //定时器0开始计时
+ 261   1        ET0 = 1;        //定时器0中断打开
+ 262   1        EA = 1;         //总中断打开
+ 263   1      }
+ 264          
+ 265          /* 定时器0中断服务函数 */
+ 266          void Timer0Server() interrupt 1
+ 267          {
+ 268   1        TL0 = 0x18;   //设置定时初始值
+ 269   1        TH0 = 0xFC;   //设置定时初始值   
+ 270   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;//键盘减速专用
+ 271   1        if(++Seg_Slow_Down == 10) Seg_Slow_Down = 0;//数码管减速专用
+ 272   1        if(++Seg_Pos == 6) Seg_Pos = 0;//数码管显示专用
+ 273   1        if(++Led_Pos == 8) Led_Pos = 0;//Led显示专用
+ 274   1        Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 275   1        if(++Timer_500Ms == 500)//每五百毫秒触发一次
+ 276   1        {
+ 277   2          Timer_500Ms = 0;//计数值复位 便于下次使用
+ 278   2          Seg_Star_Flag ^= 1;//闪烁标志位取反
+ 279   2        }
+ 280   1        if(Time_Flag == 1)
+ 281   1        {
+ 282   2          if(++Count_500Ms == 600)//自加到五百毫秒以上就可以限制住 防止一直按下自加的时�
+             -�数值越界
+ 283   2            Count_500Ms = 600;
+ 284   2        }
+ 285   1        if(++Led_Num == 10) Led_Num = 0;
+ 286   1        if(Led_Num < Led_Pwm)
+ 287   1          Led_Disp(Led_Pos,ucLed[Led_Pos]);
+ 288   1        else
+ 289   1          Led_Disp(Led_Pos,0);
+ 290   1      }
+ 291          
+ 292          /* Main */
+ 293          void main()
+ 294          {
+ 295   1        Timer0Init();
+ 296   1        while (1)
+C51 COMPILER V9.54   MAIN                                                                  12/01/2022 16:20:11 PAGE 6   
+
+ 297   1        {
+ 298   2          Key_Proc();
+ 299   2          Seg_Proc();
+ 300   2          Led_Proc();
+ 301   2        }
+ 302   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1271    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     49       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      5    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
